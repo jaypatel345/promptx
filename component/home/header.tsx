@@ -34,7 +34,7 @@ export default function Header() {
   return (
     <>
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white backdrop-blur-md w-full">
+      <header className="sticky top-0 z-50 bg-white backdrop-blur-md w-full text-black">
         <div className="flex justify-between items-center mx-4 sm:mx-5 py-3">
           {/* Left: Logo */}
           <div className="flex items-center text-2xl sm:text-3xl font-semibold tracking-tight">

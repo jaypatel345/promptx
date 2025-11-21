@@ -3,7 +3,7 @@ import React from "react";
 
 function Herosection() {
   return (
-    <div className="max-w-5xl mx-auto flex flex-col items-center gap-10 text-center px-4 mt-26 bg-white">
+    <div className="max-w-5xl mx-auto flex flex-col items-center gap-10 text-center px-4 mt-26 bg-white text-black">
       <div className="flex flex-col gap-10">
         <div className="font-light text-sm sm:text-lg">
           prompt
