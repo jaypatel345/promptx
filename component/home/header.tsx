@@ -103,13 +103,14 @@ export default function Header() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className="text-black"
               >
                 <circle cx="11" cy="11" r="7"></circle>
                 <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
               </svg>
             </button>
 
-            <button className="px-4 sm:px-5 py-1.5 sm:py-2 bg-gray-300/40 rounded-full hover:bg-gray-200 transition cursor-pointer text-[12px] sm:text-[13px]">
+            <button className="px-4 sm:px-5 py-1.5 sm:py-2 bg-gray-300/40 text-black rounded-full hover:bg-gray-200 transition cursor-pointer text-[12px] sm:text-[13px]">
               Log in
             </button>
           </div>
@@ -122,7 +123,7 @@ export default function Header() {
           isNavOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <ul className="translate-y-[50%] sm:translate-y-[75%] flex flex-col gap-4 text-[14px] font-medium pl-4 sm:pl-6">
+        <ul className="translate-y-[50%] sm:translate-y-[75%] flex flex-col gap-4 text-[14px] font-medium pl-4 sm:pl-6 text-black">
           <li>
             <Link href="/" className="hover:text-gray-600 transition-colors">
               Home
