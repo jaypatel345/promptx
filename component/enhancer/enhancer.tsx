@@ -7,7 +7,9 @@ import Image from "next/image";
 
 function Enhancer() {
   const { isNavOpen, setIsNavOpen } = useUi();
-   const { theme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const [isFeatureOpen, setIsFeatureOpen] = useState(false);
+  
 
   useEffect(() => {
     const isMobile = window.innerWidth < 640;
@@ -28,10 +30,10 @@ function Enhancer() {
           <div className="flex  justify-center">
             <Image
               src={
-                    theme === "light"
-                      ? "/Rectangle.png"
-                      : "/AdobeStock_450013573_Preview 1.png"
-                  }
+                theme === "light"
+                  ? "/Rectangle.png"
+                  : "/AdobeStock_450013573_Preview 1.png"
+              }
               width={100}
               height={100}
               alt="promptx logo"
@@ -60,14 +62,14 @@ function Enhancer() {
               placeholder="Ask anything"
               className="text-sm sm:text-[16px] w-full outline-none text-black dark:text-white dark:bg-[#0f0f0f] dark:placeholder-gray-400"
             />
-            <div className="hidden sm:flex gap-1 sm:gap-2 items-center text-xs sm:text-sm hover:bg-gray-700/30 p-1.5 sm:p-2 rounded-2xl cursor-pointer shrink-0">
+            {/* <div className="hidden sm:flex gap-1 sm:gap-2 items-center text-xs sm:text-sm hover:bg-gray-300/30 p-1.5 sm:p-2 rounded-3xl cursor-pointer shrink-0 dark:hover:bg-gray-800/50 ">
               <svg
                 width="16"
                 height="16"
                 viewBox="0 0 24 24"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                className=""
+                className="relative"
               >
                 <path
                   d="M6.5 12.5L11.5 17.5M6.5 12.5L11.8349 6.83172C13.5356 5.02464 15.9071 4 18.3887 4H20V5.61135C20 8.09292 18.9754 10.4644 17.1683 12.1651L11.5 17.5M6.5 12.5L2 11L5.12132 7.87868C5.68393 7.31607 6.44699 7 7.24264 7H11M11.5 17.5L13 22L16.1213 18.8787C16.6839 18.3161 17 17.553 17 16.7574V13"
@@ -88,6 +90,10 @@ function Enhancer() {
                 xmlns="http://www.w3.org/2000/svg"
                 className="text-secondary transition-transform duration-200"
                 strokeWidth="2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsFeatureOpen((prev) => !prev);
+                }}
               >
                 <path
                   d="M6 9L12 15L18 9"
@@ -95,6 +101,21 @@ function Enhancer() {
                   strokeLinecap="square"
                 ></path>
               </svg>
+            </div> */}
+            <div className="relative ">
+              <div
+                className={`${
+                  isFeatureOpen ? "opacity-100" : " opacity-0"
+                } absolute top-4 px-2 bg-amber-200 `}
+              >
+                <div className=" ">
+                  Auto
+                  <div>Chooses Fast and Export </div>
+                </div>
+                <div className=" ">fast </div>
+                <div className=" ">fast </div>
+                <div className=" ">fast </div>
+              </div>
             </div>
             <button className="flex items-center gap-2 shrink-0">
               <svg

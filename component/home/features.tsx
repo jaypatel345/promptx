@@ -41,7 +41,7 @@ export default function Features() {
       </div>
 
       {/* Feature Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 sm:gap-29 mt-20 sm:mt-30 text-center ">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 sm:gap-29 mt-20 sm:mt-30 text-center ml-5 md:ml-20 ">
         {/* Feature 1 */}
         <div className="text-left dark:text-white">
           <div className="text-2xl inline-block dark:text-white">

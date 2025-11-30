@@ -14,7 +14,7 @@ function Herosection() {
       } `}
     >
       <div className="flex flex-col gap-10">
-        <div className="font-light text-sm sm:text-xl">
+        <div className="font-medium text-sm sm:text-sm">
           prompt
           <span className=" bg-linear-to-r from-[#0070a0]  via-[#68d1fe] to-[#c4d5f3] bg-clip-text text-transparent">
             X
