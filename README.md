@@ -8,7 +8,7 @@ This is the source code for my personal website. The project is built using **Ne
 - Metadata API integrated
 - Sitemap generated and submitted
 
-## 🛠️ Tech Stack
+##  Tech Stack
 - **Next.js**
 - **React**
 - **Tailwind CSS**
