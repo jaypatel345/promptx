@@ -22,28 +22,32 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/promptx-logo.png",
-     // favicon / site icon
+    shortcut: "/favicon.ico",
+    apple: "/promptx-logo.png",
   },
   openGraph: {
     title: "PromptX – AI Enhancer",
     description: "Your AI-powered enhancement platform.",
     url: "https://promptx.co.in/",
+    siteName: "PromptX",
     images: [
       {
-        url: "/logo.png",
+        url: "https://promptx.co.in/promptx-logo.png",
         width: 1200,
         height: 630,
         alt: "PromptX Logo",
       },
     ],
+    type: "website",
+    locale: "en_US",
   },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
       <head>
@@ -55,13 +59,14 @@ export default function RootLayout({
               "@type": "Organization",
               name: "PromptX",
               url: "https://promptx.co.in/",
-              logo: "https://promptx.co.in/logo.png",
+              logo: "https://promptx.co.in/promptx-logo.png",
             }),
           }}
         />
       </head>
+
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased text-black bg-white dark:bg-black  dark:text-white `}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased text-black bg-white dark:bg-black dark:text-white`}
       >
         <ThemeProvider>
           <UiProvider>{children}</UiProvider>
