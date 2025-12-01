@@ -20,6 +20,23 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://promptx.co.in/",
   },
+  icons: {
+    icon: "/promptx-logo.png",
+     // favicon / site icon
+  },
+  openGraph: {
+    title: "PromptX – AI Enhancer",
+    description: "Your AI-powered enhancement platform.",
+    url: "https://promptx.co.in/",
+    images: [
+      {
+        url: "/logo.png",
+        width: 1200,
+        height: 630,
+        alt: "PromptX Logo",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -29,6 +46,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "PromptX",
+              url: "https://promptx.co.in/",
+              logo: "https://promptx.co.in/logo.png",
+            }),
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased text-black bg-white dark:bg-black  dark:text-white `}
       >

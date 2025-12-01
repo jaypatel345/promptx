@@ -55,10 +55,16 @@ export default function Header() {
     <>
       {/* Header */}
       <header
-        className="fixed top-0 z-50 backdrop-blur-md text-black w-full bg-linear-to-b from-white/80 to-white/40 
-    dark:text-white
-    dark:bg-linear-to-b dark:from-black/60 dark:to-black/20"
-      >
+  className="
+    fixed top-0 z-50 w-full backdrop-blur-md text-black
+
+    /* Mobile (default) */
+    bg-white dark:bg-black
+
+   xl:bg-linear-to-b xl:from-white/80 xl:to-white/40
+xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
+  "
+>
         <div className="flex justify-between items-center mx-3 sm:mx-4 md:mx-5 py-2.5 sm:py-3">
           {/* Left: Logo */}
           <div className="flex items-center text-2xl sm:text-4xl font-semibold">

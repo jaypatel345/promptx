@@ -28,7 +28,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (stored) {
       setThemeState(stored);
     } else {
-      setThemeState("system");
+      setThemeState("light");
     }
   }, [mounted]);
 
