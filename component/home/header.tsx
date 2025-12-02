@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/context/theme-context";
+import { Router } from "next/router";
+import axios from "axios";
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(true);
@@ -14,7 +16,11 @@ export default function Header() {
   const pathname = usePathname();
   const [isSettingOpen, setIsSettingOpen] = useState(false);
   const { theme, setTheme } = useTheme();
-
+  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState({
+    email: "",
+    password: "",
+  });
   function checkScrollPosition() {
     const fullScreen = window.innerHeight;
     const halfScreen = fullScreen * 0.5;
@@ -51,11 +57,34 @@ export default function Header() {
     }
   }, []);
 
+const onLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const response = await axios.post("/api/Login", user);
+      console.log("Login success", response.data);
+      // toast.success("Login success");
+      if (response.data?.user) {
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+        console.log("User saved to localStorage:", response.data.user);
+      }
+      // Router.push("/");
+    } catch (error: any) {
+      console.log("Login failed", error.message);
+      // toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
+
   return (
     <>
       {/* Header */}
       <header
-  className="
+        className="
     fixed top-0 z-50 w-full backdrop-blur-md text-black
 
     /* Mobile (default) */
@@ -64,7 +93,7 @@ export default function Header() {
    xl:bg-linear-to-b xl:from-white/80 xl:to-white/40
 xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
   "
->
+      >
         <div className="flex justify-between items-center mx-3 sm:mx-4 md:mx-5 py-2.5 sm:py-3">
           {/* Left: Logo */}
           <div className="flex items-center text-2xl sm:text-4xl font-semibold">
@@ -97,7 +126,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
       ${isScrolled ? "opacity-100 translate-y-0" : "opacity-100 translate-y-0"}
     `}
               >
-              <Image
+                <Image
                   src={
                     theme === "light"
                       ? "/Rectangle.png"
@@ -355,12 +384,18 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
               <input
                 type="email"
                 placeholder="Email"
+                value={user.email}
+                onChange={(e) => setUser({ ...user, email: e.target.value })}
                 className="border-b-2 w-full px-2 py-2 mb-4 sm:mb-5 text-black outline-none dark:text-white text-sm sm:text-base"
               />
               <div className="flex items-center justify-center">
                 <input
                   type="password"
                   placeholder="Password"
+                  value={user.password}
+                  onChange={(e) =>
+                    setUser({ ...user, password: e.target.value })
+                  }
                   className="border-b-2 w-full px-2 py-2 mb-4 text-black outline-none dark:text-white text-sm sm:text-base"
                 />
                 <svg
@@ -380,7 +415,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                 </svg>
               </div>
               <button className="w-full bg-black text-[#aeaeaf] py-2.5 sm:py-3 md:py-4 rounded-full hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/90 text-sm sm:text-base">
-                <div className="cursor-pointer">SIGN IN</div>
+                <div className="cursor-pointer">SIGN IN {loading}</div>
               </button>
               <div className="flex justify-center items-center">
                 <button className="w-full sm:w-[74%] mt-2 text-white pr-2 sm:pr-3 rounded-full bg-black flex justify-between items-center hover:bg-black/80 cursor-pointer dark:bg-white dark:text-black dark:hover:bg-white/90 text-xs sm:text-sm">
