@@ -57,7 +57,7 @@ export default function Header() {
     }
   }, []);
 
-const onLogin = async (e: React.FormEvent) => {
+  const onLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setLoading(true);
@@ -76,9 +76,6 @@ const onLogin = async (e: React.FormEvent) => {
       setLoading(false);
     }
   };
-
-
-
 
   return (
     <>
@@ -196,7 +193,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
             </button>
             <button
               aria-label="Search"
-              className={`p-1 sm:p-2 rounded-full hover:bg-gray-100 transition dark:hover:bg-gray-700/40 ${
+              className={`p-1 sm:p-2 rounded-full hover:bg-gray-100 transition dark:text-gray-50  dark:hover:bg-gray-500/40 ${
                 pathname == "/Enhancer" ? "" : "hidden"
               }`}
             >
@@ -254,7 +251,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                 </div>
                 <div
                   className={`${
-                    theme == "dark" ? "bg-gray-400/20" : ""
+                    theme == "dark" ? "bg-gray-400/20 text-white" : ""
                   } p-1.5 sm:p-2 hover:bg-gray-400/20 rounded cursor-pointer`}
                 >
                   <svg
@@ -290,8 +287,8 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="lucide lucide-monitor-smartphone sm:w-4 sm:h-4"
-                    onClick={() => setTheme("system")}
+                    className="lucide lucide-monitor-smartphone sm:w-4 sm:h-4 "
+                    onClick={() => setTheme("light")}
                   >
                     <path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8"></path>
                     <path d="M10 19v-3.96 3.15"></path>
@@ -343,7 +340,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
             <input
               type="text"
               placeholder="Ask me about our team"
-              className="border-b px-3 sm:px-4 py-2 outline-none text-lg sm:text-xl md:text-3xl pointer-events-auto w-full sm:w-auto"
+              className="border-b px-2 sm:px-3 py-2 outline-none text-lg sm:text-xl md:text-2xl pointer-events-auto w-full sm:w-lg"
               autoFocus
             />
             <svg
@@ -352,7 +349,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
               viewBox="0 0 32 32"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
-              className="ml-4 sm:ml-10 border-black bg-black/90 rounded-full hover:bg-black/70 text-white cursor-pointer dark:text-black dark:bg-white sm:w-[35px] sm:h-[35px] hrink-0"
+              className="ml-8 sm:ml-6 border-black bg-black/90 rounded-full hover:bg-black/70 text-white cursor-pointer dark:text-black dark:bg-white sm:w-[35px] sm:h-[35px] hrink-0"
             >
               <path
                 d="M16 22L16 10M16 10L11 15M16 10L21 15"
@@ -371,22 +368,23 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
         <>
           {/* BACKDROP – full screen */}
           <div
-            className="fixed inset-0 bg-white/40 backdrop-blur-sm z-5 dark:bg-black/40"
+            className="fixed inset-0 bg-white/40 backdrop-blur-sm z-50 dark:bg-black/40"
             onClick={() => setIsLoginOpen(false)}
           ></div>
 
           {/* MODAL CONTAINER – centered */}
-          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none -translate-y-10 sm:-translate-y-20 transition-all duration-300 px-4">
+          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none -translate-y-10 sm:-translate-y-20 transition-all duration-300 px-4 ">
             <div
-              className="bg-white/60 w-full max-w-xs sm:max-w-sm rounded-2xl p-6 sm:p-10 pointer-events-auto shadow-sm dark:bg-gray-700/30 dark:text-white"
+              className="bg-white/60 w-lg max-w-xs sm:max-w-sm rounded-2xl px-6 sm:px-8 py-13 pointer-events-auto shadow-sm dark:bg-gray-700/30 dark:text-white "
               onClick={(e) => e.stopPropagation()}
             >
               <input
                 type="email"
                 placeholder="Email"
                 value={user.email}
+                autoFocus
                 onChange={(e) => setUser({ ...user, email: e.target.value })}
-                className="border-b-2 w-full px-2 py-2 mb-4 sm:mb-5 text-black outline-none dark:text-white text-sm sm:text-base"
+                className="border-b-2 w-full px-2 py-2 mb-4 sm:mb-5 text-black outline-none dark:text-white text-[13px] sm:text-[13px]"
               />
               <div className="flex items-center justify-center">
                 <input
@@ -396,7 +394,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                   onChange={(e) =>
                     setUser({ ...user, password: e.target.value })
                   }
-                  className="border-b-2 w-full px-2 py-2 mb-4 text-black outline-none dark:text-white text-sm sm:text-base"
+                  className="border-b-2 w-full px-2 py-2 mb-7 text-black outline-none dark:text-white text-sm sm:text-[13px]"
                 />
                 <svg
                   width="16"
@@ -414,11 +412,11 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                   ></path>
                 </svg>
               </div>
-              <button className="w-full bg-black text-[#aeaeaf] py-2.5 sm:py-3 md:py-4 rounded-full hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/90 text-sm sm:text-base">
+              <button className="w-full bg-black text-[#aeaeaf] py-2 sm:py-2 md:py-3 rounded-full hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/90 text-sm sm:text-base">
                 <div className="cursor-pointer">SIGN IN {loading}</div>
               </button>
               <div className="flex justify-center items-center">
-                <button className="w-full sm:w-[74%] mt-2 text-white pr-2 sm:pr-3 rounded-full bg-black flex justify-between items-center hover:bg-black/80 cursor-pointer dark:bg-white dark:text-black dark:hover:bg-white/90 text-xs sm:text-sm">
+                <button className="w-fit sm:w-[60%] mt-2 text-white pr-3 sm:pr-3 rounded-full bg-black flex justify-between items-center hover:bg-black/80 cursor-pointer dark:bg-white dark:text-black dark:hover:bg-white/90 text-xs sm:text-sm">
                   <svg
                     version="1.1"
                     xmlns="http://www.w3.org/2000/svg"
@@ -447,7 +445,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                       <path fill="none" d="M0 0h48v48H0z"></path>
                     </g>
                   </svg>
-                  Continue with Google
+                  <div className="pl-2 md:pl-0 ">Continue with Google</div>
                 </button>
               </div>
               <div className="flex justify-center items-center gap-2 sm:gap-3 pt-3 sm:pt-4 text-xs sm:text-[13px]">
