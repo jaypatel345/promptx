@@ -1,9 +1,6 @@
-"use client";
-
-import Enhancer from "@/component/enhancer/enhancer";
-import React from "react";
 import type { Metadata } from "next";
 import { createCanonical, defaultOpenGraph } from "@/lib/seo";
+import EnhancerClient from "./EnhancerClient";
 
 export const metadata: Metadata = {
   title: "Prompt Enhancer – PromptX",
@@ -19,21 +16,5 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  const schema = {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    name: "Prompt Enhancer",
-    description: "Enhance prompts using AI-driven optimization.",
-    url: "https://promptx.co.in/Enhancer",
-  };
-
-  return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-      />
-      <Enhancer />
-    </>
-  );
+  return <EnhancerClient />;
 }
