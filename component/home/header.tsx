@@ -21,6 +21,7 @@ export default function Header() {
     email: "",
     password: "",
   });
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   function checkScrollPosition() {
     const fullScreen = window.innerHeight;
     const halfScreen = fullScreen * 0.5;
@@ -57,25 +58,50 @@ export default function Header() {
     }
   }, []);
 
-  const onLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      const response = await axios.post("/api/Login", user);
-      console.log("Login success", response.data);
-      // toast.success("Login success");
-      if (response.data?.user) {
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-        console.log("User saved to localStorage:", response.data.user);
+useEffect(() => {
+  if (typeof window !== "undefined") {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser && storedUser !== "undefined") {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        if (parsedUser) {
+          setIsLoggedIn(true);
+        }
+      } catch (err) {
+        console.error("Failed to parse user from localStorage:", err);
       }
-      // Router.push("/");
-    } catch (error: any) {
-      console.log("Login failed", error.message);
-      // toast.error(error.message);
-    } finally {
-      setLoading(false);
     }
-  };
+  }
+}, []);
+
+  const onLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  try {
+    setLoading(true);
+
+    const response = await axios.post("http://localhost:3000/api/login", {
+      email: user.email,
+      password: user.password,
+    });
+
+    console.log("Login success:", response.data);
+
+    if (response.data?.token) {
+      localStorage.setItem("token", response.data.token);
+      setIsLoggedIn(true);
+    }
+
+    // Close login modal
+    setIsLoginOpen(false);
+
+    // redirect if needed
+    // router.push("/");
+  } catch (error: any) {
+    console.log("Login failed:", error.response?.data || error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <>
@@ -307,7 +333,24 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                 setIsScrolled(false);
               }}
             >
-              Log in
+              {isLoggedIn ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              ) : (
+                "Log in"
+              )}
             </button>
           </div>
         </div>
@@ -382,7 +425,6 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                 type="email"
                 placeholder="Email"
                 value={user.email}
-                autoFocus
                 onChange={(e) => setUser({ ...user, email: e.target.value })}
                 className="border-b-2 w-full px-2 py-2 mb-4 sm:mb-5 text-black outline-none dark:text-white text-[13px] sm:text-[13px]"
               />
@@ -412,7 +454,10 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                   ></path>
                 </svg>
               </div>
-              <button className="w-full bg-black text-[#aeaeaf] py-2 sm:py-2 md:py-3 rounded-full hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/90 text-sm sm:text-base">
+              <button
+                className="w-full bg-black text-[#aeaeaf] py-2 sm:py-2 md:py-3 rounded-full hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/90 text-sm sm:text-base"
+                onClick={onLogin}
+              >
                 <div className="cursor-pointer">SIGN IN {loading}</div>
               </button>
               <div className="flex justify-center items-center">
@@ -497,7 +542,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
           </li>
           <li>
             <Link
-              href="/templates"
+              href="/Templates"
               className={` ${
                 pathname == "/templates"
                   ? "text-gray-700/70 hover:text-black dark:text-gray-200/60 dark:hover:text-white"
@@ -509,7 +554,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
           </li>
           <li>
             <Link
-              href="/guides"
+              href="/Engineering"
               className={` ${
                 pathname == "/guides"
                   ? "text-gray-700/70 hover:text-black dark:text-gray-200/60 dark:hover:text-white"
@@ -521,9 +566,9 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
           </li>
           <li>
             <Link
-              href="/tools"
+              href="/AITools"
               className={` ${
-                pathname == "/tools"
+                pathname == "/AiTools"
                   ? "text-gray-700/70 hover:text-black dark:text-gray-200/60 dark:hover:text-white"
                   : ""
               }  hover:text-xl  transition-all duration-400 cursor-pointer hover:pl-4 py-3   pr-26  `}
@@ -533,7 +578,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
           </li>
           <li>
             <Link
-              href="/learn"
+              href="/Learn"
               className={` ${
                 pathname == "/learn"
                   ? "text-gray-700/70 hover:text-black dark:text-gray-200/60 dark:hover:text-white"
@@ -545,7 +590,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
           </li>
           <li>
             <Link
-              href="/pricing"
+              href="/Pricing"
               className={` ${
                 pathname == "/pricing"
                   ? "text-gray-700/70 hover:text-black dark:text-gray-200/60 dark:hover:text-white"
@@ -557,7 +602,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
           </li>
           <li>
             <Link
-              href="/teams"
+              href="/Teams"
               className={` ${
                 pathname == "/teams"
                   ? "text-gray-700/70 hover:text-black dark:text-gray-200/60 dark:hover:text-white"

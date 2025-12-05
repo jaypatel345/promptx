@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { UiProvider } from "@/context/UiContext";
 import { ThemeProvider } from "@/context/theme-context";
+import LenisProvider from "@/component/LenisProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -69,7 +70,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased text-black bg-white dark:bg-black dark:text-white`}
       >
         <ThemeProvider>
-          <UiProvider>{children}</UiProvider>
+          <UiProvider>
+            <LenisProvider>{children}</LenisProvider>
+          </UiProvider>
         </ThemeProvider>
       </body>
     </html>

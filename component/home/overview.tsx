@@ -4,6 +4,7 @@ import { useUi } from "@/context/UiContext";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
+import { motion } from "framer-motion";
 
 function Overview() {
   const { isNavOpen, setIsNavOpen } = useUi();
@@ -17,19 +18,28 @@ function Overview() {
   `}
       >
         {/* Gradient Top Border */}
-        <div className="absolute top-0 left-0 w-full h-[1.5px] bg-linear-to-r from-transparent via-gray-300 to-transparent "></div>
-        <div className="  justify-center items-center pt-40 gap-5 md:flex pl-4 md:pl-0 overflow-y-hidden ">
-          <div className="text-2xl md:text-4xl font-medium">
-            Get perfectly optimized prompts with Prompt
-            <span className="bg-linear-to-r from-[#0070a0]  via-[#68d1fe] to-[#f7f7f7] bg-clip-text text-transparent">
-              X
-            </span>
+       
+          <div className="absolute top-0 left-0 w-full h-[1.5px] bg-linear-to-r from-transparent via-gray-300 to-transparent "></div>
+           <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2, ease: "easeOut" }}
+          viewport={{ once: true, amount: 0.3 }}
+        >
+          <div className="  justify-center items-center pt-40 gap-5 md:flex pl-4 md:pl-0 overflow-y-hidden ">
+            <div className="text-2xl md:text-4xl font-medium">
+              Get perfectly optimized prompts with Prompt
+              <span className="bg-linear-to-r from-[#0070a0]  via-[#68d1fe] to-[#f7f7f7] bg-clip-text text-transparent">
+                X
+              </span>
+            </div>
+            <div className="md:mt-0 mt-8 ">
+              Unlock clearer, smarter, and more precise AI responses powered by
+              advanced prompt enhancement technology.
+            </div>
           </div>
-          <div className="md:mt-0 mt-8 ">
-            Unlock clearer, smarter, and more precise AI responses powered by
-            advanced prompt enhancement technology.
-          </div>
-        </div>
+        </motion.div>
+
         <div className="relative px-4 sm:px-0">
           <Image
             src={
@@ -40,7 +50,7 @@ function Overview() {
             width={1200}
             height={700}
             alt=""
-            className="mt-20 w-full h-auto border-x-2 border-t-2 rounded-t-2xl border-gray-500 dark:border-gray-300"
+            className="mt-20 w-full h-auto border-x-2 border-t-4 rounded-t-3xl border-gray-500 dark:border-gray-300"
           />
         </div>
 
@@ -49,11 +59,14 @@ function Overview() {
           <div className="relative w-full h-full">
             <Image
               src={
-              theme == "light" ?"/Screenshot 2025-11-29 at 1.42.57 AM.png":"/Screenshot 2025-11-29 at 1.39.37 AM.png"}
+                theme == "light"
+                  ? "/Screenshot 2025-11-29 at 1.42.57 AM.png"
+                  : "/Screenshot 2025-11-29 at 1.39.37 AM.png"
+              }
               width={300}
               height={700}
               alt=""
-              className="relative -right-1/3 md:-right-1/2 w-auto h-[300px] sm:h-[400px] md:h-[600px] object-contain border-x-2 border-t-2 rounded-t-3xl border-gray-500 dark:border-gray-300"
+              className="relative -right-1/3 md:-right-1/2 w-auto h-[300px] sm:h-[400px] md:h-[600px] object-contain border-x-2 border-t-4 rounded-t-3xl border-gray-500 dark:border-gray-300"
             />
             {/* Bottom fade effect */}
           </div>
