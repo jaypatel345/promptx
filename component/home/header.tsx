@@ -500,7 +500,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                 >
                   Forgot Password
                 </Link>
-                <Link href="/sign up" className="text-black dark:text-white">
+                <Link href="/Signup" className="text-black dark:text-white">
                   Sign Up
                 </Link>
               </div>

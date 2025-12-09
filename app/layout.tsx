@@ -61,6 +61,18 @@ export default function RootLayout({
               name: "PromptX",
               url: "https://promptx.co.in/",
               logo: "https://promptx.co.in/promptx-logo.png",
+              image: "https://promptx.co.in/promptx-logo.png",
+              description: "PromptX – AI Enhancer platform.",
+              sameAs: [
+                "https://www.linkedin.com/company/promptx-official",
+                "https://github.com/jaypatel345/promptx",
+              ],
+              contactPoint: {
+                "@type": "ContactPoint",
+                contactType: "customer support",
+                email: "support@promptx.co.in",
+                availableLanguage: ["English"],
+              },
             }),
           }}
         />
