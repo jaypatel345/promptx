@@ -91,9 +91,8 @@ export default function Features() {
               Instant Prompt Enhancement
             </h3>
             <p className="text-gray-500 text-sm mt-2 leading-relaxed">
-              PromptX analyzes intent and optimizes every prompt for the best
-              possible response — delivering refined, powerful, and structured
-              output in seconds.
+              PromptX understands your intent and rewrites every prompt into a
+              clear, structured instruction—ready in seconds.
             </p>
           </div>
 
@@ -115,9 +114,8 @@ export default function Features() {
               Reliable & Consistent Output
             </h3>
             <p className="text-gray-500 text-sm mt-2 leading-relaxed">
-              Our enhancement engine produces stable, dependable results across
-              complex tasks — ensuring clarity, context, and precision every
-              time.
+              Stable results across complex tasks by adding context, removing
+              ambiguity, and standardizing format.
             </p>
           </div>
 
@@ -137,9 +135,8 @@ export default function Features() {
             </div>
             <h3 className="text-lg font-medium mt-4">Boost Productivity</h3>
             <p className="text-gray-500 text-sm mt-2 leading-relaxed">
-              Reduce rewriting, avoid trial & error, and accelerate your
-              workflow. PromptX helps users focus on execution instead of fixing
-              prompts.
+              Reduce rewriting and trial & error so you can focus on execution
+              instead of fixing prompts.
             </p>
           </div>
         </div>

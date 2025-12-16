@@ -4,11 +4,45 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
 function Signup() {
   const [isScrolled, setIsScrolled] = useState(true);
   const { theme, setTheme } = useTheme();
-  const [isLoginOpen, setisLoginOpen] = useState(false);
+  const [isSignupOpen, setIsSignupOpen] = useState(false);
+  const [error, setError] = useState("");
+  const [user, setUser] = useState({
+    username: "",
+    email: "",
+    password: "",
+  });
+  const router = useRouter();
+
+  const onSignup = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!user.username || !user.email || !user.password) {
+    setError("All fields are required");
+    return;
+  }
+
+  try {
+    const response = await axios.post("/api/signup", {
+      username: user.username.trim(),
+      email: user.email.trim(),
+      password: user.password,
+    });
+
+    // Signup succeeded
+    if (response.data?.success) {
+      router.back(); // or router.push("/login")
+    }
+  } catch (error: any) {
+    console.error("Signup error:", error.response?.data);
+    setError(error.response?.data?.error || "Signup failed");
+  }
+};
   return (
     <>
       <div className="w-full grid grid-cols-2   min-h-screen  ">
@@ -34,7 +68,7 @@ function Signup() {
             <div className="text-3xl font-medium">Create your account</div>
             <div
               className={`flex flex-col gap-5  items-center transition-all duration-500   ${
-                isLoginOpen ? "  opacity-0   " : " opacity-100"
+                isSignupOpen ? "  opacity-0   " : " opacity-100"
               } `}
             >
               <Link href="/" className="w-full">
@@ -120,7 +154,7 @@ function Signup() {
               <button
                 className="border w-full rounded-full py-2 hover:bg-gray-200/20 cursor-pointer flex items-center justify-center relative"
                 onClick={() => {
-                  setisLoginOpen(true);
+                  setIsSignupOpen(true);
                 }}
               >
                 <Image
@@ -147,10 +181,10 @@ function Signup() {
                 </div>
               </Link>
             </div>
-            {isLoginOpen && (
+            {isSignupOpen && (
               <>
                 <motion.div
-                  className="fixed inset-0 flex items-center justify-center z-50"
+                  className="fixed inset-0 flex items-center justify-center z-50 "
                   initial={{ opacity: 0, scale: 0.92 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.92 }}
@@ -161,43 +195,60 @@ function Signup() {
                       {/* <h2 className="text-xl font-semibold text-center mb-6 text-black dark:text-white">
                       Create Your Account
                     </h2> */}
-
-                      <input
-                        type="text"
-                        placeholder="Username"
-                        className="border-b border-gray-300 dark:border-neutral-700 w-full px-2 py-2 mb-4 text-[15px]  bg-white dark:bg-neutral-800 text-black dark:text-white    outline-none transition-all"
-                      />
-
-                      <input
-                        type="email"
-                        placeholder="Email"
-                        className="border-b border-gray-300 dark:border-neutral-700 w-full px-2 py-2 mb-4 text-[15px]  bg-white dark:bg-neutral-800 text-black dark:text-white   outline-none transition-all"
-                      />
-                      <div className="flex  items-center">
+                      <form onSubmit={onSignup}>
                         <input
-                          type="password"
-                          placeholder="Password"
-                          className="border-b border-gray-300 dark:border-neutral-700 w-full px-2 py-2 mb-4 text-[15px] bg-white dark:bg-neutral-800 text-black dark:text-white  outline-none transition-all"
+                          type="text"
+                          value={user.username}
+                          placeholder="Username"
+                          onChange={(e) => {
+                            setUser({ ...user, username: e.target.value });
+                          }}
+                          className="border-b border-gray-300 dark:border-neutral-700 w-full px-2 py-2 mb-4 text-[15px]  bg-white dark:bg-neutral-800 text-black dark:text-white    outline-none transition-all"
                         />
-                        <svg
-                          width="16"
-                          height="16"
-                          xmlns="http://www.w3.org/2000/svg"
-                          aria-hidden="true"
-                          viewBox="0 0 16 16"
-                          fill="currentColor"
-                          className="cursor-pointer ml-2 sm:ml-3 sm:w-[18px] sm:h-[18px] shrink-0"
+
+                        <input
+                          type="email"
+                          value={user.email}
+                          placeholder="Email"
+                          onChange={(e) => {
+                            setUser({ ...user, email: e.target.value });
+                          }}
+                          className="border-b border-gray-300 dark:border-neutral-700 w-full px-2 py-2 mb-4 text-[15px]  bg-white dark:bg-neutral-800 text-black dark:text-white   outline-none transition-all"
+                        />
+                        <div className="flex  items-center">
+                          <input
+                            type="password"
+                            value={user.password}
+                            placeholder="Password"
+                            onChange={(e) => {
+                              setUser({ ...user, password: e.target.value });
+                            }}
+                            className="border-b border-gray-300 dark:border-neutral-700 w-full px-2 py-2 mb-4 text-[15px] bg-white dark:bg-neutral-800 text-black dark:text-white  outline-none transition-all"
+                          />
+                          {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+                          <svg
+                            width="16"
+                            height="16"
+                            xmlns="http://www.w3.org/2000/svg"
+                            aria-hidden="true"
+                            viewBox="0 0 16 16"
+                            fill="currentColor"
+                            className="cursor-pointer ml-2 sm:ml-3 sm:w-[18px] sm:h-[18px] shrink-0"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              clipRule="evenodd"
+                              d="M8 2.5C3 2.5 0 8 0 8C0 8 3 13.5 8 13.5C13 13.5 16 8 16 8C16 8 13 2.5 8 2.5ZM10.4749 10.4749C9.8185 11.1313 8.92826 11.5 8 11.5C7.07174 11.5 6.1815 11.1313 5.52513 10.4749C4.86875 9.8185 4.5 8.92826 4.5 8C4.5 7.07174 4.86875 6.1815 5.52513 5.52513C6.1815 4.86875 7.07174 4.5 8 4.5C8.92826 4.5 9.8185 4.86875 10.4749 5.52513C11.1313 6.1815 11.5 7.07174 11.5 8C11.5 8.92826 11.1313 9.8185 10.4749 10.4749ZM9.76777 9.76777C10.2366 9.29893 10.5 8.66304 10.5 8C10.5 7.33696 10.2366 6.70107 9.76777 6.23223C9.29893 5.76339 8.66304 5.5 8 5.5C7.33696 5.5 6.70107 5.76339 6.23223 6.23223C5.76339 6.70107 5.5 7.33696 5.5 8C5.5 8.66304 5.76339 9.29893 6.23223 9.76777C6.70107 10.2366 7.33696 10.5 8 10.5C8.66304 10.5 9.29893 10.2366 9.76777 9.76777Z"
+                            ></path>
+                          </svg>
+                        </div>
+                        <button
+                          className="w-full py-3 rounded-full bg-black  text-white/80 font-medium transition-all text-[15px]  mt-4 hover:bg-neutral-800/95 cursor-pointer "
+                          type="submit"
                         >
-                          <path
-                            fillRule="evenodd"
-                            clipRule="evenodd"
-                            d="M8 2.5C3 2.5 0 8 0 8C0 8 3 13.5 8 13.5C13 13.5 16 8 16 8C16 8 13 2.5 8 2.5ZM10.4749 10.4749C9.8185 11.1313 8.92826 11.5 8 11.5C7.07174 11.5 6.1815 11.1313 5.52513 10.4749C4.86875 9.8185 4.5 8.92826 4.5 8C4.5 7.07174 4.86875 6.1815 5.52513 5.52513C6.1815 4.86875 7.07174 4.5 8 4.5C8.92826 4.5 9.8185 4.86875 10.4749 5.52513C11.1313 6.1815 11.5 7.07174 11.5 8C11.5 8.92826 11.1313 9.8185 10.4749 10.4749ZM9.76777 9.76777C10.2366 9.29893 10.5 8.66304 10.5 8C10.5 7.33696 10.2366 6.70107 9.76777 6.23223C9.29893 5.76339 8.66304 5.5 8 5.5C7.33696 5.5 6.70107 5.76339 6.23223 6.23223C5.76339 6.70107 5.5 7.33696 5.5 8C5.5 8.66304 5.76339 9.29893 6.23223 9.76777C6.70107 10.2366 7.33696 10.5 8 10.5C8.66304 10.5 9.29893 10.2366 9.76777 9.76777Z"
-                          ></path>
-                        </svg>
-                      </div>
-                      <button className="w-full py-3 rounded-full bg-black  text-white/80 font-medium transition-all text-[15px]  mt-4 hover:bg-neutral-800/95 cursor-pointer ">
-                        SIGN UP
-                      </button>
+                          SIGN UP
+                        </button>
+                      </form>
                     </div>
                   </div>
                 </motion.div>
