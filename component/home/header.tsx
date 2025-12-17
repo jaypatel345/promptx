@@ -13,6 +13,7 @@ export default function Header() {
   const { isNavOpen, setIsNavOpen } = useUi(); // default
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
   const pathname = usePathname();
   const [isSettingOpen, setIsSettingOpen] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -58,50 +59,50 @@ export default function Header() {
     }
   }, []);
 
-useEffect(() => {
-  if (typeof window !== "undefined") {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser && storedUser !== "undefined") {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        if (parsedUser) {
-          setIsLoggedIn(true);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser && storedUser !== "undefined") {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          if (parsedUser) {
+            setIsLoggedIn(true);
+          }
+        } catch (err) {
+          console.error("Failed to parse user from localStorage:", err);
         }
-      } catch (err) {
-        console.error("Failed to parse user from localStorage:", err);
       }
     }
-  }
-}, []);
+  }, []);
 
   const onLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  try {
-    setLoading(true);
+    e.preventDefault();
+    try {
+      setLoading(true);
 
-    const response = await axios.post("http://localhost:3000/api/login", {
-      email: user.email,
-      password: user.password,
-    });
+      const response = await axios.post("http://localhost:3000/api/login", {
+        email: user.email,
+        password: user.password,
+      });
 
-    console.log("Login success:", response.data);
+      console.log("Login success:", response.data);
 
-    if (response.data?.token) {
-      localStorage.setItem("token", response.data.token);
-      setIsLoggedIn(true);
+      if (response.data?.token) {
+        localStorage.setItem("token", response.data.token);
+        setIsLoggedIn(true);
+      }
+
+      // Close login modal
+      setIsLoginOpen(false);
+
+      // redirect if needed
+      // router.push("/");
+    } catch (error: any) {
+      console.log("Login failed:", error.response?.data || error.message);
+    } finally {
+      setLoading(false);
     }
-
-    // Close login modal
-    setIsLoginOpen(false);
-
-    // redirect if needed
-    // router.push("/");
-  } catch (error: any) {
-    console.log("Login failed:", error.response?.data || error.message);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <>
@@ -360,7 +361,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
       {isSearchOpen && (
         <>
           {/* BACKDROP – full screen */}
-          <div className="fixed inset-0 bg-white/20 backdrop-blur-sm z-50 dark:bg-black/20 dark:text-white"></div>
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 dark:bg-white/20 dark:text-white"></div>
 
           {/* Close Button */}
           <div className="fixed top-4 sm:top-5 right-6 sm:right-9 md:right-39 z-50 cursor-pointer">
@@ -411,22 +412,41 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
         <>
           {/* BACKDROP – full screen */}
           <div
-            className="fixed inset-0 bg-white/40 backdrop-blur-sm z-50 dark:bg-black/40"
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 dark:bg-white/20"
             onClick={() => setIsLoginOpen(false)}
           ></div>
 
           {/* MODAL CONTAINER – centered */}
           <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none -translate-y-10 sm:-translate-y-20 transition-all duration-300 px-4 ">
             <div
-              className="bg-white/60 w-lg max-w-xs sm:max-w-sm rounded-2xl px-6 sm:px-8 py-13 pointer-events-auto shadow-sm dark:bg-gray-700/30 dark:text-white "
+              className="bg-white/70 w-lg max-w-xs sm:max-w-sm rounded-2xl px-10 sm:px-8 py-8 pointer-events-auto shadow-sm dark:bg-black/70 dark:text-white "
               onClick={(e) => e.stopPropagation()}
             >
+              <div className="flex justify-end mb-2">
+                <button
+                  onClick={() => setIsLoginOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  aria-label="Close"
+                >
+                  <svg
+                    className="w-4 h-4 sm:w-5 sm:h-5"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
               <input
                 type="email"
                 placeholder="Email"
                 value={user.email}
                 onChange={(e) => setUser({ ...user, email: e.target.value })}
-                className="border-b-2 w-full px-2 py-2 mb-4 sm:mb-5 text-black outline-none dark:text-white text-[13px] sm:text-[13px]"
+                className="border-b border-gray-300 w-full px-2 py-2 mb-4 sm:mb-5 text-black outline-none dark:text-white text-sm sm:text-[15px] focus:border-gray-500 dark:focus:border-neutral-500"
               />
               <div className="flex items-center justify-center">
                 <input
@@ -436,7 +456,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                   onChange={(e) =>
                     setUser({ ...user, password: e.target.value })
                   }
-                  className="border-b-2 w-full px-2 py-2 mb-7 text-black outline-none dark:text-white text-sm sm:text-[13px]"
+                  className="border-b border-gray-300 w-full px-2 py-2 mb-9 text-black outline-none dark:text-white  sm:text-[15px] text-sm focus:border-gray-500 dark:focus:border-neutral-500"
                 />
                 <svg
                   width="16"
@@ -445,7 +465,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                   aria-hidden="true"
                   viewBox="0 0 16 16"
                   fill="currentColor"
-                  className="cursor-pointer ml-2 sm:ml-3 sm:w-[18px] sm:h-[18px] shrink-0"
+                  className="cursor-pointer ml-2 sm:ml-3 sm:w-[18px] sm:h-[18px] shrink-0 mb-3"
                 >
                   <path
                     fillRule="evenodd"
@@ -455,10 +475,10 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                 </svg>
               </div>
               <button
-                className="w-full bg-black text-[#aeaeaf] py-2 sm:py-2 md:py-3 rounded-full hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/90 text-sm sm:text-base"
+                className="w-full bg-black text-[#aeaeaf] py-2 sm:py-2 md:py-3  rounded-full hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/90 text-sm sm:text-base"
                 onClick={onLogin}
               >
-                <div className="cursor-pointer">SIGN IN {loading}</div>
+                <div className="cursor-pointer text-sm">SIGN IN {loading}</div>
               </button>
               <div className="flex justify-center items-center">
                 <button className="w-fit sm:w-[60%] mt-2 text-white pr-3 sm:pr-3 rounded-full bg-black flex justify-between items-center hover:bg-black/80 cursor-pointer dark:bg-white dark:text-black dark:hover:bg-white/90 text-xs sm:text-sm">
@@ -490,13 +510,15 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                       <path fill="none" d="M0 0h48v48H0z"></path>
                     </g>
                   </svg>
-                  <div className="pl-2 md:pl-0 ">Continue with Google</div>
+                  <div className="pl-2 md:-pl-5 text-sm">
+                    Continue with Google
+                  </div>
                 </button>
               </div>
-              <div className="flex justify-center items-center gap-2 sm:gap-3 pt-3 sm:pt-4 text-xs sm:text-[13px]">
+              <div className="flex justify-center items-center gap-1 sm:gap-2 pt-3 sm:pt-4 text-xs sm:text-[13px]">
                 <Link
                   href="/forget password"
-                  className="text-black dark:text-white"
+                  className="text-black/60 dark:text-white"
                 >
                   Forgot Password
                 </Link>
