@@ -20,8 +20,10 @@
     "next": "^16.0.8",
     "next-sitemap": "^4.2.3",
     "nodemailer": "^7.0.11",
+    "openai": "^6.14.0",
     "react": "^19.2.1",
-    "react-dom": "^19.2.1"
+    "react-dom": "^19.2.1",
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/context/theme-context";
-import { Router } from "next/router";
+// import { Router } from "next/router";
+import SiteAssistantModal from "@/component/SiteAssistantModal";
 import axios from "axios";
 
 export default function Header() {
@@ -104,6 +105,7 @@ export default function Header() {
     }
   };
 
+  // Only keep modal toggle state for search
   return (
     <>
       {/* Header */}
@@ -357,55 +359,11 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
         </div>
       </header>
 
-      {/* Search Modal - Outside header, same level as Login Modal */}
-      {isSearchOpen && (
-        <>
-          {/* BACKDROP – full screen */}
-          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 dark:bg-white/20 dark:text-white"></div>
-
-          {/* Close Button */}
-          <div className="fixed top-4 sm:top-5 right-6 sm:right-9 md:right-39 z-50 cursor-pointer">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 16 16"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="sm:w-[30px] sm:h-[30px]"
-              onClick={() => setIsSearchOpen(false)}
-            >
-              <path
-                d="M4.23431 4.23431C4.54673 3.9219 5.05327 3.9219 5.36569 4.23431L8 6.86863L10.6343 4.23431C10.9467 3.9219 11.4533 3.9219 11.7657 4.23431C12.0781 4.54673 12.0781 5.05327 11.7657 5.36569L9.13137 8L11.7657 10.6343C12.0781 10.9467 12.0781 11.4533 11.7657 11.7657C11.4533 12.0781 10.9467 12.0781 10.6343 11.7657L8 9.13137L5.36569 11.7657C5.05327 12.0781 4.54673 12.0781 4.23431 11.7657C3.9219 11.4533 3.9219 10.9467 4.23431 10.6343L6.86863 8L4.23431 5.36569C3.9219 5.05327 3.9219 4.54673 4.23431 4.23431Z"
-                fill="currentColor"
-              ></path>
-            </svg>
-          </div>
-          <div className="fixed top-40 sm:top-45 left-1/2 -translate-y-10 z-50 flex items-center -translate-x-1/2 px-4 sm:px-0 w-full sm:w-auto">
-            <input
-              type="text"
-              placeholder="Ask me about our team"
-              className="border-b px-2 sm:px-3 py-2 outline-none text-lg sm:text-xl md:text-2xl pointer-events-auto w-full sm:w-lg"
-              autoFocus
-            />
-            <svg
-              width="30"
-              height="30"
-              viewBox="0 0 32 32"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="ml-8 sm:ml-6 border-black bg-black/90 rounded-full hover:bg-black/70 text-white cursor-pointer dark:text-black dark:bg-white sm:w-[35px] sm:h-[35px] hrink-0"
-            >
-              <path
-                d="M16 22L16 10M16 10L11 15M16 10L21 15"
-                stroke="currentColor"
-                strokeWidth="1.7"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              ></path>
-            </svg>
-          </div>
-        </>
-      )}
+      {/* SiteAssistantModal replaces legacy search modal */}
+      <SiteAssistantModal
+        open={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
 
       {/* Login Modal */}
       {isLoginOpen && (

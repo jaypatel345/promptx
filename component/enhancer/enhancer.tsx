@@ -20,6 +20,7 @@ interface Message {
 }
 
 function Enhancer() {
+  
   const { isNavOpen, setIsNavOpen } = useUi();
   const { theme } = useTheme();
 
