@@ -184,7 +184,7 @@ function Enhancer() {
         setLoadingMessages(true);
 
         const res = await fetch(
-          `/api/message/get?conversationId=${conversationId}`
+          `app/api/message/get?conversationId=${conversationId}`
         );
         if (!res.ok) throw new Error("Failed to fetch messages");
 
@@ -349,7 +349,7 @@ function Enhancer() {
 
       // CREATE CONVERSATION IF NOT EXISTS
       if (!activeConversationId) {
-        const res = await fetch("/api/conversation/create", {
+        const res = await fetch("app/api/conversation/create", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -374,7 +374,7 @@ function Enhancer() {
         setConversationId(activeConversationId);
       }
 
-      const saveUserRes = await fetch("/api/message/create", {
+      const saveUserRes = await fetch("app/api/message/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -417,7 +417,7 @@ function Enhancer() {
       setMessages((prev) => [...prev, assistantMessage]);
 
       // Save assistant message to DB
-      const saveAssistantRes = await fetch("/api/message/create", {
+      const saveAssistantRes = await fetch("app/api/message/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
