@@ -21,30 +21,32 @@ function EnhacerHeader() {
   });
   const [loading, setLoading] = useState(false);
 
-  const onLogin = async (e?: React.SyntheticEvent) => {
-    e?.preventDefault();
-    if (loading) return; // prevent double submit
+ const onLogin = async (e?: React.SyntheticEvent) => {
+  e?.preventDefault();
+  if (loading) return;
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/app/api/login`, {
+    const response = await axios.post(
+      "/api/login",
+      {
         email: user.email,
         password: user.password,
-      });
+      },
+      { withCredentials: true }
+    );
 
-      if (response.data?.token) {
-        localStorage.setItem("token", response.data.token);
-        setIsLoggedIn(true);
-      }
-
+    if (response.data?.success) {
+      setIsLoggedIn(true);
       setIsLoginOpen(false);
-    } catch (error: any) {
-      console.log("Login failed:", error.response?.data || error.message);
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (error: any) {
+    console.log("Login failed:", error.response?.data || error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="">

@@ -75,32 +75,47 @@ export default function Header() {
       }
     }
   }, []);
-
-  const onLogin = async (e?: React.SyntheticEvent) => {
-    e?.preventDefault();
-    if (loading) return; // ✅ prevent double submit
-
+useEffect(() => {
+  const checkLogin = async () => {
     try {
-      setLoading(true);
-
-      const response = await axios.post("http://localhost:3000/api/login", {
-        email: user.email,
-        password: user.password,
-      });
-
-      if (response.data?.token) {
-        localStorage.setItem("token", response.data.token);
+      const res = await axios.get("/api/me", { withCredentials: true });
+      if (res.data?.success) {
         setIsLoggedIn(true);
       }
-
-      setIsLoginOpen(false);
-    } catch (error: any) {
-      console.log("Login failed:", error.response?.data || error.message);
-    } finally {
-      setLoading(false);
+    } catch {
+      setIsLoggedIn(false);
     }
   };
 
+  checkLogin();
+}, []);
+
+  const onLogin = async (e?: React.SyntheticEvent) => {
+  e?.preventDefault();
+  if (loading) return;
+
+  try {
+    setLoading(true);
+
+    const response = await axios.post(
+      "/api/login",
+      {
+        email: user.email,
+        password: user.password,
+      },
+      { withCredentials: true }
+    );
+
+    if (response.data?.success) {
+      setIsLoggedIn(true);
+      setIsLoginOpen(false);
+    }
+  } catch (error: any) {
+    console.log("Login failed:", error.response?.data || error.message);
+  } finally {
+    setLoading(false);
+  }
+};
   // Only keep modal toggle state for search
   return (
     <>
