@@ -28,7 +28,7 @@ function EnhacerHeader() {
     try {
       setLoading(true);
 
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/login`, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/app/api/login`, {
         email: user.email,
         password: user.password,
       });
