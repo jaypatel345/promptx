@@ -7,12 +7,15 @@ import { motion } from "framer-motion";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import signupImg from "@/public/signuppage.jpg"
+import { useUi } from "@/context/UiContext";
 
 function Signup() {
-  const [isScrolled, setIsScrolled] = useState(true);
-  const { theme, setTheme } = useTheme();
+  const { theme } = useTheme();
+  const [isLoading, setIsLoading] = useState(false);
   const [isSignupOpen, setIsSignupOpen] = useState(false);
   const [error, setError] = useState("");
+  const { openLogin } = useUi();
+
   const [user, setUser] = useState({
     username: "",
     email: "",
@@ -23,11 +26,15 @@ function Signup() {
   const onSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isLoading) return; // prevent double submit
+    setError("");
+
     if (!user.username || !user.email || !user.password) {
       setError("All fields are required");
       return;
     }
 
+    setIsLoading(true);
     try {
       const response = await axios.post("/api/signup", {
         username: user.username.trim(),
@@ -36,11 +43,19 @@ function Signup() {
       });
 
       if (response.data?.success) {
-        router.back();
+        // Redirect to login after successful signup
+        setIsSignupOpen(false);
+        router.replace("/");
+        openLogin();
+        return;
       }
+
+      setError(response.data?.error || "Signup failed");
     } catch (error: any) {
       console.error("Signup error:", error.response?.data);
       setError(error.response?.data?.error || "Signup failed");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -171,7 +186,7 @@ function Signup() {
               </button>
 
               {/* Sign In Link */}
-              <Link href="/" className="w-full">
+              <Link href="/login" className="w-full">
                 <div className="flex justify-center text-gray-700/70 text-sm sm:text-base mt-2">
                   Already have an account?
                   <span className="hover:text-gray-800/80 text-black ml-1">
@@ -223,6 +238,7 @@ function Signup() {
                       type="text"
                       value={user.username}
                       placeholder="Username"
+                      disabled={isLoading}
                       onChange={(e) => {
                         setUser({ ...user, username: e.target.value });
                       }}
@@ -234,6 +250,7 @@ function Signup() {
                       type="email"
                       value={user.email}
                       placeholder="Email"
+                      disabled={isLoading}
                       onChange={(e) => {
                         setUser({ ...user, email: e.target.value });
                       }}
@@ -246,6 +263,7 @@ function Signup() {
                         type="password"
                         value={user.password}
                         placeholder="Password"
+                        disabled={isLoading}
                         onChange={(e) => {
                           setUser({ ...user, password: e.target.value });
                         }}
@@ -277,10 +295,40 @@ function Signup() {
 
                     {/* Submit Button */}
                     <button
-                      className="w-full py-3 rounded-full bg-black text-white/80 font-medium transition-all text-sm sm:text-[15px] mt-2 hover:bg-neutral-800/95 cursor-pointer"
+                      className={`w-full py-3 rounded-full bg-black text-white/80 font-medium transition-all text-sm sm:text-[15px] mt-2 hover:bg-neutral-800/95 cursor-pointer flex items-center justify-center gap-2 ${
+                        isLoading ? "opacity-70 cursor-not-allowed" : ""
+                      }`}
                       type="submit"
+                      disabled={isLoading}
                     >
-                      SIGN UP
+                      {isLoading ? (
+                        <>
+                          <svg
+                            className="h-4 w-4 animate-spin"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z"
+                            />
+                          </svg>
+                          <span>Signing up...</span>
+                        </>
+                      ) : (
+                        "SIGN UP"
+                      )}
                     </button>
                   </form>
                 </div>

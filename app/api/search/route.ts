@@ -10,7 +10,7 @@ type TeamMember = {
 // Replace this with your real team data source (DB/CMS/file)
 const TEAM: TeamMember[] = [
   { id: "jay", name: "Jay Patel", role: "Founder", bio: "Works on PromptX" },
-  { id: "dev1", name: "Dev One", role: "Frontend", bio: "Next.js + UI" },
+  
 ];
 
 export async function GET(req: Request) {
@@ -33,7 +33,7 @@ export async function GET(req: Request) {
       id: m.id,
       title: m.name,
       subtitle: m.role,
-      href: `/Teams#${m.id}`, // update to your real profile route
+      href: `/AITeams#${m.id}`, // update to your real profile route
     }));
 
   return NextResponse.json({ results });

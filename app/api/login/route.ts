@@ -27,17 +27,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid password" }, { status: 400 });
     }
 
-    // Create JWT token
     const token = jwt.sign(
-      { id: user._id, email: user.email },
+      { id: user._id },
       process.env.TOKEN_SECRET!,
       { expiresIn: "1d" }
     );
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       message: "Login successful",
-      token,
+      success: true,
     });
+
+    response.cookies.set("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+      maxAge: 60 * 60 * 24, // 1 day
+    });
+
+    return response;
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

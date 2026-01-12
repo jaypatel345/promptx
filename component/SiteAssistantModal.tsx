@@ -315,7 +315,9 @@ export default function SiteAssistantModal({
 
                     {loading && (
                       <div className="flex justify-start">
-                        <div className="max-w-[85%] rounded-2xl bg-black/5 px-4 py-3 text-sm dark:bg-white/10"></div>
+                        <div className="max-w-[85%] rounded-2xl bg-black/5 px-4 py-3 text-sm dark:bg-white/10">
+                        ....
+                        </div>
                       </div>
                     )}
                   </div>

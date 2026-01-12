@@ -3,8 +3,8 @@ import React from "react";
 export default function Page() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="bg-white p-10 max-w-lg text-center rounded-3xl shadow-md border border-gray-200">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">
+      <div className="bg-white p-10 max-w-lg text-center rounded-3xl shadow-md border border-gray-100">
+        <h1 className="text-3xl font-medium text-gray-800 mb-4">
           Oops... This Page Overslept
         </h1>
 

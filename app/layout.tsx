@@ -16,32 +16,86 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PromptX – AI Enhancer",
-  description: "Your AI-powered enhancement platform.",
+  // Helps Next generate absolute URLs for OG/Twitter, canonical, etc.
+  metadataBase: new URL("https://promptx.co.in"),
+
+  // Better title handling across pages (even if you later add nested page metadata)
+  title: {
+    default: "PromptX – AI Prompt Enhancer",
+    template: "%s | PromptX",
+  },
+
+  // Keep it descriptive + keyword-aware (avoid stuffing)
+  description:
+    "PromptX is an AI prompt enhancer that helps you rewrite, optimize, and structure prompts for better results across ChatGPT and other AI tools.",
+
+  // Light, relevant keyword set
+  keywords: [
+    "prompt enhancer",
+    "AI prompt enhancer",
+    "prompt optimizer",
+    "prompt engineering",
+    "ChatGPT prompts",
+    "AI writing assistant",
+    "prompt improvement tool",
+  ],
+
   alternates: {
     canonical: "https://promptx.co.in/",
   },
+
+  // Default indexing behavior
+  robots: {
+    index: true,
+    follow: true,
+    // Helpful defaults for Google snippets; adjust if needed
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+
+  // Favicons / app icons
   icons: {
     icon: "/promptx-logo.png",
     shortcut: "/favicon.ico",
     apple: "/promptx-logo.png",
   },
+
+  // Open Graph (social sharing)
   openGraph: {
-    title: "PromptX – AI Enhancer",
-    description: "Your AI-powered enhancement platform.",
+    title: "PromptX – AI Prompt Enhancer",
+    description:
+      "Rewrite, optimize, and structure your prompts to get better outputs from ChatGPT and other AI tools.",
     url: "https://promptx.co.in/",
     siteName: "PromptX",
     images: [
       {
-        url: "https://promptx.co.in/promptx-logo.png",
+        url: "/promptx-logo.png",
         width: 1200,
         height: 630,
-        alt: "PromptX Logo",
+        alt: "PromptX – AI Prompt Enhancer",
       },
     ],
     type: "website",
     locale: "en_US",
   },
+
+  // Twitter cards
+  twitter: {
+    card: "summary_large_image",
+    title: "PromptX – AI Prompt Enhancer",
+    description:
+      "Rewrite, optimize, and structure your prompts to get better outputs from ChatGPT and other AI tools.",
+    images: ["/promptx-logo.png"],
+  },
+
+  // Optional: helps with some SERP display context
+  applicationName: "PromptX",
+  category: "technology",
 };
 
 export default function RootLayout({
