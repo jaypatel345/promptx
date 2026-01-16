@@ -1,60 +1,403 @@
 import { useTheme } from "@/context/theme-context";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useState } from "react";
 import { useUi } from "@/context/UiContext";
 import { usePathname } from "next/navigation";
 import axios from "axios";
+import React, { useState, useEffect, useRef } from "react";
+import { useChat } from "@/context/ChatContext";
+import { Message } from "@/context/ChatContext";
 
 function EnhacerHeader() {
+  axios.defaults.withCredentials = true;
+  const [guestId, setGuestId] = useState<string | null>(null);
+  const [guestReady, setGuestReady] = useState(false);
   const { theme, setTheme } = useTheme();
   const [search, setSearch] = React.useState<string>("");
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [previewMessages, setPreviewMessages] = useState<Message[]>([]);
+  const [previewConversationId, setPreviewConversationId] = useState<
+    string | null
+  >(null);
+  const previewCache = useRef<Record<string, Message[]>>({});
+  const searchCache = useRef<Record<string, string>>({});
   const [isSettingOpen, setIsSettingOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isHistoryHovered, setIsHistoryHovered] = useState(false);
+  const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
+  const [openHistoryMenuId, setOpenHistoryMenuId] = useState<string | null>(
+    null
+  );
+  const [pinnedConversationIds, setPinnedConversationIds] = useState<string[]>(
+    []
+  );
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handler = () => setOpenHistoryMenuId(null);
+    window.addEventListener("click", handler);
+    return () => window.removeEventListener("click", handler);
+  }, []);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(e.target as Node)
+      ) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
   const { isOpen, setIsOpen } = useUi();
   const pathname = usePathname();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const { isNavOpen, setIsNavOpen, isLoginOpen, setIsLoginOpen } = useUi();
   const [user, setUser] = useState({
     email: "",
     password: "",
   });
   const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
+  const { startNewChat } = useChat();
+  const [conversations, setConversations] = useState<
+    { _id: string; title: string; createdAt: string }[]
+  >([]);
+  const latestConversations = React.useMemo(() => {
+    return [...conversations]
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
+      .slice(0, 11);
+  }, [conversations]);
+  const { loadConversation, conversationId, setConversationId, setMessages } =
+    useChat();
+  const isGuest = !isLoggedIn;
+  const historyScrollRef = useRef<HTMLDivElement | null>(null);
+  const firstItemRef = useRef<HTMLDivElement | null>(null);
+  const lastItemRef = useRef<HTMLDivElement | null>(null);
+  const [historyLineHeight, setHistoryLineHeight] = useState(0);
 
- const onLogin = async (e?: React.SyntheticEvent) => {
-  e?.preventDefault();
-  if (loading) return;
+  useEffect(() => {
+    const updateHeight = () => {
+      if (!firstItemRef.current || !lastItemRef.current) {
+        setHistoryLineHeight(0);
+        return;
+      }
 
-  try {
-    setLoading(true);
+      const firstRect = firstItemRef.current.getBoundingClientRect();
+      const lastRect = lastItemRef.current.getBoundingClientRect();
 
-    const response = await axios.post(
-      "/api/login",
-      {
-        email: user.email,
-        password: user.password,
-      },
-      { withCredentials: true }
-    );
+      const EXTRA_PX = 25; // extend line slightly at the bottom
+      const height = lastRect.bottom - firstRect.top + EXTRA_PX;
+      setHistoryLineHeight(height);
+    };
 
-    if (response.data?.success) {
-      setIsLoggedIn(true);
-      setIsLoginOpen(false);
+    updateHeight();
+
+    window.addEventListener("resize", updateHeight);
+    return () => window.removeEventListener("resize", updateHeight);
+  }, [latestConversations]);
+
+  useEffect(() => {
+    let id = localStorage.getItem("guestId");
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem("guestId", id);
     }
-  } catch (error: any) {
-    console.log("Login failed:", error.response?.data || error.message);
-  } finally {
-    setLoading(false);
-  }
-};
+    setGuestId(id);
+    setGuestReady(true);
+  }, []);
+
+  // Keyboard navigation for search modal
+  useEffect(() => {
+    if (!isSearchModalOpen) return;
+
+    const handleKey = (e: KeyboardEvent) => {
+      const filteredConversations = conversations.filter((c) => {
+        const q = searchQuery.toLowerCase();
+        if (!q) return true;
+        if (c.title?.toLowerCase().includes(q)) return true;
+        const cachedText = searchCache.current[c._id];
+        if (cachedText?.includes(q)) return true;
+        return false;
+      });
+      if (!filteredConversations.length) return;
+
+      const index = filteredConversations.findIndex(
+        (c) => c._id === previewConversationId
+      );
+
+      if (e.key === "ArrowDown") {
+        const next =
+          filteredConversations[index + 1] || filteredConversations[0];
+        setPreviewConversationId(next._id);
+        if (previewCache.current[next._id]) {
+          setPreviewMessages(previewCache.current[next._id]);
+        } else {
+          // fetch preview
+          (async () => {
+            try {
+              const res = await axios.get("/api/message/get", {
+                withCredentials: true,
+                params: isLoggedIn
+                  ? { conversationId: next._id }
+                  : { conversationId: next._id, guestId },
+              });
+              if (res.data?.success) {
+                const last = res.data.messages.slice(-8);
+                previewCache.current[next._id] = last;
+                setPreviewMessages(last);
+              }
+            } catch {}
+          })();
+        }
+      }
+
+      if (e.key === "ArrowUp") {
+        const prev =
+          filteredConversations[index - 1] ||
+          filteredConversations[filteredConversations.length - 1];
+        setPreviewConversationId(prev._id);
+        if (previewCache.current[prev._id]) {
+          setPreviewMessages(previewCache.current[prev._id]);
+        } else {
+          (async () => {
+            try {
+              const res = await axios.get("/api/message/get", {
+                withCredentials: true,
+                params: isLoggedIn
+                  ? { conversationId: prev._id }
+                  : { conversationId: prev._id, guestId },
+              });
+              if (res.data?.success) {
+                const last = res.data.messages.slice(-8);
+                previewCache.current[prev._id] = last;
+                setPreviewMessages(last);
+              }
+            } catch {}
+          })();
+        }
+      }
+
+      if (e.key === "Enter" && previewConversationId) {
+        openConversation(previewConversationId);
+        setIsSearchModalOpen(false);
+      }
+
+      if (e.key === "Escape") {
+        setIsSearchModalOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [isSearchModalOpen, previewConversationId, conversations, searchQuery]);
+
+  // Prefetch message text for searching (background)
+  useEffect(() => {
+    const preloadSearchData = async () => {
+      for (const conv of conversations) {
+        if (searchCache.current[conv._id]) continue;
+
+        try {
+          const res = await axios.get("/api/message/get", {
+            withCredentials: true,
+            params: isLoggedIn
+              ? { conversationId: conv._id }
+              : { conversationId: conv._id, guestId },
+          });
+
+          if (res.data?.success) {
+            const allText = res.data.messages
+              .map((m: any) => m.content.toLowerCase())
+              .join(" ");
+
+            searchCache.current[conv._id] = allText;
+          }
+        } catch (e) {
+          console.error("Search preload failed", e);
+        }
+      }
+    };
+
+    if (isSearchModalOpen) {
+      preloadSearchData();
+    }
+  }, [isSearchModalOpen, conversations]);
+
+  useEffect(() => {
+    if (!isSearchModalOpen) {
+      document.body.style.overflow = "";
+      return;
+    }
+
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsSearchModalOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isSearchModalOpen]);
+
+  const onLogout = async () => {
+    try {
+      await axios.post("/api/logout", {}, { withCredentials: true });
+
+      setIsLoggedIn(false);
+      setConversations([]);
+      setConversationId(null);
+      setMessages([]);
+      localStorage.removeItem("guestId");
+    } catch (err) {
+      console.error("Logout failed", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!isLoggedIn && !guestReady) return;
+
+    const fetchHistory = async () => {
+      try {
+        const res = await axios.get("/api/conversation/list", {
+          withCredentials: true,
+          params: isLoggedIn ? {} : { guestId },
+        });
+
+        if (res.data?.success) {
+          setConversations(res.data.conversations);
+        }
+      } catch (err) {
+        console.error("Failed to load history", err);
+      }
+    };
+
+    fetchHistory();
+  }, [isLoggedIn, guestReady, guestId]);
+
+  const openConversation = async (id: string) => {
+    try {
+      const params = isLoggedIn
+        ? { conversationId: id }
+        : { conversationId: id, guestId };
+
+      const res = await axios.get("/api/message/get", {
+        withCredentials: true,
+        params,
+      });
+
+      if (res.data?.success) {
+        loadConversation(id, res.data.messages);
+      }
+    } catch (err) {
+      console.error("Failed to open conversation", err);
+    }
+  };
+
+  const createNewChat = async () => {
+    startNewChat();
+
+    try {
+      const payload = isLoggedIn ? {} : { guestId };
+
+      const res = await axios.post("/api/conversation/create", payload, {
+        withCredentials: true,
+      });
+
+      if (res.data?.success) {
+        setConversationId(res.data.conversationId);
+
+        const historyRes = await axios.get("/api/conversation/list", {
+          withCredentials: true,
+          params: isLoggedIn ? {} : { guestId },
+        });
+
+        if (historyRes.data?.success) {
+          setConversations(historyRes.data.conversations);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to create conversation", err);
+    }
+  };
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const res = await axios.get("/api/me", { withCredentials: true });
+
+        if (res.data?.success && !res.data.isGuest) {
+          setIsLoggedIn(true);
+        } else {
+          setIsLoggedIn(false);
+        }
+      } catch {
+        setIsLoggedIn(false);
+      } finally {
+        setAuthChecked(true);
+      }
+    };
+
+    checkSession();
+  }, []);
+
+  const onLogin = async (e?: React.SyntheticEvent) => {
+    e?.preventDefault();
+    if (loading) return;
+
+    try {
+      setLoading(true);
+
+      const response = await axios.post(
+        "/api/login",
+        {
+          email: user.email,
+          password: user.password,
+        },
+        { withCredentials: true }
+      );
+
+      if (response.data?.success) {
+        const me = await axios.get("/api/me", { withCredentials: true });
+        if (me.data?.success) {
+          setIsLoggedIn(true);
+        }
+        setLoginError("");
+        setIsLoginOpen(false);
+      }
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        "Invalid email or password";
+
+      setLoginError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="">
       <div className="flex justify-between ">
         <div
-          className={`flex flex-col transition-all duration-400 pr-5 h-screen border-r border-gray-200 dark:border-neutral-600 z-50   bg-white dark:bg-black ${
-            isOpen ? "w-56 opacity-100" : "w-15 opacity-100 overflow-hidden"
+          className={`flex flex-col transition-all duration-300 ease-(--grok-ease) pr-5 h-screen min-h-0 border-r border-gray-200 dark:border-neutral-600 z-50 bg-white dark:bg-black ${
+            isOpen ? "w-60 opacity-100" : "w-15 opacity-100"
           }`}
+          style={{ overflow: "visible" }}
         >
           <div>
             <Link href="/" aria-label="Home" className="">
@@ -101,8 +444,16 @@ function EnhacerHeader() {
 
             {/* Textarea */}
             <textarea
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchQuery}
+              readOnly
+              onFocus={() => {
+                setIsSearchModalOpen(true);
+                setSearchQuery("");
+              }}
+              onClick={() => {
+                setIsSearchModalOpen(true);
+                setSearchQuery("");
+              }}
               placeholder="Search"
               rows={1}
               aria-label="Search"
@@ -110,7 +461,12 @@ function EnhacerHeader() {
             />
           </div>
           <div
-            className={`mt-2 ml-2 flex flex-row items-center gap-1 pl-3 py-2.5 pr-5  rounded-2xl  transition-all duration-200 dark:hover:bg-neutral-700/60 cursor-pointer
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              createNewChat();
+            }}
+            className={`mt-2 ml-2 flex flex-row items-center gap-1 pl-3 py-2.5 pr-5  rounded-2xl  transition-all duration-200 ease-(--grok-ease) hover:-translate-y-1px][ dark:hover:bg-neutral-700/60 cursor-pointer
             ${isOpen ? "hover:bg-gray-100" : ""}`}
           >
             <svg
@@ -118,7 +474,7 @@ function EnhacerHeader() {
               viewBox="0 0 24 24"
               width={20}
               height={20}
-              className="shrink-0"
+              className="shrink-0 flex items-center justify-center w-5 h-5"
               preserveAspectRatio="xMidYMid meet"
             >
               <defs>
@@ -162,7 +518,7 @@ function EnhacerHeader() {
             )}
           </div>
           <div
-            className={`mt-1 ml-2 flex flex-row items-center gap-1 pl-3 py-2.5 pr-5  rounded-2xl  transition-all duration-200 dark:hover:bg-neutral-700/60 cursor-pointer
+            className={`mt-1 ml-2 flex flex-row items-center gap-1 pl-3 py-2.5 pr-5  rounded-2xl  transition-all duration-200 ease-(--grok-ease) hover:-translate-y dark:hover:bg-neutral-700/60 cursor-pointer
             ${isOpen ? "hover:bg-gray-100" : ""}`}
           >
             <svg
@@ -170,7 +526,7 @@ function EnhacerHeader() {
               viewBox="0 0 24 24"
               width={20}
               height={20}
-              className="shrink-0"
+              className="shrink-0 flex items-center justify-center w-5 h-5"
               preserveAspectRatio="xMidYMid meet"
             >
               <defs>
@@ -212,82 +568,310 @@ function EnhacerHeader() {
               </span>
             )}
           </div>
+          {/* --- HISTORY MENU BUTTON --- */}
           <div
-            className={`mt-1 ml-2 flex flex-row items-center gap-1 pl-3 py-2.5 pr-5  rounded-2xl  transition-all duration-200 dark:hover:bg-neutral-700/60 cursor-pointer
-            ${isOpen ? "hover:bg-gray-100" : ""}`}
+            onMouseEnter={() => setIsHistoryHovered(true)}
+            onMouseLeave={() => setIsHistoryHovered(false)}
+            className={`mt-1 ml-2 flex flex-row items-center gap-2 pl-3 py-2.5 pr-5 rounded-2xl transition-all duration-800  hover:-translate-y dark:hover:bg-neutral-700/60 cursor-pointer ${
+              isOpen ? "hover:bg-gray-100" : ""
+            }`}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              width={20}
-              height={20}
-              className="shrink-0"
-              preserveAspectRatio="xMidYMid meet"
-            >
-              <defs>
-                <clipPath id="lottie_clip_402">
-                  <rect width={24} height={24} x={0} y={0} />
-                </clipPath>
-              </defs>
-
-              <g clipPath="url(#lottie_clip_402)">
-                {/* vertical line */}
-                <g transform="translate(12 14)">
+            <div className="flex items-center gap-2 w-7">
+              {!isHistoryHovered && (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  preserveAspectRatio="xMidYMid meet"
+                  className="shrink-0 flex items-center justify-center w-5 h-5 text-gray-900 dark:text-white"
+                >
+                  <defs>
+                    <clipPath id="history_clip">
+                      <rect width="24" height="24" x="0" y="0" />
+                    </clipPath>
+                  </defs>
+                  <g clipPath="url(#history_clip)">
+                    <g transform="translate(12 14)">
+                      <path
+                        d="M0,2 C0,2 0,-2 0,-2"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="butt"
+                        strokeLinejoin="miter"
+                      />
+                    </g>
+                    <g transform="translate(12 12)">
+                      <path
+                        d="M0,-1 C0.55,-1 1,-0.55 1,0 C1,0.55 0.55,1 0,1 C-0.55,1 -1,0.55 -1,0 C-1,-0.55 -0.55,-1 0,-1z"
+                        fill="currentColor"
+                      />
+                    </g>
+                    <g transform="translate(13.5 10.5)">
+                      <path
+                        d="M-1.5,1.5 C-1.5,1.5 1.5,-1.5 1.5,-1.5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="butt"
+                        strokeLinejoin="miter"
+                      />
+                    </g>
+                    <g transform="translate(12.029 11.75)">
+                      <path
+                        d="M-8.471,1.25 C-7.976,5.473 -4.385,8.75 -0.029,8.75 C4.665,8.75 8.471,4.944 8.471,0.25 C8.471,-4.444 4.665,-8.25 -0.029,-8.25 C-3.276,-8.25 -6.098,-6.43 -7.529,-3.754 M-2.529,-3.75 C-2.529,-3.75 -7.529,-3.75 -7.529,-3.75 C-7.529,-3.75 -7.529,-8.75 -7.529,-8.75"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="butt"
+                        strokeLinejoin="miter"
+                      />
+                    </g>
+                  </g>
+                </svg>
+              )}
+              {isHistoryHovered && (
+                <svg
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsHistoryCollapsed((v) => !v);
+                  }}
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className={`stroke-3 transition-transform duration-200 cursor-pointer ${
+                    isHistoryCollapsed ? "-rotate-90" : "rotate-90"
+                  }`}
+                >
                   <path
-                    d="M0 2 V-2"
+                    d="M9 6L15 12L9 18"
                     stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="butt"
-                    fill="none"
+                    strokeLinecap="square"
                   />
-                </g>
-
-                {/* center dot */}
-                <g transform="translate(12 12)">
-                  <circle cx={0} cy={0} r={1} fill="currentColor" />
-                </g>
-
-                {/* diagonal slash */}
-                <g transform="translate(13.5 10.5)">
-                  <path
-                    d="M-1.5 1.5 L1.5 -1.5"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="butt"
-                    fill="none"
-                  />
-                </g>
-
-                {/* circular arrow */}
-                <g transform="translate(12.029 11.75)">
-                  <path
-                    d="M-8.471 1.25 C-7.976 5.473 -4.385 8.75 -0.029 8.75
-           C4.665 8.75 8.471 4.944 8.471 0.25
-           C8.471 -4.444 4.665 -8.25 -0.029 -8.25
-           C-3.276 -8.25 -6.098 -6.43 -7.529 -3.754
-           M-2.529 -3.75 H-7.529 V-8.75"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="butt"
-                    strokeLinejoin="miter"
-                    fill="none"
-                  />
-                </g>
-              </g>
-            </svg>
+                </svg>
+              )}
+            </div>
             {isOpen && (
-              <span className="ml-2 flex  flex-row font-medium text-[15px]   ">
-                History
-              </span>
+              <div className="flex flex-row items-center gap-3 w-full">
+                <span className="font-medium text-[15px] ">History</span>
+              </div>
             )}
           </div>
-          <div className="mt-auto ml-2 flex flex-col items-start pb-5">
-            <div className="">
-              {isOpen && <span className="ml-2 font-medium "></span>}
-            </div>
+          <div className="mt-0 ml-2 flex flex-col relative items-start gap-1 pl-2 py-2 pr-3 rounded-2xl transition-all duration-200 w-full flex-1 min-h-0 overflow-hidden">
+            {isOpen && !isHistoryCollapsed && (
+              <div
+                className="absolute left-5 top-[5px] w-px bg-gray-200 dark:bg-neutral-700 transition-all duration-300"
+                style={{
+                  height: `${historyLineHeight}px`,
+                  WebkitMaskImage:
+                    "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)",
+                  maskImage:
+                    "linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)",
+                }}
+              />
+            )}
+            {isOpen && (
+              <div
+                ref={historyScrollRef}
+                className={`ml-4 -mt-2 flex flex-col gap-0.5 text-md w-full pr-2 hide-scrollbar overscroll-contain p-1 rounded-2xl transition-all duration-300 ease-(--grok-ease) ${
+                  isHistoryCollapsed
+                    ? "opacity-0 -translate-y-2 pointer-events-none max-h-0 overflow-hidden"
+                    : "opacity-100 translate-y-0 max-h-[500px]"
+                }`}
+                style={{
+                  WebkitOverflowScrolling: "touch",
+                  scrollBehavior: "smooth",
+                  overscrollBehavior: "contain",
+                }}
+              >
+                {latestConversations.length === 0 && (
+                  <span className="text-gray-400 px-3 py-2">No chats yet</span>
+                )}
+
+                {latestConversations.map((conv, index) => {
+                  const isActive = conversationId === conv._id;
+
+                  return (
+                    <div
+                      ref={
+                        index === 0
+                          ? firstItemRef
+                          : index === latestConversations.length - 1
+                          ? lastItemRef
+                          : null
+                      }
+                      key={conv._id}
+                      className="relative group"
+                    >
+                      <div
+                        onClick={async () => {
+                          setIsSearchModalOpen(true);
+                          setPreviewConversationId(conv._id);
+
+                          if (previewCache.current[conv._id]) {
+                            setPreviewMessages(previewCache.current[conv._id]);
+                            return;
+                          }
+
+                          try {
+                            const res = await axios.get("/api/message/get", {
+                              withCredentials: true,
+                              params: isLoggedIn
+                                ? { conversationId: conv._id }
+                                : { conversationId: conv._id, guestId },
+                            });
+
+                            if (res.data?.success) {
+                              const last = res.data.messages.slice(-8);
+                              previewCache.current[conv._id] = last;
+                              setPreviewMessages(last);
+                            }
+                          } catch (err) {
+                            console.error("Preview fetch failed", err);
+                          }
+                        }}
+                        className={`group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 ease-(--grok-ease) truncate shrink-0 grok-hover pr-8
+            ${
+              isActive
+                ? "bg-gray-200/40 dark:bg-neutral-700"
+                : "hover:bg-gray-100 dark:hover:bg-neutral-800"
+            }`}
+                      >
+                        <span className="truncate text-[14px]">
+                          {conv.title || "New Chat"}
+                        </span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenHistoryMenuId((prev) =>
+                            prev === conv._id ? null : conv._id
+                          );
+                        }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                        >
+                          <circle cx="5" cy="12" r="1.5" />
+                          <circle cx="12" cy="12" r="1.5" />
+                          <circle cx="19" cy="12" r="1.5" />
+                        </svg>
+                      </button>
+                      {openHistoryMenuId === conv._id && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute right-2 top-full mt-1 w-32 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-lg z-50 overflow-hidden text-sm"
+                        >
+                          <button className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800">
+                            Rename
+                          </button>
+                          <button className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 flex items-center gap-2">
+                            Pin
+                          </button>
+                          <button className="w-full text-left px-3 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600">
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <div className="ml-2 p-1">
+                  <button
+                    className="  text-[13px] cursor-pointer hover:text-neutral-700"
+                    onClick={() => {
+                      setIsSearchModalOpen(true);
+                      setSearchQuery("");
+                    }}
+                  >
+                    See all
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          <div
+            className={`mt-auto pb-5 pr-3 relative transition-all duration-300 ease-out ${
+              isOpen
+                ? "flex flex-row items-center justify-between gap-3 ml-3"
+                : "flex flex-col items-center justify-center gap-2 ml-7"
+            }`}
+          >
+            {/* Profile avatar when logged in */}
+            {!authChecked
+              ? null
+              : isLoggedIn && (
+                  <div
+                    ref={profileMenuRef}
+                    className={`relative transition-all duration-300 flex items-center justify-center`}
+                    style={{ overflow: "visible" }}
+                  >
+                    <button
+                      onClick={() => setIsProfileMenuOpen((v) => !v)}
+                      className="w-9 h-9 rounded-full bg-gray-200 dark:bg-neutral-700 flex items-center justify-center transition-all duration-500 ease-(--grok-ease) hover:scale-[1.04] active:scale-[0.96]"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                    </button>
+
+                    {isProfileMenuOpen && (
+                      <div
+                        className={`absolute z-9999 w-44 bg-white dark:bg-neutral-900 rounded-xl border border-gray-200 dark:border-neutral-700 overflow-hidden transition-all duration-200 ease-(--grok-ease) grok-dropdown ${
+                          isOpen
+                            ? "bottom-full mb-2 left-0"
+                            : "bottom-0 left-full ml-0"
+                        } opacity-100 scale-100 max-h-[70vh]`}
+                        style={{ transformOrigin: "bottom left" }}
+                      >
+                        <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
+                          Settings
+                        </button>
+                        <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
+                          Upgrade plan
+                        </button>
+                        <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
+                          Help
+                        </button>
+                        <div className="h-px bg-gray-200 dark:bg-neutral-700 my-1" />
+                        <button
+                          onClick={() => {
+                            setIsProfileMenuOpen(false);
+                            onLogout();
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600"
+                        >
+                          Sign out
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+            {/* Sidebar toggle chevrons */}
             <div
               onClick={() => setIsOpen(!isOpen)}
-              className="cursor-pointer mt-3 ml-2"
+              className={`cursor-pointer transition-all duration-500 ease-(--grok-ease) transform flex items-center justify-center w-9 h-9 hover:scale-[1.08] active:scale-[0.95] ${
+                isOpen ? "order-2 ml-17" : "order-2 ml-0"
+              }`}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -299,7 +883,7 @@ function EnhacerHeader() {
                 strokeWidth={2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className={`lucide lucide-chevrons-right transition-transform duration-900 ${
+                className={`lucide lucide-chevrons-right transition-transform duration-300 ease-(--grok-ease) ${
                   isOpen ? "rotate-180" : "rotate-0"
                 }`}
               >
@@ -312,144 +896,23 @@ function EnhacerHeader() {
 
         <div className="absolute top-3 right-4 z-50">
           <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
-          
-            <button
-              aria-label="Settings"
-              className={`p-1 sm:p-2  rounded-full hover:bg-gray-100 transition dark:text-gray-50  dark:hover:bg-gray-500/40 ${
-                pathname == "/Enhancer" ? "" : "hidden"
-              }`}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="sm:w-5 sm:h-5"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsSettingOpen((prev) => !prev);
+            {/* <button ...settings button... /> */}
+            {!authChecked || isLoggedIn ? null : (
+              <button
+                className="px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 bg-gray-300/40 text-black mr-1 sm:mr-2 md:mr-4 rounded-full hover:bg-gray-200 transition cursor-pointer text-[11px] sm:text-[12px] md:text-[13px] dark:bg-white dark:text-black dark:hover:bg-white/90"
+                onClick={() => {
+                  if (!authChecked) return;
+                  setIsLoginOpen(true);
+                  setIsNavOpen(false);
                 }}
               >
-                <path
-                  stroke="currentColor"
-                  d="M13.5 3h-3C9.408 5.913 8.024 6.711 4.956 6.201l-1.5 2.598c1.976 2.402 1.976 4 0 6.402l1.5 2.598c3.068-.51 4.452.288 5.544 3.201h3c1.092-2.913 2.476-3.711 5.544-3.2l1.5-2.599c-1.976-2.402-1.976-4 0-6.402l-1.5-2.598c-3.068.51-4.452-.288-5.544-3.201Z"
-                ></path>
-                <circle cx="12" cy="12" r="2.5" fill="currentColor"></circle>
-              </svg>
-              <div
-                className={`absolute top-12 sm:top-10 right-20 sm:right-20 md:right-30 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 bg-gray-300/20 rounded-2xl transition-all duration-200 ease-in-out ${
-                  isSettingOpen ? "opacity-100" : "opacity-0"
-                }`}
-              >
-                <div
-                  className={`${
-                    theme == "light" ? "bg-gray-400/20" : ""
-                  } p-1.5 sm:p-2 hover:bg-gray-400/20 rounded cursor-pointer`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="sm:w-4 sm:h-4"
-                    onClick={() => setTheme("light")}
-                  >
-                    <circle cx="12" cy="12" r="4"></circle>
-                    <path d="M12 2v2"></path>
-                    <path d="M12 20v2"></path>
-                    <path d="m4.93 4.93 1.41 1.41"></path>
-                    <path d="m17.66 17.66 1.41 1.41"></path>
-                    <path d="M2 12h2"></path>
-                    <path d="M20 12h2"></path>
-                    <path d="m6.34 17.66-1.41 1.41"></path>
-                    <path d="m19.07 4.93-1.41 1.41"></path>
-                  </svg>
-                </div>
-                <div
-                  className={`${
-                    theme == "dark" ? "bg-gray-400/20 text-white" : ""
-                  } p-1.5 sm:p-2 hover:bg-gray-400/20 rounded cursor-pointer`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="lucide lucide-moon-star sm:w-4 sm:h-4"
-                    onClick={() => setTheme("dark")}
-                  >
-                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9"></path>
-                    <path d="M20 3v4"></path>
-                    <path d="M22 5h-4"></path>
-                  </svg>
-                </div>
-                <div
-                  className={`${
-                    theme == "system" ? "bg-gray-400/20" : ""
-                  } p-1.5 sm:p-2 hover:bg-gray-400/20 rounded cursor-pointer`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="lucide lucide-monitor-smartphone sm:w-4 sm:h-4 "
-                    onClick={() => setTheme("light")}
-                  >
-                    <path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8"></path>
-                    <path d="M10 19v-3.96 3.15"></path>
-                    <path d="M7 19h5"></path>
-                    <rect width="6" height="10" x="16" y="12" rx="2"></rect>
-                  </svg>
-                </div>
-              </div>
-            </button>
-
-            <button
-              className="px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 bg-gray-300/40 text-black mr-1 sm:mr-2 md:mr-4 rounded-full hover:bg-gray-200 transition cursor-pointer text-[11px] sm:text-[12px] md:text-[13px] dark:bg-white dark:text-black dark:hover:bg-white/90"
-              onClick={() => {
-                setIsLoginOpen(true);
-                setIsNavOpen(false);
-              }}
-            >
-              {isLoggedIn ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-              ) : (
-                "Log in"
-              )}
-            </button>
+                <span className="text-xs font-medium">Log in</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
+
       {isLoginOpen && (
         <>
           {/* BACKDROP – full screen */}
@@ -485,13 +948,16 @@ function EnhacerHeader() {
                 </button>
               </div>
 
-              {/* ✅ FORM: Enter key will trigger submit */}
+              {/*  FORM: Enter key will trigger submit */}
               <form onSubmit={onLogin}>
                 <input
                   type="email"
                   placeholder="Email"
                   value={user.email}
-                  onChange={(e) => setUser({ ...user, email: e.target.value })}
+                  onChange={(e) => {
+                    setUser({ ...user, email: e.target.value });
+                    setLoginError("");
+                  }}
                   disabled={loading}
                   className="border-b border-gray-300 w-full px-2 py-2 mb-4 sm:mb-5 text-black outline-none dark:text-white text-sm sm:text-[15px] focus:border-gray-500 dark:focus:border-neutral-500"
                 />
@@ -501,9 +967,10 @@ function EnhacerHeader() {
                     type="password"
                     placeholder="Password"
                     value={user.password}
-                    onChange={(e) =>
-                      setUser({ ...user, password: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setUser({ ...user, password: e.target.value });
+                      setLoginError("");
+                    }}
                     disabled={loading}
                     className="border-b border-gray-300 w-full px-2 py-2 mb-9 text-black outline-none dark:text-white  sm:text-[15px] text-sm focus:border-gray-500 dark:focus:border-neutral-500"
                   />
@@ -525,6 +992,11 @@ function EnhacerHeader() {
                   </svg>
                 </div>
 
+                {loginError && (
+                  <p className="text-red-500 text-xs mb-2 text-center">
+                    {loginError}
+                  </p>
+                )}
                 <button
                   type="submit"
                   className={`w-full bg-black text-[#aeaeaf] py-2 sm:py-2 md:py-3 rounded-full hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/90 text-sm sm:text-base flex items-center justify-center gap-2 ${
@@ -607,7 +1079,7 @@ function EnhacerHeader() {
 
               <div className="flex justify-center items-center gap-1 sm:gap-2 pt-3 sm:pt-4 text-xs sm:text-[13px]">
                 <Link
-                  href="/forget password"
+                  href="/forget-password"
                   className="text-black/60 dark:text-white"
                 >
                   Forgot Password
@@ -620,6 +1092,250 @@ function EnhacerHeader() {
           </div>
         </>
       )}
+      {isSearchModalOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-999"
+            onClick={() => setIsSearchModalOpen(false)}
+          />
+
+          <div className="fixed inset-0 z-1000 flex items-center justify-center p-4 pointer-events-none">
+            <div
+              className="w-full max-w-5xl h-[80vh] bg-white dark:bg-neutral-900 rounded-2xl shadow-xl flex flex-col overflow-hidden min-h-0 pointer-events-auto animate-[grok-pop_0.25s_(--grok-ease)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Sticky Search Bar */}
+              <div className="px-4 py-2 border-b border-gray-200 flex justify-center items-center  dark:border-neutral-700 shrink-0 sticky top-0 bg-white dark:bg-neutral-900 z-10">
+                <input
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search conversations..."
+                  className="w-full mb-0 px-3 py-2 rounded-lg  dark:bg-neutral-800 outline-none"
+                />
+                {/* Search icon */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  width={20}
+                  height={20}
+                  className="shrink-0 flex items-center justify-center w-5 h-5"
+                >
+                  <g transform="translate(12 11.5)">
+                    <path
+                      stroke={theme === "light" ? "#000000" : "#ffffff"}
+                      strokeWidth={2}
+                      fill="none"
+                      d="M7,-0.75 C7,1.39 6.132,3.328 4.73,4.73
+           C3.328,6.132 1.39,7 -0.75,7
+           C-5.03,7 -8.5,3.53 -8.5,-0.75
+           C-8.5,-5.03 -5.03,-8.5 -0.75,-8.5
+           C3.53,-8.5 7,-5.03 7,-0.75z
+           M4.73,4.73 L8.5,8.5"
+                    />
+                  </g>
+                </svg>
+              </div>
+              {/* Two-panel content */}
+              <div className="flex flex-1 min-h-0 overflow-hidden">
+                {/* Left panel */}
+                <div
+                  className="w-1/3 border-r border-gray-200 dark:border-neutral-700 p-4 overflow-y-auto hide-scrollbar min-h-0"
+                  onWheel={(e) => e.stopPropagation()}
+                  style={{
+                    WebkitOverflowScrolling: "touch",
+                    overscrollBehavior: "auto",
+                  }}
+                >
+                  {conversations
+                    .filter((c) => {
+                      const q = searchQuery.toLowerCase();
+                      if (!q) return true;
+                      if (c.title?.toLowerCase().includes(q)) return true;
+                      const cachedText = searchCache.current[c._id];
+                      if (cachedText?.includes(q)) return true;
+                      return false;
+                    })
+                    .map((conv) => (
+                      <div
+                        key={conv._id}
+                        onMouseEnter={async () => {
+                          if (previewCache.current[conv._id]) {
+                            setPreviewMessages(previewCache.current[conv._id]);
+                            setPreviewConversationId(conv._id);
+                            return;
+                          }
+                          try {
+                            const res = await axios.get("/api/message/get", {
+                              withCredentials: true,
+                              params: isLoggedIn
+                                ? { conversationId: conv._id }
+                                : { conversationId: conv._id, guestId },
+                            });
+                            if (res.data?.success) {
+                              const allText = res.data.messages
+                                .map((m: any) => m.content.toLowerCase())
+                                .join(" ");
+                              searchCache.current[conv._id] = allText;
+                              const last = res.data.messages.slice(-8);
+                              previewCache.current[conv._id] = last;
+                              setPreviewMessages(last);
+                              setPreviewConversationId(conv._id);
+                            }
+                          } catch (err) {
+                            console.error("Preview fetch failed", err);
+                          }
+                        }}
+                        onClick={async () => {
+                          setPreviewConversationId(conv._id);
+                          if (previewCache.current[conv._id]) {
+                            setPreviewMessages(previewCache.current[conv._id]);
+                          } else {
+                            try {
+                              const res = await axios.get("/api/message/get", {
+                                withCredentials: true,
+                                params: isLoggedIn
+                                  ? { conversationId: conv._id }
+                                  : { conversationId: conv._id, guestId },
+                              });
+                              if (res.data?.success) {
+                                const last = res.data.messages.slice(-8);
+                                previewCache.current[conv._id] = last;
+                                setPreviewMessages(last);
+                              }
+                            } catch (err) {
+                              console.error("Preview fetch failed", err);
+                            }
+                          }
+                          setIsSearchModalOpen(false);
+                          openConversation(conv._id);
+                        }}
+                        className={`px-3 py-2 rounded-lg cursor-pointer mb-1 transition-all duration-200 ease-(--grok-ease) grok-hover
+                          ${
+                            previewConversationId === conv._id
+                              ? "bg-gray-200 dark:bg-neutral-700"
+                              : "hover:bg-gray-100 dark:hover:bg-neutral-800"
+                          }`}
+                      >
+                        <div className="flex flex-col">
+                          <span className="truncate text-sm">
+                            {conv.title || "New Chat"}
+                          </span>
+                          <span className="text-[11px] text-gray-400">
+                            {new Date(conv.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+                {/* Right panel */}
+                <div
+                  className="flex-1 p-4 overflow-y-auto hide-scrollbar min-h-0"
+                  onWheel={(e) => e.stopPropagation()}
+                  style={{
+                    WebkitOverflowScrolling: "touch",
+                    overscrollBehavior: "auto",
+                  }}
+                >
+                  {previewMessages.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-gray-400">
+                      Select a conversation to preview
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {previewMessages.map((m, i) => (
+                        <div
+                          key={i}
+                          style={{ animationDelay: `${i * 30}ms` }}
+                          className={`max-w-[70%] px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap animate-[grok-bubble_0.25s_(--grok-ease)] ${
+                            m.role === "user"
+                              ? "self-end bg-black text-white"
+                              : "self-start bg-gray-200 dark:bg-neutral-800 dark:text-white"
+                          }`}
+                        >
+                          {m.content}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+      {/* Hide scrollbar globally for .hide-scrollbar */}
+      <style jsx global>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          width: 0px;
+          height: 0px;
+          display: none;
+        }
+
+        .hide-scrollbar {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+          overscroll-behavior: contain;
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        :root {
+          --grok-ease: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        @keyframes grok-fade-slide {
+          from {
+            opacity: 0;
+            transform: translateY(6px) scale(0.96);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes grok-pop {
+          from {
+            transform: scale(0.96);
+            opacity: 0;
+          }
+          to {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+
+        @keyframes grok-bubble {
+          from {
+            opacity: 0;
+            transform: translateY(8px) scale(0.96);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        .grok-hover {
+          transition: transform 0.25s var(--grok-ease),
+            box-shadow 0.25s var(--grok-ease);
+        }
+
+        .grok-hover:hover {
+          transform: translateY(-1px);
+        }
+
+        .grok-hover:active {
+          transform: scale(0.97);
+        }
+
+        .grok-dropdown {
+          animation: grok-fade-slide 0.22s var(--grok-ease);
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+          border-radius: 14px;
+        }
+      `}</style>
     </div>
   );
 }

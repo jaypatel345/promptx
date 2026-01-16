@@ -4,17 +4,16 @@ import Message from "@/model/message";
 import Conversation from "@/model/Conversation";
 import { getDataFromToken } from "@/helper/getDataFromToken";
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
   await connectDB();
 
   try {
-    const { searchParams } = new URL(req.url);
-    const conversationId = searchParams.get("conversationId");
-    const guestId = searchParams.get("guestId");
+    const body = await req.json();
+    const { conversationId, role, content, guestId } = body;
 
-    if (!conversationId) {
+    if (!conversationId || !role || !content) {
       return NextResponse.json(
-        { success: false, message: "conversationId is required" },
+        { success: false, message: "Missing required fields" },
         { status: 400 }
       );
     }
@@ -30,32 +29,30 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 🔐 Ownership validation
-    const isUserOwner =
-      userId && conversation.userId?.toString() === userId;
-
-    const isGuestOwner =
-      !userId && guestId && conversation.guestId === guestId;
-
-    if (!isUserOwner && !isGuestOwner) {
+    // Ownership check
+    if (
+      (userId && conversation.userId?.toString() !== userId) ||
+      (!userId && conversation.guestId !== guestId)
+    ) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const messages = await Message.find({ conversationId }).sort({
-      createdAt: 1,
+    const newMessage = await Message.create({
+      conversationId,
+      role,
+      content,
     });
 
     return NextResponse.json({
       success: true,
-      messages,
+      message: newMessage,
     });
-  } catch (error) {
-    console.error("Get messages error:", error);
+  } catch (error: any) {
     return NextResponse.json(
-      { success: false, message: "Failed to fetch messages" },
+      { success: false, message: error.message },
       { status: 500 }
     );
   }

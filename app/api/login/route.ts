@@ -11,17 +11,26 @@ export async function POST(request: NextRequest) {
     const { email, password } = await request.json();
 
     if (!email || !password) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: "Email and password are required" },
+        { status: 400 }
+      );
     }
 
     const user = await User.findOne({ email });
     if (!user) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, message: "Invalid email or password" },
+        { status: 401 }
+      );
     }
 
     const isMatch = await bcryptjs.compare(password, user.password);
     if (!isMatch) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, message: "Invalid email or password" },
+        { status: 401 }
+      );
     }
 
     const token = jwt.sign(
@@ -45,6 +54,9 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: "Something went wrong" },
+      { status: 500 }
+    );
   }
 }

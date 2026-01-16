@@ -8,13 +8,22 @@ export async function POST(req: NextRequest) {
   await connectDB();
 
   try {
-    const userId = getDataFromToken(req);
     const body = await req.json();
-    const { title } = body;
+    const { title, guestId } = body;
+
+    const userId = getDataFromToken(req); // may be null for guests
+
+    if (!userId && !guestId) {
+      return NextResponse.json(
+        { success: false, message: "Missing guestId or login token" },
+        { status: 400 }
+      );
+    }
 
     const newConversation = await Conversation.create({
-      userId,
       title: title || "New Chat",
+      userId: userId || null,
+      guestId: userId ? null : guestId,
     });
 
     return NextResponse.json({
@@ -24,7 +33,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: error.message },
-      { status: 401 }
+      { status: 500 }
     );
   }
 }

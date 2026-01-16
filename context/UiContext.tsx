@@ -20,7 +20,6 @@ const UiContext = createContext<UiContextType | undefined>(undefined);
 export function UiProvider({ children }: { children: React.ReactNode }) {
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [isOpen, setIsOpen] = useState<boolean>(true);
-
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const openLogin = () => setIsLoginOpen(true);
   const closeLogin = () => setIsLoginOpen(false);

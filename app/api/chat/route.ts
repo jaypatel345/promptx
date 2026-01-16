@@ -147,13 +147,26 @@ User: "Make me a diet plan"
       return NextResponse.json({ error: data }, { status: res.status });
     }
 
-    const content = data?.choices?.[0]?.message?.content;
+    let content = data?.choices?.[0]?.message?.content;
+
+    if (typeof content === "string") {
+      content = content.trim();
+
+      // Remove wrapping quotes if the entire response is quoted
+      if (
+        (content.startsWith('"') && content.endsWith('"')) ||
+        (content.startsWith("'") && content.endsWith("'"))
+      ) {
+        content = content.slice(1, -1).trim();
+      }
+    }
 
     return NextResponse.json(
       {
-        response: typeof content === "string" && content.length
-          ? content
-          : "No response generated",
+        response:
+          typeof content === "string" && content.length
+            ? content
+            : "No response generated",
       },
       { status: 200 }
     );

@@ -4,6 +4,7 @@ import "./globals.css";
 import { UiProvider } from "@/context/UiContext";
 import { ThemeProvider } from "@/context/theme-context";
 import LenisProvider from "@/component/LenisProvider";
+import { ChatContextProvider } from "@/context/ChatContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -137,7 +138,9 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <UiProvider>
-            <LenisProvider>{children}</LenisProvider>
+            <ChatContextProvider>
+              <LenisProvider>{children}</LenisProvider>
+            </ChatContextProvider>
           </UiProvider>
         </ThemeProvider>
       </body>

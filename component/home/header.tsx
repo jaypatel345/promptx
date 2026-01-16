@@ -19,6 +19,7 @@ export default function Header() {
   const [isSettingOpen, setIsSettingOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const [loading, setLoading] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState({
     email: "",
     password: "",
@@ -61,34 +62,23 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser && storedUser !== "undefined") {
-        try {
-          const parsedUser = JSON.parse(storedUser);
-          if (parsedUser) {
-            setIsLoggedIn(true);
-          }
-        } catch (err) {
-          console.error("Failed to parse user from localStorage:", err);
+    const checkLogin = async () => {
+      try {
+        const res = await axios.get("/api/me", { withCredentials: true });
+        if (res.data?.success) {
+          setIsLoggedIn(true);
+        } else {
+          setIsLoggedIn(false);
         }
+      } catch {
+        setIsLoggedIn(false);
+      } finally {
+        setAuthChecked(true); // VERY IMPORTANT
       }
-    }
-  }, []);
-useEffect(() => {
-  const checkLogin = async () => {
-    try {
-      const res = await axios.get("/api/me", { withCredentials: true });
-      if (res.data?.success) {
-        setIsLoggedIn(true);
-      }
-    } catch {
-      setIsLoggedIn(false);
-    }
-  };
+    };
 
-  checkLogin();
-}, []);
+    checkLogin();
+  }, []);
 
   const onLogin = async (e?: React.SyntheticEvent) => {
   e?.preventDefault();
@@ -116,7 +106,10 @@ useEffect(() => {
     setLoading(false);
   }
 };
-  // Only keep modal toggle state for search
+const logout = async () => {
+  await axios.post("/api/logout", {}, { withCredentials: true });
+  setIsLoggedIn(false);
+};
   return (
     <>
       {/* Header */}
@@ -347,7 +340,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                 setIsScrolled(false);
               }}
             >
-              {isLoggedIn ? (
+              {authChecked && isLoggedIn ? (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="18"
@@ -362,9 +355,9 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                   <circle cx="12" cy="7" r="4"></circle>
                 </svg>
-              ) : (
+              ) : authChecked ? (
                 "Log in"
-              )}
+              ) : null}
             </button>
           </div>
         </div>
@@ -378,168 +371,175 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
 
       {/* Login Modal */}
       {isLoginOpen && (
-  <>
-    {/* BACKDROP – full screen */}
-    <div
-      className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 dark:bg-white/20"
-      onClick={() => setIsLoginOpen(false)}
-    ></div>
-
-    {/* MODAL CONTAINER – centered */}
-    <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none -translate-y-10 sm:-translate-y-20 transition-all duration-300 px-4 ">
-      <div
-        className="bg-white/70 w-lg max-w-xs sm:max-w-sm rounded-2xl px-10 sm:px-8 py-8 pointer-events-auto shadow-sm dark:bg-black/70 dark:text-white "
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-end mb-2">
-          <button
-            type="button"
+        <>
+          {/* BACKDROP – full screen */}
+          <div
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 dark:bg-white/20"
             onClick={() => setIsLoginOpen(false)}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            aria-label="Close"
-          >
-            <svg
-              className="w-4 h-4 sm:w-5 sm:h-5"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          ></div>
+
+          {/* MODAL CONTAINER – centered */}
+          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none -translate-y-10 sm:-translate-y-20 transition-all duration-300 px-4 ">
+            <div
+              className="bg-white/70 w-lg max-w-xs sm:max-w-sm rounded-2xl px-10 sm:px-8 py-8 pointer-events-auto shadow-sm dark:bg-black/70 dark:text-white "
+              onClick={(e) => e.stopPropagation()}
             >
-              <path d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
-
-        {/* ✅ FORM: Enter key will trigger submit */}
-        <form onSubmit={onLogin}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={user.email}
-            onChange={(e) => setUser({ ...user, email: e.target.value })}
-            disabled={loading}
-            className="border-b border-gray-300 w-full px-2 py-2 mb-4 sm:mb-5 text-black outline-none dark:text-white text-sm sm:text-[15px] focus:border-gray-500 dark:focus:border-neutral-500"
-          />
-
-          <div className="flex items-center justify-center">
-            <input
-              type="password"
-              placeholder="Password"
-              value={user.password}
-              onChange={(e) => setUser({ ...user, password: e.target.value })}
-              disabled={loading}
-              className="border-b border-gray-300 w-full px-2 py-2 mb-9 text-black outline-none dark:text-white  sm:text-[15px] text-sm focus:border-gray-500 dark:focus:border-neutral-500"
-            />
-
-            <svg
-              width="16"
-              height="16"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-              viewBox="0 0 16 16"
-              fill="currentColor"
-              className="cursor-pointer ml-2 sm:ml-3 sm:w-[18px] sm:h-[18px] shrink-0 mb-3"
-            >
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M8 2.5C3 2.5 0 8 0 8C0 8 3 13.5 8 13.5C13 13.5 16 8 16 8C16 8 13 2.5 8 2.5ZM10.4749 10.4749C9.8185 11.1313 8.92826 11.5 8 11.5C7.07174 11.5 6.1815 11.1313 5.52513 10.4749C4.86875 9.8185 4.5 8.92826 4.5 8C4.5 7.07174 4.86875 6.1815 5.52513 5.52513C6.1815 4.86875 7.07174 4.5 8 4.5C8.92826 4.5 9.8185 4.86875 10.4749 5.52513C11.1313 6.1815 11.5 7.07174 11.5 8C11.5 8.92826 11.1313 9.8185 10.4749 10.4749ZM9.76777 9.76777C10.2366 9.29893 10.5 8.66304 10.5 8C10.5 7.33696 10.2366 6.70107 9.76777 6.23223C9.29893 5.76339 8.66304 5.5 8 5.5C7.33696 5.5 6.70107 5.76339 6.23223 6.23223C5.76339 6.70107 5.5 7.33696 5.5 8C5.5 8.66304 5.76339 9.29893 6.23223 9.76777C6.70107 10.2366 7.33696 10.5 8 10.5C8.66304 10.5 9.29893 10.2366 9.76777 9.76777Z"
-              ></path>
-            </svg>
-          </div>
-
-          <button
-            type="submit"
-            className={`w-full bg-black text-[#aeaeaf] py-2 sm:py-2 md:py-3 rounded-full hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/90 text-sm sm:text-base flex items-center justify-center gap-2 ${
-              loading ? "opacity-70 cursor-not-allowed" : "cursor-pointer"
-            }`}
-            disabled={loading}
-            aria-busy={loading}
-          >
-            {loading ? (
-              <>
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
+              <div className="flex justify-end mb-2">
+                <button
+                  type="button"
+                  onClick={() => setIsLoginOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  aria-label="Close"
                 >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
+                  <svg
+                    className="w-4 h-4 sm:w-5 sm:h-5"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
                     stroke="currentColor"
-                    strokeWidth="4"
+                  >
+                    <path d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+
+              {/* ✅ FORM: Enter key will trigger submit */}
+              <form onSubmit={onLogin}>
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={user.email}
+                  onChange={(e) => setUser({ ...user, email: e.target.value })}
+                  disabled={loading}
+                  className="border-b border-gray-300 w-full px-2 py-2 mb-4 sm:mb-5 text-black outline-none dark:text-white text-sm sm:text-[15px] focus:border-gray-500 dark:focus:border-neutral-500"
+                />
+
+                <div className="flex items-center justify-center">
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    value={user.password}
+                    onChange={(e) =>
+                      setUser({ ...user, password: e.target.value })
+                    }
+                    disabled={loading}
+                    className="border-b border-gray-300 w-full px-2 py-2 mb-9 text-black outline-none dark:text-white  sm:text-[15px] text-sm focus:border-gray-500 dark:focus:border-neutral-500"
                   />
-                  <path
-                    className="opacity-75"
+
+                  <svg
+                    width="16"
+                    height="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                    viewBox="0 0 16 16"
                     fill="currentColor"
-                    d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z"
-                  />
-                </svg>
-                <span className="text-sm">Signing in...</span>
-              </>
-            ) : (
-              <span className="text-sm">SIGN IN</span>
-            )}
-          </button>
-        </form>
+                    className="cursor-pointer ml-2 sm:ml-3 sm:w-[18px] sm:h-[18px] shrink-0 mb-3"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      clipRule="evenodd"
+                      d="M8 2.5C3 2.5 0 8 0 8C0 8 3 13.5 8 13.5C13 13.5 16 8 16 8C16 8 13 2.5 8 2.5ZM10.4749 10.4749C9.8185 11.1313 8.92826 11.5 8 11.5C7.07174 11.5 6.1815 11.1313 5.52513 10.4749C4.86875 9.8185 4.5 8.92826 4.5 8C4.5 7.07174 4.86875 6.1815 5.52513 5.52513C6.1815 4.86875 7.07174 4.5 8 4.5C8.92826 4.5 9.8185 4.86875 10.4749 5.52513C11.1313 6.1815 11.5 7.07174 11.5 8C11.5 8.92826 11.1313 9.8185 10.4749 10.4749ZM9.76777 9.76777C10.2366 9.29893 10.5 8.66304 10.5 8C10.5 7.33696 10.2366 6.70107 9.76777 6.23223C9.29893 5.76339 8.66304 5.5 8 5.5C7.33696 5.5 6.70107 5.76339 6.23223 6.23223C5.76339 6.70107 5.5 7.33696 5.5 8C5.5 8.66304 5.76339 9.29893 6.23223 9.76777C6.70107 10.2366 7.33696 10.5 8 10.5C8.66304 10.5 9.29893 10.2366 9.76777 9.76777Z"
+                    ></path>
+                  </svg>
+                </div>
 
-        {/* Google button (kept OUTSIDE form so it won't submit on click) */}
-        <div className="flex justify-center items-center">
-          <button
-            type="button"
-            className="w-fit sm:w-[60%] mt-2 text-white pr-3 sm:pr-3 rounded-full bg-black flex justify-between items-center hover:bg-black/80 cursor-pointer dark:bg-white dark:text-black dark:hover:bg-white/90 text-xs sm:text-sm"
-          >
-            <svg
-              version="1.1"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 48 48"
-              className="bg-white p-1 sm:p-1 md:p-2 rounded-full text-black dark:bg-black"
-              width={32}
-              height={32}
-            >
-              <g>
-                <path
-                  fill="#EA4335"
-                  d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                ></path>
-                <path
-                  fill="#4285F4"
-                  d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                ></path>
-                <path
-                  fill="#FBBC05"
-                  d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                ></path>
-                <path
-                  fill="#34A853"
-                  d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                ></path>
-                <path fill="none" d="M0 0h48v48H0z"></path>
-              </g>
-            </svg>
+                <button
+                  type="submit"
+                  className={`w-full bg-black text-[#aeaeaf] py-2 sm:py-2 md:py-3 rounded-full hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/90 text-sm sm:text-base flex items-center justify-center gap-2 ${
+                    loading ? "opacity-70 cursor-not-allowed" : "cursor-pointer"
+                  }`}
+                  disabled={loading}
+                  aria-busy={loading}
+                >
+                  {loading ? (
+                    <>
+                      <svg
+                        className="h-4 w-4 animate-spin"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z"
+                        />
+                      </svg>
+                      <span className="text-sm">Signing in...</span>
+                    </>
+                  ) : (
+                    <span className="text-sm">SIGN IN</span>
+                  )}
+                </button>
+              </form>
 
-            <div className="pl-2 md:-pl-5 text-sm">Continue with Google</div>
-          </button>
-        </div>
+              {/* Google button (kept OUTSIDE form so it won't submit on click) */}
+              <div className="flex justify-center items-center">
+                <button
+                  type="button"
+                  className="w-fit sm:w-[60%] mt-2 text-white pr-3 sm:pr-3 rounded-full bg-black flex justify-between items-center hover:bg-black/80 cursor-pointer dark:bg-white dark:text-black dark:hover:bg-white/90 text-xs sm:text-sm"
+                >
+                  <svg
+                    version="1.1"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 48 48"
+                    className="bg-white p-1 sm:p-1 md:p-2 rounded-full text-black dark:bg-black"
+                    width={32}
+                    height={32}
+                  >
+                    <g>
+                      <path
+                        fill="#EA4335"
+                        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+                      ></path>
+                      <path
+                        fill="#4285F4"
+                        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+                      ></path>
+                      <path
+                        fill="#FBBC05"
+                        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+                      ></path>
+                      <path
+                        fill="#34A853"
+                        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+                      ></path>
+                      <path fill="none" d="M0 0h48v48H0z"></path>
+                    </g>
+                  </svg>
 
-        <div className="flex justify-center items-center gap-1 sm:gap-2 pt-3 sm:pt-4 text-xs sm:text-[13px]">
-          <Link href="/forget password" className="text-black/60 dark:text-white">
-            Forgot Password
-          </Link>
-          <Link href="/Signup" className="text-black dark:text-white">
-            Sign Up
-          </Link>
-        </div>
-      </div>
-    </div>
-  </>
-)}
+                  <div className="pl-2 md:-pl-5 text-sm">
+                    Continue with Google
+                  </div>
+                </button>
+              </div>
+
+              <div className="flex justify-center items-center gap-1 sm:gap-2 pt-3 sm:pt-4 text-xs sm:text-[13px]">
+                <Link
+                  href="/forget-password"
+                  className="text-black/60 dark:text-white"
+                >
+                  Forgot Password
+                </Link>
+                <Link href="/Signup" className="text-black dark:text-white">
+                  Sign Up
+                </Link>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Navbar */}
       <nav
