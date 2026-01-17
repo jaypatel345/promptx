@@ -1,3 +1,84 @@
+// --- PIN ICON COMPONENT (VISIBLE + FIXED) ---
+const PinIcon = ({ size = 12 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="-12 -12 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="shrink-0"
+  >
+    <path
+      d="M-8.593,8.593 L-3.593,3.593
+         M-8.593,-1.407 L-7.593,-2.407
+         L-3.527,-3.085
+         C-2.307,-3.288 -1.25,-4.045 -0.663,-5.134
+         L0.633,-7.541
+         C1.268,-8.721 2.861,-8.954 3.808,-8.007
+         L8.007,-3.808
+         C8.954,-2.861 8.721,-1.268 7.541,-0.633
+         L5.134,0.663
+         C4.045,1.25 3.288,2.307 3.085,3.527
+         L2.407,7.593
+         L1.407,8.593
+         L-3.593,3.593
+         Z"
+      stroke="currentColor"
+      strokeWidth="2"
+      fill="none"
+      strokeLinecap="square"
+      strokeLinejoin="miter"
+    />
+  </svg>
+);
+// --- API helpers for conversation actions ---
+async function apiRenameConversation(
+  conversationId: string,
+  title: string,
+  guestId?: string
+) {
+  const res = await fetch("/api/conversation/rename", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ conversationId, title, guestId }),
+  });
+  if (!res.ok) throw new Error("Rename failed");
+}
+
+async function apiPinConversation(
+  conversationId: string,
+  pin: boolean,
+  guestId?: string
+) {
+  const res = await fetch("/api/conversation/pin", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ conversationId, pin, guestId }),
+  });
+  if (!res.ok) throw new Error("Pin failed");
+}
+
+async function apiDeleteConversation(conversationId: string, guestId?: string) {
+  const payload: any = { conversationId };
+  if (guestId) payload.guestId = guestId;
+
+  const res = await fetch("/api/conversation/delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok || !data?.success) {
+    throw new Error(data?.error || "Delete failed");
+  }
+
+  return data;
+}
 import { useTheme } from "@/context/theme-context";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,6 +91,7 @@ import { Message } from "@/context/ChatContext";
 
 function EnhacerHeader() {
   axios.defaults.withCredentials = true;
+  // --- Auth/guest ready state for message fetches ---
   const [guestId, setGuestId] = useState<string | null>(null);
   const [guestReady, setGuestReady] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -29,9 +111,10 @@ function EnhacerHeader() {
   const [openHistoryMenuId, setOpenHistoryMenuId] = useState<string | null>(
     null
   );
-  const [pinnedConversationIds, setPinnedConversationIds] = useState<string[]>(
-    []
-  );
+  // --- RENAME MODAL STATE ---
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameTargetId, setRenameTargetId] = useState<string | null>(null);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -64,17 +147,126 @@ function EnhacerHeader() {
   const [loading, setLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
   const { startNewChat } = useChat();
+  const canFetchMessages = authChecked && (isLoggedIn || guestReady);
+
   const [conversations, setConversations] = useState<
-    { _id: string; title: string; createdAt: string }[]
+    {
+      _id: string;
+      title: string;
+      createdAt: string;
+      pinnedAt?: string | null;
+    }[]
   >([]);
-  const latestConversations = React.useMemo(() => {
-    return [...conversations]
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )
-      .slice(0, 11);
+  const sorted = React.useMemo(() => {
+    return [...conversations].sort((a, b) => {
+      if (a.pinnedAt && b.pinnedAt) {
+        return new Date(b.pinnedAt).getTime() - new Date(a.pinnedAt).getTime();
+      }
+      if (a.pinnedAt) return -1;
+      if (b.pinnedAt) return 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   }, [conversations]);
+  const latestConversations = React.useMemo(() => {
+    return sorted.slice(0, 11);
+  }, [sorted]);
+  // --- HISTORY ACTION HANDLERS ---
+  const handleRenameConversation = (id: string) => {
+    const current = conversations.find((c) => c._id === id);
+    setRenameTargetId(id);
+    setRenameValue(current?.title || "");
+    setIsRenameOpen(true);
+  };
+
+  const confirmRename = async () => {
+    if (!renameTargetId || !renameValue.trim()) return;
+
+    const prev = conversations;
+
+    setConversations((prev) =>
+      prev.map((c) =>
+        c._id === renameTargetId ? { ...c, title: renameValue.trim() } : c
+      )
+    );
+
+    try {
+      const guestId = localStorage.getItem("guestId") || undefined;
+      await apiRenameConversation(renameTargetId, renameValue.trim(), guestId);
+    } catch (err) {
+      console.error(err);
+      setConversations(prev);
+    }
+
+    setIsRenameOpen(false);
+    setRenameTargetId(null);
+    setRenameValue("");
+  };
+
+  const handlePinConversation = async (id: string) => {
+    const guestId = localStorage.getItem("guestId") || undefined;
+
+    const prev = conversations;
+
+    const target = conversations.find((c) => c._id === id);
+    const wasPinned = !!target?.pinnedAt;
+
+    const now = new Date().toISOString();
+
+    setConversations((prev) =>
+      prev.map((c) =>
+        c._id === id ? { ...c, pinnedAt: wasPinned ? null : now } : c
+      )
+    );
+
+    try {
+      await apiPinConversation(id, !wasPinned, guestId);
+
+      const res = await axios.get("/api/conversation/list", {
+        withCredentials: true,
+        params: isLoggedIn ? {} : { guestId },
+      });
+
+      if (res.data?.success) {
+        setConversations(res.data.conversations);
+      }
+    } catch (err) {
+      console.error(err);
+      setConversations(prev);
+    }
+  };
+
+  const handleDeleteConversation = async (id: string) => {
+    const localGuestId = !isLoggedIn
+      ? localStorage.getItem("guestId") || undefined
+      : undefined;
+
+    const prev = conversations;
+
+    // Optimistic UI update
+    setConversations((prev) => prev.filter((c) => c._id !== id));
+
+    if (conversationId === id) {
+      setConversationId(null);
+      setMessages([]);
+    }
+
+    try {
+      // IMPORTANT: Do NOT send guestId when logged in
+      await apiDeleteConversation(id, localGuestId);
+
+      const res = await axios.get("/api/conversation/list", {
+        withCredentials: true,
+        params: isLoggedIn ? {} : { guestId: localGuestId },
+      });
+
+      if (res.data?.success) {
+        setConversations(res.data.conversations);
+      }
+    } catch (err) {
+      console.error(err);
+      setConversations(prev); // rollback
+    }
+  };
   const { loadConversation, conversationId, setConversationId, setMessages } =
     useChat();
   const isGuest = !isLoggedIn;
@@ -117,6 +309,7 @@ function EnhacerHeader() {
   // Keyboard navigation for search modal
   useEffect(() => {
     if (!isSearchModalOpen) return;
+    if (!canFetchMessages) return;
 
     const handleKey = (e: KeyboardEvent) => {
       const filteredConversations = conversations.filter((c) => {
@@ -143,6 +336,7 @@ function EnhacerHeader() {
           // fetch preview
           (async () => {
             try {
+              if (!canFetchMessages) return;
               const res = await axios.get("/api/message/get", {
                 withCredentials: true,
                 params: isLoggedIn
@@ -169,6 +363,7 @@ function EnhacerHeader() {
         } else {
           (async () => {
             try {
+              if (!canFetchMessages) return;
               const res = await axios.get("/api/message/get", {
                 withCredentials: true,
                 params: isLoggedIn
@@ -197,15 +392,23 @@ function EnhacerHeader() {
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [isSearchModalOpen, previewConversationId, conversations, searchQuery]);
+  }, [
+    isSearchModalOpen,
+    previewConversationId,
+    conversations,
+    searchQuery,
+    canFetchMessages,
+  ]);
 
   // Prefetch message text for searching (background)
   useEffect(() => {
     const preloadSearchData = async () => {
+      if (!canFetchMessages) return;
       for (const conv of conversations) {
         if (searchCache.current[conv._id]) continue;
 
         try {
+          if (!canFetchMessages) return;
           const res = await axios.get("/api/message/get", {
             withCredentials: true,
             params: isLoggedIn
@@ -229,7 +432,7 @@ function EnhacerHeader() {
     if (isSearchModalOpen) {
       preloadSearchData();
     }
-  }, [isSearchModalOpen, conversations]);
+  }, [isSearchModalOpen, conversations, canFetchMessages]);
 
   useEffect(() => {
     if (!isSearchModalOpen) {
@@ -290,6 +493,7 @@ function EnhacerHeader() {
 
   const openConversation = async (id: string) => {
     try {
+      if (!canFetchMessages) return;
       const params = isLoggedIn
         ? { conversationId: id }
         : { conversationId: id, guestId };
@@ -570,13 +774,15 @@ function EnhacerHeader() {
           </div>
           {/* --- HISTORY MENU BUTTON --- */}
           <div
-            onMouseEnter={() => setIsHistoryHovered(true)}
-            onMouseLeave={() => setIsHistoryHovered(false)}
             className={`mt-1 ml-2 flex flex-row items-center gap-2 pl-3 py-2.5 pr-5 rounded-2xl transition-all duration-800  hover:-translate-y dark:hover:bg-neutral-700/60 cursor-pointer ${
               isOpen ? "hover:bg-gray-100" : ""
             }`}
           >
-            <div className="flex items-center gap-2 w-7">
+            <div
+              className="flex items-center gap-2 w-7"
+              onMouseEnter={() => setIsHistoryHovered(true)}
+              onMouseLeave={() => setIsHistoryHovered(false)}
+            >
               {!isHistoryHovered && (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -691,7 +897,7 @@ function EnhacerHeader() {
                   <span className="text-gray-400 px-3 py-2">No chats yet</span>
                 )}
 
-                {latestConversations.map((conv, index) => {
+                {sorted.slice(0, 11).map((conv, index) => {
                   const isActive = conversationId === conv._id;
 
                   return (
@@ -708,6 +914,8 @@ function EnhacerHeader() {
                     >
                       <div
                         onClick={async () => {
+                          if (!canFetchMessages) return;
+
                           setIsSearchModalOpen(true);
                           setPreviewConversationId(conv._id);
 
@@ -740,7 +948,12 @@ function EnhacerHeader() {
                 : "hover:bg-gray-100 dark:hover:bg-neutral-800"
             }`}
                       >
-                        <span className="truncate text-[14px]">
+                        <span className="truncate text-[14px] flex items-center gap-1">
+                          {conv.pinnedAt && (
+                            <span className="ml-1 text-gray-500 dark:text-gray-300">
+                              <PinIcon size={12} />
+                            </span>
+                          )}
                           {conv.title || "New Chat"}
                         </span>
                       </div>
@@ -769,13 +982,31 @@ function EnhacerHeader() {
                           onClick={(e) => e.stopPropagation()}
                           className="absolute right-2 top-full mt-1 w-32 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-lg z-50 overflow-hidden text-sm"
                         >
-                          <button className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRenameConversation(conv._id);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800"
+                          >
                             Rename
                           </button>
-                          <button className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 flex items-center gap-2">
-                            Pin
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePinConversation(conv._id);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 flex items-center gap-2"
+                          >
+                            {conv.pinnedAt ? "Unpin" : "Pin"}
                           </button>
-                          <button className="w-full text-left px-3 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteConversation(conv._id);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600"
+                          >
                             Delete
                           </button>
                         </div>
@@ -869,8 +1100,8 @@ function EnhacerHeader() {
             {/* Sidebar toggle chevrons */}
             <div
               onClick={() => setIsOpen(!isOpen)}
-              className={`cursor-pointer transition-all duration-500 ease-(--grok-ease) transform flex items-center justify-center w-9 h-9 hover:scale-[1.08] active:scale-[0.95] ${
-                isOpen ? "order-2 ml-17" : "order-2 ml-0"
+              className={`cursor-pointer  transition-all duration-500 ease-(--grok-ease) transform flex items-center justify-center w-9 h-9 hover:scale-[1.08] active:scale-[0.95] ${
+                isOpen ? "order-2 ml-0" : "order-2 ml-0"
               }`}
             >
               <svg
@@ -1160,6 +1391,8 @@ function EnhacerHeader() {
                       <div
                         key={conv._id}
                         onMouseEnter={async () => {
+                          if (!canFetchMessages) return;
+
                           if (previewCache.current[conv._id]) {
                             setPreviewMessages(previewCache.current[conv._id]);
                             setPreviewConversationId(conv._id);
@@ -1187,6 +1420,8 @@ function EnhacerHeader() {
                           }
                         }}
                         onClick={async () => {
+                          if (!canFetchMessages) return;
+
                           setPreviewConversationId(conv._id);
                           if (previewCache.current[conv._id]) {
                             setPreviewMessages(previewCache.current[conv._id]);
@@ -1265,6 +1500,52 @@ function EnhacerHeader() {
         </>
       )}
       {/* Hide scrollbar globally for .hide-scrollbar */}
+      {/* --- RENAME MODAL --- */}
+      {isRenameOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-999"
+            onClick={() => setIsRenameOpen(false)}
+          />
+
+          <div className="fixed inset-0 z-1000 flex items-center justify-center p-4">
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm bg-white dark:bg-neutral-900 rounded-2xl shadow-xl p-5 animate-[grok-pop_0.25s_(--grok-ease)]"
+            >
+              <h3 className="text-sm font-medium mb-3">Rename chat</h3>
+
+              <input
+                autoFocus
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") confirmRename();
+                  if (e.key === "Escape") setIsRenameOpen(false);
+                }}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-transparent outline-none mb-4"
+              />
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setIsRenameOpen(false)}
+                  className="px-3 py-1.5 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-neutral-800"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={confirmRename}
+                  className="px-3 py-1.5 rounded-lg text-sm bg-black text-white dark:bg-white dark:text-black"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       <style jsx global>{`
         .hide-scrollbar::-webkit-scrollbar {
           width: 0px;

@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
     }
 
     const conversations = await Conversation.find(filter)
-      .select("_id title createdAt")
-      .sort({ createdAt: -1 });
+      .select("_id title createdAt pinnedAt")
+      .sort({ pinnedAt: -1, createdAt: -1 });
 
     return NextResponse.json({
       success: true,

@@ -35,8 +35,9 @@ export async function GET(req: NextRequest) {
       userId && conversation.userId?.toString() === userId;
 
     const isGuestOwner =
-      !userId && guestId && conversation.guestId === guestId;
+      guestId && conversation.guestId === guestId;
 
+    // Allow if either matches
     if (!isUserOwner && !isGuestOwner) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },

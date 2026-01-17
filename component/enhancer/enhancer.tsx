@@ -223,18 +223,31 @@ function Enhancer() {
     if (!conversationId || isSendingRef.current) return;
 
     let cancelled = false;
+    let retried = false;
 
     async function loadMessages() {
       try {
         setLoadingMessages(true);
 
-        const guestId = localStorage.getItem("guestId");
+        let guestId = localStorage.getItem("guestId");
 
-        const url = guestId
-          ? `/api/message/get?conversationId=${conversationId}&guestId=${guestId}`
-          : `/api/message/get?conversationId=${conversationId}`;
+        // Ensure guestId exists
+        if (!guestId) {
+          guestId = crypto.randomUUID();
+          localStorage.setItem("guestId", guestId);
+        }
+
+        const url = `/api/message/get?conversationId=${conversationId}&guestId=${guestId}`;
 
         const res = await fetch(url, { credentials: "include" });
+
+        // If unauthorized, retry once after short delay
+        if (res.status === 401 && !retried) {
+          retried = true;
+          await new Promise((r) => setTimeout(r, 400));
+          if (!cancelled) return loadMessages();
+          return;
+        }
 
         if (!res.ok) throw new Error("Failed to fetch messages");
 
@@ -245,7 +258,7 @@ function Enhancer() {
         }
       } catch (err) {
         if (!cancelled) {
-          console.error("Failed to load messages", err);
+          console.warn("Message load skipped (initial auth race)");
         }
       } finally {
         if (!cancelled) {
