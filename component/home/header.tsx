@@ -1,8 +1,21 @@
 "use client";
+
+const grokStyles = `
+@keyframes grokDropdown {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+`;
 import { useUi } from "@/context/UiContext";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/context/theme-context";
 // import { Router } from "next/router";
@@ -19,12 +32,16 @@ export default function Header() {
   const [isSettingOpen, setIsSettingOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const [loading, setLoading] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
+
   const [user, setUser] = useState({
     email: "",
     password: "",
   });
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [headerKey, setHeaderKey] = useState(0);
   function checkScrollPosition() {
     const fullScreen = window.innerHeight;
     const halfScreen = fullScreen * 0.5;
@@ -65,53 +82,103 @@ export default function Header() {
     const checkLogin = async () => {
       try {
         const res = await axios.get("/api/me", { withCredentials: true });
-        if (res.data?.success) {
+
+        if (res.data?.user) {
           setIsLoggedIn(true);
         } else {
           setIsLoggedIn(false);
         }
-      } catch {
+      } catch (error) {
+        console.error("Auth check failed:", error);
         setIsLoggedIn(false);
       } finally {
-        setAuthChecked(true); // VERY IMPORTANT
+        setAuthChecked(true);
       }
     };
 
     checkLogin();
   }, []);
 
-  const onLogin = async (e?: React.SyntheticEvent) => {
-  e?.preventDefault();
-  if (loading) return;
+  // Update logout function to reset authChecked
 
-  try {
-    setLoading(true);
-
-    const response = await axios.post(
-      "/api/login",
-      {
-        email: user.email,
-        password: user.password,
-      },
-      { withCredentials: true }
-    );
-
-    if (response.data?.success) {
-      setIsLoggedIn(true);
-      setIsLoginOpen(false);
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(e.target as Node)
+      ) {
+        setIsProfileMenuOpen(false);
+      }
     }
-  } catch (error: any) {
-    console.log("Login failed:", error.response?.data || error.message);
-  } finally {
-    setLoading(false);
-  }
-};
-const logout = async () => {
-  await axios.post("/api/logout", {}, { withCredentials: true });
-  setIsLoggedIn(false);
-};
+
+    if (isProfileMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isProfileMenuOpen]);
+
+  const onLogin = async (e?: React.SyntheticEvent) => {
+    e?.preventDefault();
+    if (loading) return;
+
+    try {
+      setLoading(true);
+
+      const response = await axios.post(
+        "/api/login",
+        {
+          email: user.email,
+          password: user.password,
+        },
+        { withCredentials: true }
+      );
+
+      if (response.data?.success) {
+        const me = await axios.get("/api/me", { withCredentials: true });
+
+        if (me.data?.user) {
+          setIsLoggedIn(true);
+        }
+
+        setAuthChecked(true);
+        setIsLoginOpen(false);
+        setHeaderKey((k) => k + 1);
+      }
+    } catch (error: any) {
+      console.log("Login failed:", error.response?.data || error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  // const logout = async () => {
+  //   await axios.post("/api/logout", {}, { withCredentials: true });
+  //   setIsLoggedIn(false);
+  //   setIsProfileMenuOpen(false);
+  // };
+
+  const logout = async () => {
+    try {
+      await axios.post("/api/logout", {}, { withCredentials: true });
+
+      const me = await axios.get("/api/me", { withCredentials: true });
+
+      if (!me.data?.user) {
+        setIsLoggedIn(false);
+      }
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setIsProfileMenuOpen(false);
+      setAuthChecked(true);
+      setHeaderKey((k) => k + 1);
+    }
+  };
   return (
-    <>
+    <div key={headerKey}>
+      <style>{grokStyles}</style>
       {/* Header */}
       <header
         className="
@@ -332,33 +399,81 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
               </div>
             </button>
 
-            <button
-              className="px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 bg-gray-300/40 text-black mr-1 sm:mr-2 md:mr-4 rounded-full hover:bg-gray-200 transition cursor-pointer text-[11px] sm:text-[12px] md:text-[13px] dark:bg-white dark:text-black dark:hover:bg-white/90"
-              onClick={() => {
-                setIsLoginOpen(true);
-                setIsNavOpen(false);
-                setIsScrolled(false);
-              }}
-            >
-              {authChecked && isLoggedIn ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+            {/* Stable right slot (prevents search icon shifting) */}
+            <div className="w-[88px] sm:w-24 flex justify-end">
+              {!authChecked || isLoggedIn === null ? (
+                <div className="w-9 h-9"></div>
+              ) : isLoggedIn === true ? (
+                // Show avatar when logged in
+                <div
+                  ref={profileMenuRef}
+                  className="relative transition-all duration-300 flex items-center justify-center mr-5"
+                  style={{ overflow: "visible" }}
                 >
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-              ) : authChecked ? (
-                "Log in"
-              ) : null}
-            </button>
+                  <button
+                    onClick={() => setIsProfileMenuOpen((v) => !v)}
+                    className="w-9 h-9 rounded-full bg-gray-200 dark:bg-neutral-700 flex items-center justify-center transition-all duration-300 ease-out hover:scale-[1.06] active:scale-[0.96]"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  </button>
+
+                  {isProfileMenuOpen && (
+                    <div
+                      className="absolute z-50 w-44 bg-white dark:bg-neutral-900 rounded-xl border border-gray-200 dark:border-neutral-700 overflow-hidden
+            top-full mt-2 -left-35
+            opacity-0 scale-[0.96] translate-y-1
+            animate-[grokDropdown_0.22s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+                      style={{ transformOrigin: "top left" }}
+                    >
+                      <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
+                        Settings
+                      </button>
+                      <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
+                        Upgrade plan
+                      </button>
+                      <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
+                        Help
+                      </button>
+                      <div className="h-px bg-gray-200 dark:bg-neutral-700 my-1" />
+                      <button
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          logout();
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600"
+                      >
+                        Sign out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Show login button when NOT logged in
+                <button
+                  className="px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 bg-gray-300/40 text-black rounded-full hover:bg-gray-200 transition cursor-pointer text-[11px] sm:text-[12px] md:text-[13px] dark:bg-white dark:text-black dark:hover:bg-white/90"
+                  onClick={() => {
+                    setIsLoginOpen(true);
+                    setIsNavOpen(false);
+                    setIsScrolled(false);
+                  }}
+                >
+                  Log in
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -646,6 +761,6 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
           </li>
         </ul>
       </nav>
-    </>
+    </div>
   );
 }

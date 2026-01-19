@@ -276,6 +276,15 @@ function Enhancer() {
   }, [conversationId]);
 
   useEffect(() => {
+    // If there is NO conversationId, this is a fresh user
+    // We must immediately mark UI as hydrated so landing UI shows
+    if (!conversationId) {
+      setHydrated(true);
+      setLoadingMessages(false);
+    }
+  }, [conversationId]);
+
+  useEffect(() => {
     if (conversationId) {
       localStorage.setItem("conversationId", conversationId);
     }
@@ -318,13 +327,11 @@ function Enhancer() {
 
   // Auto-resize textarea
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(
-        textareaRef.current.scrollHeight,
-        200
-      )}px`;
-    }
+    if (!textareaRef.current) return;
+
+    const el = textareaRef.current;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 120) + "px";
   }, [input]);
 
   const scrollToBottom = (): void => {
@@ -584,24 +591,39 @@ function Enhancer() {
   const showChat = hydrated && messages.length > 0;
 
   return (
-    <div className="flex h-screen relative">
+    <div className="flex w-full h-screen md:h-screen   overflow-hidden overflow-x-hidden relative overscroll-none">
       <EnhacerHeader />
 
       {/* Chat Messages Area */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex flex-col flex-1 min-h-0">
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="w-full flex-1 min-h-0 overflow-y-auto custom-scroll"
+          className="flex-1 w-full overflow-y-auto overflow-x-hidden min-h-0 custom-scroll flex"
           style={{
             WebkitOverflowScrolling: "auto",
             overscrollBehaviorY: "auto",
             overscrollBehaviorX: "none",
             touchAction: "pan-y",
             pointerEvents: "auto",
+            paddingLeft: "1rem",
+            paddingRight: "1rem",
+            boxSizing: "border-box",
           }}
         >
-          <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 md:px-8 pt-6 pb-40">
+          <div
+            className={`relative w-full max-w-3xl mx-auto min-h-full flex flex-col ${
+              showLanding
+                ? "p-0"
+                : "px-3 sm:px-4 pt-4 sm:pt-6 pb-40 sm:pb-48"
+            }`}
+            style={{
+              paddingBottom: showLanding
+                ? undefined
+                : "calc(10rem + env(safe-area-inset-bottom))",
+              boxSizing: "border-box",
+            }}
+          >
             {!hydrated ? (
               <div className="flex items-center justify-center min-h-[calc(100vh-14rem)]">
                 <div className="text-gray-500 dark:text-gray-400 animate-pulse">
@@ -610,8 +632,8 @@ function Enhancer() {
               </div>
             ) : showLanding ? (
               // Landing View
-              <div className="flex flex-col items-center justify-center min-h-[calc(100vh-14rem)]">
-                <div className="flex justify-center mb-8">
+              <div className="flex min-h-full items-center justify-center pointer-events-none">
+                <div className="flex flex-col items-center justify-center gap-6 text-center">
                   <Image
                     src={
                       theme === "light"
@@ -621,17 +643,16 @@ function Enhancer() {
                     width={100}
                     height={100}
                     alt="promptx logo"
-                    className="w-24 h-24 md:h-16 opacity-30"
+                    className="w-18 h-14 md:h-15 opacity-30"
                   />
-                </div>
-
-                <div className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-black font-medium mb-5 dark:text-white text-center">
-                  What can I help with?
+                  <div className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-black font-medium dark:text-white">
+                    What can I help with?
+                  </div>
                 </div>
               </div>
             ) : (
               // Chat Messages
-              <div className="space-y-6 py-4 pointer-events-auto">
+              <div className="space-y-6 py-4 px-0 pointer-events-auto mt-5">
                 {messages.map((message, index) => (
                   <div
                     key={message._id || `${message.role}-${index}`}
@@ -707,11 +728,11 @@ function Enhancer() {
                       </div>
                     )}
                     <div
-                      className={`relative max-w-[80%] ${
+                      className={`relative w-fit max-w-[85%] sm:max-w-[75%] ${
                         message.role === "user"
-                          ? "bg-gray-100 text-black dark:bg-neutral-700 dark:text-white"
+                          ? "bg-gray-100 text-black dark:bg-neutral-700 dark:text-white "
                           : "text-black dark:text-white"
-                      } rounded-2xl px-4 py-3`}
+                      } rounded-2xl px-4 py-3 `}
                     >
                       {/*  Show attachments inside the chat bubble */}
                       {message.attachments?.length ? (
@@ -926,11 +947,23 @@ function Enhancer() {
         </div>
 
         {/* Input Bar (fixed bottom) */}
-        <div className="sticky bottom-0 z-40 bg-white/80 dark:bg-black/80 backdrop-blur border-t border-gray-200 dark:border-neutral-700">
-          <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 md:px-8 py-3">
+        <div
+          className="sticky bottom-0 z-40 bg-white/80 dark:bg-black/80 backdrop-blur border-t border-gray-200 dark:border-neutral-700"
+          style={{
+            paddingBottom: "env(safe-area-inset-bottom)",
+          }}
+        >
+          <div
+            className="w-full max-w-3xl mx-auto py-3 overflow-x-hidden"
+            style={{
+              paddingLeft: "1rem",
+              paddingRight: "1rem",
+              boxSizing: "border-box",
+            }}
+          >
             {/*  relative wrapper so popup anchors */}
             <div
-              className="relative flex flex-col gap-2 border border-gray-300 dark:border-neutral-600 rounded-3xl w-full shadow-md bg-white dark:bg-[#0f0f0f] px-3 py-2"
+              className="relative flex flex-col gap-1 border border-gray-300 dark:border-neutral-600 rounded-3xl w-full shadow-md bg-white dark:bg-[#0f0f0f] px-3 py-1 sm:px-4 sm:py-1.5 box-border"
               onDrop={handleDrop}
               onDragOver={handleDragOver}
             >
@@ -1005,7 +1038,7 @@ function Enhancer() {
 
               {/* Attachment chips preview */}
               {attachments.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-2 px-1">
+                <div className="flex gap-2 overflow-x-auto pb-1 px-1">
                   {attachments.map((a) => (
                     <div
                       key={a.id}
@@ -1079,7 +1112,8 @@ function Enhancer() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  className="text-sm sm:text-[16px] w-full outline-none bg-transparent text-black dark:text-white dark:placeholder-gray-400 resize-none overflow-hidden leading-6"
+                  className="text-[16px] w-full outline-none bg-transparent text-black dark:text-white dark:placeholder-gray-400 resize-none overflow-hidden leading-tight min-h-[22px] max-h-30 py-1"
+                  style={{ boxSizing: "border-box" }}
                 />
 
                 <button
@@ -1098,7 +1132,7 @@ function Enhancer() {
                     height="20"
                     viewBox="0 0 20 20"
                     fill="currentColor"
-                    className={`bg-black text-white dark:bg-white dark:text-black rounded-full border w-8 h-8 sm:w-10 sm:h-10 py-2 cursor-pointer transition-opacity ${
+                    className={`bg-black text-white dark:bg-white dark:text-black rounded-full border w-9 h-9 sm:w-10 sm:h-10 py-2 cursor-pointer transition-opacity ${
                       (input.trim().length === 0 && attachments.length === 0) ||
                       loading
                         ? "opacity-50 cursor-not-allowed"

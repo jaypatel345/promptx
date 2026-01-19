@@ -80,12 +80,14 @@ async function apiDeleteConversation(conversationId: string, guestId?: string) {
   return data;
 }
 import { useTheme } from "@/context/theme-context";
+
 import Image from "next/image";
 import Link from "next/link";
 import { useUi } from "@/context/UiContext";
 import { usePathname } from "next/navigation";
 import axios from "axios";
 import React, { useState, useEffect, useRef } from "react";
+const MOBILE_BREAKPOINT = 768;
 import { useChat } from "@/context/ChatContext";
 import { Message } from "@/context/ChatContext";
 
@@ -95,6 +97,8 @@ function EnhacerHeader() {
   const [guestId, setGuestId] = useState<string | null>(null);
   const [guestReady, setGuestReady] = useState(false);
   const { theme, setTheme } = useTheme();
+  const [isMobile, setIsMobile] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [search, setSearch] = React.useState<string>("");
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -117,6 +121,27 @@ function EnhacerHeader() {
   const [renameTargetId, setRenameTargetId] = useState<string | null>(null);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+  useEffect(() => {
+    if (isMobileSidebarOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileSidebarOpen]);
   useEffect(() => {
     const handler = () => setOpenHistoryMenuId(null);
     window.addEventListener("click", handler);
@@ -598,9 +623,16 @@ function EnhacerHeader() {
     <div className="">
       <div className="flex justify-between ">
         <div
-          className={`flex flex-col transition-all duration-300 ease-(--grok-ease) pr-5 h-screen min-h-0 border-r border-gray-200 dark:border-neutral-600 z-50 bg-white dark:bg-black ${
-            isOpen ? "w-60 opacity-100" : "w-15 opacity-100"
-          }`}
+          className={`flex flex-col transition-all duration-300 ease-(--grok-ease) pr-5 h-screen min-h-0 border-r border-gray-200 dark:border-neutral-600 z-50 bg-white dark:bg-black
+  ${
+    isMobile
+      ? `fixed top-0 left-0 w-[60vw] max-w-[420px] transform ${
+          isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`
+      : isOpen
+      ? "w-60 opacity-100"
+      : "w-15 opacity-100"
+  }`}
           style={{ overflow: "visible" }}
         >
           <div>
@@ -614,7 +646,7 @@ function EnhacerHeader() {
                 width={30}
                 height={10}
                 alt="promptx logo"
-                className="ml-2 sm:ml-2.5 mt-4  w-9 h-4 md:h-7 "
+                className="ml-2 sm:ml-2.5 mt-3 w-7 h-5 sm:w-9 sm:h-4 md:w-9 md:h-6"
               />
             </Link>
           </div>
@@ -914,6 +946,7 @@ function EnhacerHeader() {
                     >
                       <div
                         onClick={async () => {
+                          if (isMobile) setIsMobileSidebarOpen(false);
                           if (!canFetchMessages) return;
 
                           setIsSearchModalOpen(true);
@@ -1099,7 +1132,13 @@ function EnhacerHeader() {
 
             {/* Sidebar toggle chevrons */}
             <div
-              onClick={() => setIsOpen(!isOpen)}
+              onClick={() => {
+                if (isMobile) {
+                  setIsMobileSidebarOpen(false);
+                  return;
+                }
+                setIsOpen(!isOpen);
+              }}
               className={`cursor-pointer  transition-all duration-500 ease-(--grok-ease) transform flex items-center justify-center w-9 h-9 hover:scale-[1.08] active:scale-[0.95] ${
                 isOpen ? "order-2 ml-0" : "order-2 ml-0"
               }`}
@@ -1125,22 +1164,42 @@ function EnhacerHeader() {
           </div>
         </div>
 
-        <div className="absolute top-3 right-4 z-50">
-          <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
-            {/* <button ...settings button... /> */}
-            {!authChecked || isLoggedIn ? null : (
-              <button
-                className="px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 bg-gray-300/40 text-black mr-1 sm:mr-2 md:mr-4 rounded-full hover:bg-gray-200 transition cursor-pointer text-[11px] sm:text-[12px] md:text-[13px] dark:bg-white dark:text-black dark:hover:bg-white/90"
-                onClick={() => {
-                  if (!authChecked) return;
-                  setIsLoginOpen(true);
-                  setIsNavOpen(false);
-                }}
+        <div className="absolute top-3 left-4 z-50 flex items-center gap-2">
+          {isMobile && !isMobileSidebarOpen && (
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-200 dark:hover:bg-neutral-800 transition"
+            >
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
               >
-                <span className="text-xs font-medium">Log in</span>
-              </button>
-            )}
-          </div>
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* Auth controls: Login button (top-right) */}
+        <div className="absolute top-3 right-4 z-50 flex items-center gap-2">
+          {!authChecked || isLoggedIn ? null : (
+            <button
+              className="px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 bg-gray-300/40 text-black mr-1 sm:mr-2 md:mr-4 rounded-full hover:bg-gray-200 transition cursor-pointer text-[11px] sm:text-[12px] md:text-[13px] dark:bg-white dark:text-black dark:hover:bg-white/90"
+              onClick={() => {
+                if (!authChecked) return;
+                setIsLoginOpen(true);
+                setIsNavOpen(false);
+              }}
+            >
+              <span className="text-xs font-medium">Log in</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -1420,6 +1479,7 @@ function EnhacerHeader() {
                           }
                         }}
                         onClick={async () => {
+                          if (isMobile) setIsMobileSidebarOpen(false);
                           if (!canFetchMessages) return;
 
                           setPreviewConversationId(conv._id);
@@ -1462,7 +1522,15 @@ function EnhacerHeader() {
                         </div>
                       </div>
                     ))}
-                </div>
+      </div>
+
+      {/* Overlay for mobile sidebar */}
+      {isMobile && isMobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
                 {/* Right panel */}
                 <div
                   className="flex-1 p-4 overflow-y-auto hide-scrollbar min-h-0"
