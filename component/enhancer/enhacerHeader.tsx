@@ -163,6 +163,7 @@ function EnhacerHeader() {
   const pathname = usePathname();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const { isNavOpen, setIsNavOpen, isLoginOpen, setIsLoginOpen } = useUi();
   const [user, setUser] = useState({
@@ -331,6 +332,9 @@ function EnhacerHeader() {
     setGuestReady(true);
   }, []);
 
+  const handleGoogleLogin = () => {
+    window.location.href = "/api/auth/google";
+  };
   // Keyboard navigation for search modal
   useEffect(() => {
     if (!isSearchModalOpen) return;
@@ -486,6 +490,7 @@ function EnhacerHeader() {
       await axios.post("/api/logout", {}, { withCredentials: true });
 
       setIsLoggedIn(false);
+      setUserProfile(null);
       setConversations([]);
       setConversationId(null);
       setMessages([]);
@@ -570,11 +575,16 @@ function EnhacerHeader() {
 
         if (res.data?.success && !res.data.isGuest) {
           setIsLoggedIn(true);
+          setUserProfile(res.data.user || null);
+          console.log("ME API user data:", res.data.user);
+          console.log("Avatar URL:", res.data.user?.avatar);
         } else {
           setIsLoggedIn(false);
+          setUserProfile(null);
         }
       } catch {
         setIsLoggedIn(false);
+        setUserProfile(null);
       } finally {
         setAuthChecked(true);
       }
@@ -619,6 +629,8 @@ function EnhacerHeader() {
     }
   };
 
+  // Debug: log userProfile on every render
+  console.log("Header render: userProfile =", userProfile);
   return (
     <div className="">
       <div className="flex justify-between ">
@@ -1079,22 +1091,46 @@ function EnhacerHeader() {
                   >
                     <button
                       onClick={() => setIsProfileMenuOpen((v) => !v)}
-                      className="w-9 h-9 rounded-full bg-gray-200 dark:bg-neutral-700 flex items-center justify-center transition-all duration-500 ease-(--grok-ease) hover:scale-[1.04] active:scale-[0.96]"
+                      className={`w-9 h-9 rounded-full flex items-center justify-center overflow-hidden ${
+                        userProfile?.avatar
+                          ? "bg-transparent"
+                          : "bg-gray-200 dark:bg-neutral-700"
+                      }`}
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
+                      {userProfile?.avatar &&
+                      userProfile.avatar.trim() !== "" ? (
+                        <img
+                          src={userProfile.avatar}
+                          alt="User avatar"
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover rounded-full block"
+                          onLoad={() =>
+                            console.log("Avatar loaded:", userProfile.avatar)
+                          }
+                          onError={(e) => {
+                            console.log(
+                              "Avatar failed to load:",
+                              userProfile.avatar
+                            );
+                            e.currentTarget.src = "/avatar.svg"; // fallback image
+                          }}
+                        />
+                      ) : (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
+                        </svg>
+                      )}
                     </button>
 
                     {isProfileMenuOpen && (
@@ -1265,7 +1301,7 @@ function EnhacerHeader() {
                     className="border-b border-gray-300 w-full px-2 py-2 mb-9 text-black outline-none dark:text-white  sm:text-[15px] text-sm focus:border-gray-500 dark:focus:border-neutral-500"
                   />
 
-                  <svg
+                  {/* <svg
                     width="16"
                     height="16"
                     xmlns="http://www.w3.org/2000/svg"
@@ -1279,7 +1315,7 @@ function EnhacerHeader() {
                       clipRule="evenodd"
                       d="M8 2.5C3 2.5 0 8 0 8C0 8 3 13.5 8 13.5C13 13.5 16 8 16 8C16 8 13 2.5 8 2.5ZM10.4749 10.4749C9.8185 11.1313 8.92826 11.5 8 11.5C7.07174 11.5 6.1815 11.1313 5.52513 10.4749C4.86875 9.8185 4.5 8.92826 4.5 8C4.5 7.07174 4.86875 6.1815 5.52513 5.52513C6.1815 4.86875 7.07174 4.5 8 4.5C8.92826 4.5 9.8185 4.86875 10.4749 5.52513C11.1313 6.1815 11.5 7.07174 11.5 8C11.5 8.92826 11.1313 9.8185 10.4749 10.4749ZM9.76777 9.76777C10.2366 9.29893 10.5 8.66304 10.5 8C10.5 7.33696 10.2366 6.70107 9.76777 6.23223C9.29893 5.76339 8.66304 5.5 8 5.5C7.33696 5.5 6.70107 5.76339 6.23223 6.23223C5.76339 6.70107 5.5 7.33696 5.5 8C5.5 8.66304 5.76339 9.29893 6.23223 9.76777C6.70107 10.2366 7.33696 10.5 8 10.5C8.66304 10.5 9.29893 10.2366 9.76777 9.76777Z"
                     ></path>
-                  </svg>
+                  </svg> */}
                 </div>
 
                 {loginError && (
@@ -1361,7 +1397,10 @@ function EnhacerHeader() {
                     </g>
                   </svg>
 
-                  <div className="pl-2 md:-pl-5 text-sm">
+                  <div
+                    className="pl-2 md:-pl-5 text-sm"
+                    onClick={handleGoogleLogin}
+                  >
                     Continue with Google
                   </div>
                 </button>
@@ -1522,15 +1561,15 @@ function EnhacerHeader() {
                         </div>
                       </div>
                     ))}
-      </div>
+                </div>
 
-      {/* Overlay for mobile sidebar */}
-      {isMobile && isMobileSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-40"
-          onClick={() => setIsMobileSidebarOpen(false)}
-        />
-      )}
+                {/* Overlay for mobile sidebar */}
+                {isMobile && isMobileSidebarOpen && (
+                  <div
+                    className="fixed inset-0 bg-black/40 z-40"
+                    onClick={() => setIsMobileSidebarOpen(false)}
+                  />
+                )}
                 {/* Right panel */}
                 <div
                   className="flex-1 p-4 overflow-y-auto hide-scrollbar min-h-0"

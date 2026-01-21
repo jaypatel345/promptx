@@ -31,14 +31,18 @@ export async function GET(req: NextRequest) {
     }
 
     // 🔐 Ownership validation
-    const isUserOwner =
-      userId && conversation.userId?.toString() === userId;
+    const isUserOwner = userId && conversation.userId?.toString() === userId;
 
-    const isGuestOwner =
-      guestId && conversation.guestId === guestId;
+    const isGuestOwner = guestId && conversation.guestId === guestId;
 
-    // Allow if either matches
-    if (!isUserOwner && !isGuestOwner) {
+    // Allow access if:
+    // - Logged-in user owns the conversation
+    // - Guest owns the conversation
+    // - OR both userId and guestId are missing (public/first-load safe mode)
+
+    const isPublicAccess = !userId && !guestId;
+
+    if (!isUserOwner && !isGuestOwner && !isPublicAccess) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }

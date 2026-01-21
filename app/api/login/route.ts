@@ -25,6 +25,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Block password login for Google users
+    if (user.provider === "google") {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "This account uses Google Sign-In. Please continue with Google.",
+        },
+        { status: 403 }
+      );
+    }
+
+    if (!user.password) {
+      return NextResponse.json(
+        { success: false, message: "Invalid login method" },
+        { status: 401 }
+      );
+    }
+
     const isMatch = await bcryptjs.compare(password, user.password);
     if (!isMatch) {
       return NextResponse.json(
@@ -33,11 +52,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const token = jwt.sign(
-      { id: user._id },
-      process.env.TOKEN_SECRET!,
-      { expiresIn: "1d" }
-    );
+    const token = jwt.sign({ id: user._id }, process.env.TOKEN_SECRET!, {
+      expiresIn: "1d",
+    });
 
     const response = NextResponse.json({
       success: true,

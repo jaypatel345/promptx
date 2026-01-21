@@ -494,11 +494,12 @@ function Enhancer() {
 
       if (messages.length === 0) {
         const shortTitle = input.split(" ").slice(0, 6).join(" ");
+        const storedGuestId = localStorage.getItem("guestId");
 
         await axios.post("/api/conversation/update-title", {
-          conversationId,
+          conversationId: safeConversationId,
           title: shortTitle,
-          guestId,
+          guestId: storedGuestId,
         });
       }
 
@@ -613,9 +614,7 @@ function Enhancer() {
         >
           <div
             className={`relative w-full max-w-3xl mx-auto min-h-full flex flex-col ${
-              showLanding
-                ? "p-0"
-                : "px-3 sm:px-4 pt-4 sm:pt-6 pb-40 sm:pb-48"
+              showLanding ? "p-0" : "px-3 sm:px-4 pt-4 sm:pt-6 pb-40 sm:pb-48"
             }`}
             style={{
               paddingBottom: showLanding
