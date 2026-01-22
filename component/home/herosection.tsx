@@ -9,14 +9,14 @@ function Herosection() {
 
   return (
     <div
-      className={` mx-auto flex flex-col items-center gap-10 text-center px-4 mt-56  text-black bg-white dark:bg-black dark:text-white  transition-all  duration-300 max-w-5xl  ${
+      className={` mx-auto flex flex-col items-center gap-10 text-center px-4 mt-50  text-black bg-white dark:bg-black dark:text-white  transition-all  duration-300 max-w-5xl  ${
         isNavOpen ? "translate-x-70 md:translate-x-12" : "translate-x-0 "
       } `}
     >
       <div className="flex flex-col gap-10">
         <div className="font-medium text-sm sm:text-sm">
           prompt
-          <span className=" bg-linear-to-r from-[#0070a0]  via-[#68d1fe] to-[#c4d5f3] bg-clip-text text-transparent">
+          <span className="text-black ">
             X
           </span>
         </div>

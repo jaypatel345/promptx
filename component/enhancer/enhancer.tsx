@@ -147,6 +147,14 @@ function Enhancer() {
   //  Track object URLs to revoke later
   const objectUrlsRef = useRef<Set<string>>(new Set());
 
+
+  const resizeTextarea = () => {
+  const el = textareaRef.current;
+  if (!el) return;
+
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight}px`;
+};
   useEffect(() => {
     return () => {
       objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
@@ -578,15 +586,25 @@ function Enhancer() {
   };
 
   useEffect(() => {
-    const isMobile: boolean = window.innerWidth < 640;
-    if (isMobile && !document.referrer.includes(window.location.hostname)) {
-      setIsNavOpen(false);
-    }
-  }, [setIsNavOpen]);
+  const isMobile = window.innerWidth < 640;
 
-  useEffect(() => {
+  // Close sidebar by default on mobile
+  if (isMobile) {
     setIsNavOpen(false);
-  }, [setIsNavOpen]);
+  }
+}, []);
+
+useEffect(() => {
+  requestAnimationFrame(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  });
+}, [isNavOpen]);
+
+ 
 
   const showLanding = hydrated && messages.length === 0;
   const showChat = hydrated && messages.length > 0;
@@ -642,7 +660,7 @@ function Enhancer() {
                     width={100}
                     height={100}
                     alt="promptx logo"
-                    className="w-18 h-14 md:h-15 opacity-30"
+                    className="object-contain h-14 md:h-15 opacity-30"
                   />
                   <div className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-black font-medium dark:text-white">
                     What can I help with?
@@ -1012,7 +1030,7 @@ function Enhancer() {
 
                   <button
                     type="button"
-                    className="w-full rounded-xl px-3 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
+                    className="w-full rounded-xl px-3 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2 z-50"
                     onClick={() => {
                       fileInputRef.current?.click();
                       setIsUploadMenuOpen(false);
@@ -1104,17 +1122,39 @@ function Enhancer() {
                   </svg>
                 </button>
 
-                <textarea
-                  ref={textareaRef}
-                  rows={1}
-                  placeholder="Ask anything"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  className="text-[16px] w-full outline-none bg-transparent text-black dark:text-white dark:placeholder-gray-400 resize-none overflow-hidden leading-tight min-h-[22px] max-h-30 py-1"
-                  style={{ boxSizing: "border-box" }}
-                />
+<textarea
+  ref={textareaRef}
+  rows={1}
+  placeholder="Ask anything"
+  value={input}
+  onChange={(e) => {
+    setInput(e.target.value);
 
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.style.height = "auto";
+      el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+    });
+  }}
+  onKeyDown={handleKeyPress}
+  className="
+    w-full
+    box-border
+    text-[16px]
+    leading-[22px]
+    outline-none
+    bg-transparent
+    text-black
+    dark:text-white
+    dark:placeholder-gray-400
+    resize-none
+    overflow-hidden
+    min-h-[22px]
+    max-h-30
+    py-1
+  "
+/>
                 <button
                   className="flex items-center gap-2 shrink-0"
                   onClick={() => {

@@ -658,7 +658,7 @@ function EnhacerHeader() {
                 width={30}
                 height={10}
                 alt="promptx logo"
-                className="ml-2 sm:ml-2.5 mt-3 w-7 h-5 sm:w-9 sm:h-4 md:w-9 md:h-6"
+                className="ml-3 sm:ml-2.5 mt-3 h-6 sm:h-4  md:h-6 object-contain"
               />
             </Link>
           </div>
@@ -1226,7 +1226,7 @@ function EnhacerHeader() {
         <div className="absolute top-3 right-4 z-50 flex items-center gap-2">
           {!authChecked || isLoggedIn ? null : (
             <button
-              className="px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 bg-gray-300/40 text-black mr-1 sm:mr-2 md:mr-4 rounded-full hover:bg-gray-200 transition cursor-pointer text-[11px] sm:text-[12px] md:text-[13px] dark:bg-white dark:text-black dark:hover:bg-white/90"
+              className="px-4 sm:px-4 md:px-5 py-2 sm:py-2 bg-gray-300/40 text-black mr-1 sm:mr-2 md:mr-4 rounded-full hover:bg-gray-200 transition cursor-pointer text-[13px] sm:text-[12px] md:text-[13px] dark:bg-white dark:text-black dark:hover:bg-white/90"
               onClick={() => {
                 if (!authChecked) return;
                 setIsLoginOpen(true);
@@ -1301,21 +1301,7 @@ function EnhacerHeader() {
                     className="border-b border-gray-300 w-full px-2 py-2 mb-9 text-black outline-none dark:text-white  sm:text-[15px] text-sm focus:border-gray-500 dark:focus:border-neutral-500"
                   />
 
-                  {/* <svg
-                    width="16"
-                    height="16"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                    viewBox="0 0 16 16"
-                    fill="currentColor"
-                    className="cursor-pointer ml-2 sm:ml-3 sm:w-[18px] sm:h-[18px] shrink-0 mb-3"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M8 2.5C3 2.5 0 8 0 8C0 8 3 13.5 8 13.5C13 13.5 16 8 16 8C16 8 13 2.5 8 2.5ZM10.4749 10.4749C9.8185 11.1313 8.92826 11.5 8 11.5C7.07174 11.5 6.1815 11.1313 5.52513 10.4749C4.86875 9.8185 4.5 8.92826 4.5 8C4.5 7.07174 4.86875 6.1815 5.52513 5.52513C6.1815 4.86875 7.07174 4.5 8 4.5C8.92826 4.5 9.8185 4.86875 10.4749 5.52513C11.1313 6.1815 11.5 7.07174 11.5 8C11.5 8.92826 11.1313 9.8185 10.4749 10.4749ZM9.76777 9.76777C10.2366 9.29893 10.5 8.66304 10.5 8C10.5 7.33696 10.2366 6.70107 9.76777 6.23223C9.29893 5.76339 8.66304 5.5 8 5.5C7.33696 5.5 6.70107 5.76339 6.23223 6.23223C5.76339 6.70107 5.5 7.33696 5.5 8C5.5 8.66304 5.76339 9.29893 6.23223 9.76777C6.70107 10.2366 7.33696 10.5 8 10.5C8.66304 10.5 9.29893 10.2366 9.76777 9.76777Z"
-                    ></path>
-                  </svg> */}
+                
                 </div>
 
                 {loginError && (

@@ -187,12 +187,12 @@ export default function Header() {
     }
   };
   return (
-    <div key={headerKey}>
+    <div key={headerKey} className="">
       <style>{grokStyles}</style>
       {/* Header */}
       <header
         className="
-    fixed top-0 z-50 w-full backdrop-blur-md text-black
+    fixed top-0 z-50 w-full backdrop-blur-md text-black 
 
     /* Mobile (default) */
     bg-white dark:bg-black
@@ -201,7 +201,7 @@ export default function Header() {
 xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
   "
       >
-        <div className="flex justify-between items-center mx-3 sm:mx-4 md:mx-5 py-2.5 sm:py-3">
+        <div className="flex justify-between items-center mx-3 sm:mx-4 md:mx-5 py-2.5 sm:py-3 overflow-x-hidden">
           {/* Left: Logo */}
           <div className="flex items-center text-2xl sm:text-4xl font-semibold">
             <div className="relative h-10 w-auto">
@@ -218,7 +218,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                     prompt
                   </span>
                   <span className="relative">
-                    <span className="bg-linear-to-r from-[#0070a0] via-[#68d1fe] to-[#f7f7f7] bg-clip-text text-transparent text-2xl sm:text-[28px] md:text-[32px]">
+                    <span className="  text-2xl sm:text-[28px] md:text-[32px]">
                       X
                     </span>
                   </span>
@@ -229,7 +229,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
               <Link
                 href="/"
                 aria-label="Home"
-                className={`absolute left-0 top-0 transition-all duration-500 ease-in-out
+                className={`absolute -left-8 top-0 transition-all duration-500 ease-in-out
       ${isScrolled ? "opacity-100 translate-y-0" : "opacity-100 translate-y-0"}
     `}
               >
@@ -239,17 +239,17 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                       ? "/Rectangle.png"
                       : "/AdobeStock_450013573_Preview 1.png"
                   }
-                  width={50}
-                  height={20}
+                  width={100}
+                  height={100}
                   alt="promptx logo"
-                  className="ml-4 sm:ml-10 mt-2 w-10 h-4 md:h-8 "
+                  className="ml-10 sm:ml-13 mt-1.5 w-40 h-8 md:h-8  object-contain "
                 />
               </Link>
             </div>
 
             {/* Mobile Menu Toggle */}
             <div
-              className="absolute left-16  md:left-28 top-4 sm:top-5 cursor-pointer sm:relative sm:left-auto ml-8 sm:ml-14 md:top-0.5"
+              className="absolute left-20  md:left-25 top-4 sm:top-5 cursor-pointer sm:relative sm:left-auto ml-8 sm:ml-14 md:top-0.5 mt-1.5 md:mt-0"
               onClick={() => setIsNavOpen(!isNavOpen)}
             >
               <svg
@@ -275,10 +275,10 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
           </div>
 
           {/* Right: Search + Login */}
-          <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
+          <div className="flex items-center gap-2 sm:gap-4 md:gap-6 ">
             <button
               aria-label="Search"
-              className={`p-1 sm:p-2 rounded-full hover:bg-gray-100 transition dark:hover:bg-gray-700/40 ${
+              className={`p-1 sm:p-2 rounded-full hover:bg-gray-100 transition dark:hover:bg-gray-700/40 md:ml-0 ml-3 ${
                 pathname == "/Enhancer" ? "hidden" : ""
               }`}
             >
@@ -410,7 +410,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
             </button>
 
             {/* Stable right slot (prevents search icon shifting) */}
-            <div className="w-[88px] sm:w-24 flex justify-end">
+            <div className="w-[88px] sm:w-24 flex justify-end ">
               {!authChecked || isLoggedIn === null ? (
                 <div className="w-9 h-9"></div>
               ) : isLoggedIn === true ? (
@@ -496,7 +496,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
               ) : (
                 // Show login button when NOT logged in
                 <button
-                  className="px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 bg-gray-300/40 text-black rounded-full hover:bg-gray-200 transition cursor-pointer text-[11px] sm:text-[12px] md:text-[13px] dark:bg-white dark:text-black dark:hover:bg-white/90"
+                  className="px-4 sm:px-4 md:px-5 py-2 sm:py-2 bg-gray-300/40 text-black rounded-full hover:bg-gray-200 transition cursor-pointer text-[13px] sm:text-[12px] md:text-[13px] dark:bg-white dark:text-black dark:hover:bg-white/90"
                   onClick={() => {
                     setIsLoginOpen(true);
                     setIsNavOpen(false);
