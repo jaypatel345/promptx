@@ -1,17 +1,5 @@
 "use client";
 
-const grokStyles = `
-@keyframes grokDropdown {
-  from {
-    opacity: 0;
-    transform: translateY(4px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-`;
 import { useUi } from "@/context/UiContext";
 import Image from "next/image";
 import Link from "next/link";
@@ -21,6 +9,7 @@ import { useTheme } from "@/context/theme-context";
 // import { Router } from "next/router";
 import SiteAssistantModal from "@/component/SiteAssistantModal";
 import axios from "axios";
+import { line } from "framer-motion/client";
 
 export default function Header() {
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -43,6 +32,8 @@ export default function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [headerKey, setHeaderKey] = useState(0);
+
+
   function checkScrollPosition() {
     const fullScreen = window.innerHeight;
     const halfScreen = fullScreen * 0.5;
@@ -55,6 +46,18 @@ export default function Header() {
     window.location.href = "/api/auth/google";
   };
 
+  const grokStyles = `
+@keyframes grokDropdown {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+`;
   useEffect(() => {
     function handleScroll() {
       if (checkScrollPosition()) {
@@ -142,7 +145,7 @@ export default function Header() {
           email: user.email,
           password: user.password,
         },
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       if (response.data?.success) {
@@ -192,7 +195,7 @@ export default function Header() {
       {/* Header */}
       <header
         className="
-    fixed top-0 z-50 w-full backdrop-blur-md text-black 
+    fixed top-0 z-40 w-full backdrop-blur-md text-black 
 
     /* Mobile (default) */
     bg-white dark:bg-black
@@ -201,7 +204,7 @@ export default function Header() {
 xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
   "
       >
-        <div className="flex justify-between items-center mx-3 sm:mx-4 md:mx-5 py-2.5 sm:py-3 overflow-x-hidden">
+        <div className="flex justify-between items-center mx-3 sm:mx-4 md:mx-5 py-2.5 sm:py-3 overflow-visible">
           {/* Left: Logo */}
           <div className="flex items-center text-2xl sm:text-4xl font-semibold">
             <div className="relative h-10 w-auto">
@@ -417,11 +420,13 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                 // Show avatar when logged in
                 <div
                   ref={profileMenuRef}
-                  className="relative transition-all duration-300 flex items-center justify-center mr-5"
-                  style={{ overflow: "visible" }}
+                  className="relative z-40 flex items-center justify-center mr-5 overflow-visible"
                 >
                   <button
-                    onClick={() => setIsProfileMenuOpen((v) => !v)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsProfileMenuOpen((v) => !v);
+                    }}
                     className={`w-9 h-9 rounded-full flex items-center justify-center overflow-hidden ${
                       userProfile?.avatar
                         ? "bg-transparent"
@@ -440,7 +445,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                         onError={(e) => {
                           console.log(
                             "Avatar failed to load:",
-                            userProfile.avatar
+                            userProfile.avatar,
                           );
                           e.currentTarget.src = "/avatar.svg"; // fallback image
                         }}
@@ -463,14 +468,13 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                     )}
                   </button>
 
-                  {isProfileMenuOpen && (
-                    <div
-                      className="absolute z-50 w-44 bg-white dark:bg-neutral-900 rounded-xl border border-gray-200 dark:border-neutral-700 overflow-hidden
-            top-full mt-2 -left-35
-            opacity-0 scale-[0.96] translate-y-1
-            animate-[grokDropdown_0.22s_cubic-bezier(0.16,1,0.3,1)_forwards]"
-                      style={{ transformOrigin: "top left" }}
-                    >
+                 {isProfileMenuOpen && (
+  <div
+    className="absolute z-50 w-44 bg-white dark:bg-neutral-900 rounded-xl border border-gray-200 dark:border-neutral-700
+      top-full mt-1 right-0
+      opacity-0 scale-[0.96] translate-y-1
+      animate-[grokDropdown_0.22s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+  >
                       <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
                         Settings
                       </button>

@@ -11,6 +11,10 @@ module.exports = {
 
   theme: {
     extend: {
+      zIndex: {
+        999: "999",
+      },
+
       spacing: {
         30: "7.5rem",
         70: "17.5rem",

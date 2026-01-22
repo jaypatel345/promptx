@@ -618,7 +618,7 @@ useEffect(() => {
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="flex-1 w-full overflow-y-auto overflow-x-hidden min-h-0 custom-scroll flex"
+          className="flex-1 w-full overflow-y-auto overflow-visible min-h-0 custom-scroll flex"
           style={{
             WebkitOverflowScrolling: "auto",
             overscrollBehaviorY: "auto",
@@ -965,13 +965,13 @@ useEffect(() => {
 
         {/* Input Bar (fixed bottom) */}
         <div
-          className="sticky bottom-0 z-40 bg-white/80 dark:bg-black/80 backdrop-blur border-t border-gray-200 dark:border-neutral-700"
+          className="sticky bottom-0  bg-white/80 dark:bg-black/80 backdrop-blur border-t border-gray-200 dark:border-neutral-700"
           style={{
             paddingBottom: "env(safe-area-inset-bottom)",
           }}
         >
           <div
-            className="w-full max-w-3xl mx-auto py-3 overflow-x-hidden"
+            className="w-full max-w-3xl mx-auto py-3 overflow-visible"
             style={{
               paddingLeft: "1rem",
               paddingRight: "1rem",
@@ -980,7 +980,7 @@ useEffect(() => {
           >
             {/*  relative wrapper so popup anchors */}
             <div
-              className="relative flex flex-col gap-1 border border-gray-300 dark:border-neutral-600 rounded-3xl w-full shadow-md bg-white dark:bg-[#0f0f0f] px-3 py-1 sm:px-4 sm:py-1.5 box-border"
+              className="relative overflow-visible flex flex-col gap-1 border border-gray-300 dark:border-neutral-600 rounded-3xl w-full shadow-md bg-white dark:bg-[#0f0f0f] px-3 py-1 sm:px-4 sm:py-1.5 box-border"
               onDrop={handleDrop}
               onDragOver={handleDragOver}
             >
@@ -1007,7 +1007,7 @@ useEffect(() => {
                   ref={uploadMenuRef}
                   initial={{ opacity: 0, y: 8, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  className="absolute bottom-full left-3 mb-2 w-56 rounded-2xl border border-gray-200 dark:border-neutral-600 bg-white dark:bg-[#0f0f0f] shadow-xl p-2 z-50"
+                  className="absolute bottom-full left-3 mb-2 w-56 rounded-2xl border border-gray-200 dark:border-neutral-600 bg-white dark:bg-[#0f0f0f] shadow-xl p-2 "
                 >
                   <button
                     type="button"
@@ -1017,14 +1017,14 @@ useEffect(() => {
                       setIsUploadMenuOpen(false);
                     }}
                   >
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-lg  dark:bg-gray-300 ">
+                    {/* <span className="inline-flex items-center justify-center w-5 h-5 rounded-lg  dark:bg-gray-300 ">
                       <Image
                         src="./camera-svgrepo-com.svg"
                         alt="File-Image"
                         width={100}
                         height={50}
                       ></Image>
-                    </span>
+                    </span> */}
                     Upload photo
                   </button>
 
@@ -1036,14 +1036,14 @@ useEffect(() => {
                       setIsUploadMenuOpen(false);
                     }}
                   >
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-lg  dark:bg-gray-300 ">
+                    {/* <span className="inline-flex items-center justify-center w-5 h-5 rounded-lg  dark:bg-gray-300 ">
                       <Image
                         src="./file-alt-svgrepo-com.svg"
                         alt="File-Image"
                         width={100}
                         height={50}
                       ></Image>
-                    </span>
+                    </span> */}
                     Upload file
                   </button>
 
