@@ -11,6 +11,11 @@ import type { Message as ChatMessage } from "@/context/ChatContext";
 
 axios.defaults.withCredentials = true;
 
+const API =
+  process.env.NEXT_PUBLIC_API ||
+  process.env.API ||
+  "http://localhost:1571/api";
+
 interface Attachment {
   id: string;
   file: File;
@@ -86,9 +91,10 @@ function Enhancer() {
   useEffect(() => {
     async function checkSession() {
       try {
-        const res = await axios.get("/api/me", { withCredentials: true });
+        const res = await axios.get(`${API}/user/me`, { withCredentials: true });
         if (res.data?.success) {
-          setIsLoggedIn(true);
+          // Backend returns { success, isGuest }. Treat guests as logged out.
+          setIsLoggedIn(!res.data?.isGuest);
         } else {
           setIsLoggedIn(false);
         }
@@ -163,8 +169,8 @@ function Enhancer() {
   }, []);
 
   const makeId = (): string => {
-    if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-      return (crypto as any).randomUUID();
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
     }
     return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   };
@@ -245,7 +251,12 @@ function Enhancer() {
           localStorage.setItem("guestId", guestId);
         }
 
-        const url = `/api/message/get?conversationId=${conversationId}&guestId=${guestId}`;
+        const url =
+          !isLoggedIn && guestId
+            ? `${API}/messages/${conversationId}?guestId=${encodeURIComponent(
+                guestId
+              )}`
+            : `${API}/messages/${conversationId}`;
 
         const res = await fetch(url, { credentials: "include" });
 
@@ -281,7 +292,7 @@ function Enhancer() {
     return () => {
       cancelled = true;
     };
-  }, [conversationId]);
+  }, [conversationId, isLoggedIn]);
 
   useEffect(() => {
     // If there is NO conversationId, this is a fresh user
@@ -378,7 +389,7 @@ function Enhancer() {
 
   const typeMessage = async (
     fullText: string,
-    setMessages: any,
+    setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
     delay = 15
   ) => {
     setIsTyping(true);
@@ -387,7 +398,7 @@ function Enhancer() {
     for (let i = 0; i < fullText.length; i++) {
       current += fullText[i];
 
-      setMessages((prev: any[]) => {
+      setMessages((prev) => {
         const last = prev[prev.length - 1];
 
         // If last is assistant, update it
@@ -461,7 +472,7 @@ function Enhancer() {
       if (!activeConversationId) {
         const guestId = localStorage.getItem("guestId");
 
-        const res = await fetch("/api/conversation/create", {
+        const res = await fetch(`${API}/conversations`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -490,26 +501,16 @@ function Enhancer() {
       const safeConversationId = activeConversationId as string;
 
       // Save user message
-      const saveUserRes = await fetch("/api/message/create", {
+      const saveUserRes = await fetch(`${API}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           conversationId: safeConversationId,
           role: "user",
           content: userMessage,
         }),
       });
-
-      if (messages.length === 0) {
-        const shortTitle = input.split(" ").slice(0, 6).join(" ");
-        const storedGuestId = localStorage.getItem("guestId");
-
-        await axios.post("/api/conversation/update-title", {
-          conversationId: safeConversationId,
-          title: shortTitle,
-          guestId: storedGuestId,
-        });
-      }
 
       if (!saveUserRes.ok) throw new Error("Failed to save user message");
 
@@ -520,14 +521,16 @@ function Enhancer() {
         formData.append("message", userMessage);
         outgoingAttachments.forEach((a) => formData.append("files", a.file));
 
-        res = await fetch("/api/chat", {
+        res = await fetch(`${API}/chat`, {
           method: "POST",
           body: formData,
+          credentials: "include",
         });
       } else {
-        res = await fetch("/api/chat", {
+        res = await fetch(`${API}/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ message: userMessage }),
         });
       }
@@ -548,9 +551,10 @@ function Enhancer() {
       await typeMessage(finalText, setMessages);
 
       //  Save assistant message
-      const saveAssistantRes = await fetch("/api/message/create", {
+      const saveAssistantRes = await fetch(`${API}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           conversationId: safeConversationId,
           role: "assistant",

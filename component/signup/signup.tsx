@@ -40,11 +40,17 @@ function Signup() {
 
     setIsLoading(true);
     try {
-      const response = await axios.post("/api/signup", {
-        username: user.username.trim(),
-        email: user.email.trim(),
-        password: user.password,
-      });
+      const response = await axios.post(
+        "http://localhost:1571/api/auth/signup",
+        {
+          username: user.username,
+          email: user.email,
+          password: user.password,
+        },
+        {
+          withCredentials: true,
+        },
+      );
 
       if (response.data?.success) {
         // Redirect to login after successful signup

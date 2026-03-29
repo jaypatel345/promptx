@@ -31,18 +31,26 @@ const PinIcon = ({ size = 12 }: { size?: number }) => (
     />
   </svg>
 );
-// --- API helpers for conversation actions ---
+const API =
+  process.env.NEXT_PUBLIC_API ||
+  process.env.API ||
+  "http://localhost:1571/api";
+
 async function apiRenameConversation(
   conversationId: string,
   title: string,
   guestId?: string
 ) {
-  const res = await fetch("/api/conversation/rename", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ conversationId, title, guestId }),
-  });
+  const res = await fetch(
+    `${API}/conversations/${conversationId}/title`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ title, guestId }),
+    }
+  );
+
   if (!res.ok) throw new Error("Rename failed");
 }
 
@@ -51,27 +59,34 @@ async function apiPinConversation(
   pin: boolean,
   guestId?: string
 ) {
-  const res = await fetch("/api/conversation/pin", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ conversationId, pin, guestId }),
-  });
+  const res = await fetch(
+    `${API}/conversations/${conversationId}/pin`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ pin, guestId }),
+    }
+  );
+
   if (!res.ok) throw new Error("Pin failed");
 }
 
-async function apiDeleteConversation(conversationId: string, guestId?: string) {
-  const payload: any = { conversationId };
-  if (guestId) payload.guestId = guestId;
+async function apiDeleteConversation(
+  conversationId: string,
+  guestId?: string
+) {
+  const res = await fetch(
+    `${API}/conversations/${conversationId}`,
+    {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ guestId }),
+    }
+  );
 
-  const res = await fetch("/api/conversation/delete", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(payload),
-  });
-
-  const data = await res.json().catch(() => ({}));
+  const data = await res.json();
 
   if (!res.ok || !data?.success) {
     throw new Error(data?.error || "Delete failed");
@@ -79,8 +94,8 @@ async function apiDeleteConversation(conversationId: string, guestId?: string) {
 
   return data;
 }
-import { useTheme } from "@/context/theme-context";
 
+import { useTheme } from "@/context/theme-context";
 import Image from "next/image";
 import Link from "next/link";
 import { useUi } from "@/context/UiContext";
@@ -174,6 +189,7 @@ function EnhacerHeader() {
   const [loginError, setLoginError] = useState("");
   const { startNewChat } = useChat();
   const canFetchMessages = authChecked && (isLoggedIn || guestReady);
+   
 
   const [conversations, setConversations] = useState<
     {
@@ -247,7 +263,7 @@ function EnhacerHeader() {
     try {
       await apiPinConversation(id, !wasPinned, guestId);
 
-      const res = await axios.get("/api/conversation/list", {
+      const res = await axios.get(`${API}/conversations`, {
         withCredentials: true,
         params: isLoggedIn ? {} : { guestId },
       });
@@ -280,7 +296,7 @@ function EnhacerHeader() {
       // IMPORTANT: Do NOT send guestId when logged in
       await apiDeleteConversation(id, localGuestId);
 
-      const res = await axios.get("/api/conversation/list", {
+      const res = await axios.get(`${API}/conversations`, {
         withCredentials: true,
         params: isLoggedIn ? {} : { guestId: localGuestId },
       });
@@ -333,7 +349,7 @@ function EnhacerHeader() {
   }, []);
 
   const handleGoogleLogin = () => {
-    window.location.href = "/api/auth/google";
+    window.location.href =  `${API}/auth/google`;
   };
   // Keyboard navigation for search modal
   useEffect(() => {
@@ -366,11 +382,9 @@ function EnhacerHeader() {
           (async () => {
             try {
               if (!canFetchMessages) return;
-              const res = await axios.get("/api/message/get", {
+              const res = await axios.get(`${API}/messages/${next._id}`, {
                 withCredentials: true,
-                params: isLoggedIn
-                  ? { conversationId: next._id }
-                  : { conversationId: next._id, guestId },
+                params: isLoggedIn ? {} : { guestId },
               });
               if (res.data?.success) {
                 const last = res.data.messages.slice(-8);
@@ -393,11 +407,9 @@ function EnhacerHeader() {
           (async () => {
             try {
               if (!canFetchMessages) return;
-              const res = await axios.get("/api/message/get", {
+              const res = await axios.get(`${API}/messages/${prev._id}`, {
                 withCredentials: true,
-                params: isLoggedIn
-                  ? { conversationId: prev._id }
-                  : { conversationId: prev._id, guestId },
+                params: isLoggedIn ? {} : { guestId },
               });
               if (res.data?.success) {
                 const last = res.data.messages.slice(-8);
@@ -438,11 +450,9 @@ function EnhacerHeader() {
 
         try {
           if (!canFetchMessages) return;
-          const res = await axios.get("/api/message/get", {
+          const res = await axios.get(`${API}/messages/${conv._id}`, {
             withCredentials: true,
-            params: isLoggedIn
-              ? { conversationId: conv._id }
-              : { conversationId: conv._id, guestId },
+            params: isLoggedIn ? {} : { guestId },
           });
 
           if (res.data?.success) {
@@ -487,7 +497,7 @@ function EnhacerHeader() {
 
   const onLogout = async () => {
     try {
-      await axios.post("/api/logout", {}, { withCredentials: true });
+      await axios.post(`${API}/auth/logout`, {}, { withCredentials: true });
 
       setIsLoggedIn(false);
       setUserProfile(null);
@@ -505,7 +515,7 @@ function EnhacerHeader() {
 
     const fetchHistory = async () => {
       try {
-        const res = await axios.get("/api/conversation/list", {
+        const res = await axios.get(`${API}/conversations`, {
           withCredentials: true,
           params: isLoggedIn ? {} : { guestId },
         });
@@ -524,11 +534,9 @@ function EnhacerHeader() {
   const openConversation = async (id: string) => {
     try {
       if (!canFetchMessages) return;
-      const params = isLoggedIn
-        ? { conversationId: id }
-        : { conversationId: id, guestId };
+      const params = isLoggedIn ? {} : { guestId };
 
-      const res = await axios.get("/api/message/get", {
+      const res = await axios.get(`${API}/messages/${id}`, {
         withCredentials: true,
         params,
       });
@@ -547,14 +555,14 @@ function EnhacerHeader() {
     try {
       const payload = isLoggedIn ? {} : { guestId };
 
-      const res = await axios.post("/api/conversation/create", payload, {
+      const res = await axios.post(`${API}/conversations`, payload, {
         withCredentials: true,
       });
 
       if (res.data?.success) {
         setConversationId(res.data.conversationId);
 
-        const historyRes = await axios.get("/api/conversation/list", {
+        const historyRes = await axios.get(`${API}/conversations`, {
           withCredentials: true,
           params: isLoggedIn ? {} : { guestId },
         });
@@ -571,7 +579,7 @@ function EnhacerHeader() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const res = await axios.get("/api/me", { withCredentials: true });
+        const res = await axios.get(`${API}/user/me`, { withCredentials: true });
 
         if (res.data?.success && !res.data.isGuest) {
           setIsLoggedIn(true);
@@ -601,7 +609,7 @@ function EnhacerHeader() {
       setLoading(true);
 
       const response = await axios.post(
-        "/api/login",
+           `${API}/auth/login`,
         {
           email: user.email,
           password: user.password,
@@ -610,7 +618,7 @@ function EnhacerHeader() {
       );
 
       if (response.data?.success) {
-        const me = await axios.get("/api/me", { withCredentials: true });
+        const me = await axios.get(`${API}/user/me`, { withCredentials: true });
         if (me.data?.success) {
           setIsLoggedIn(true);
         }
@@ -970,12 +978,13 @@ function EnhacerHeader() {
                           }
 
                           try {
-                            const res = await axios.get("/api/message/get", {
-                              withCredentials: true,
-                              params: isLoggedIn
-                                ? { conversationId: conv._id }
-                                : { conversationId: conv._id, guestId },
-                            });
+                            const res = await axios.get(
+                              `${API}/messages/${conv._id}`,
+                              {
+                                withCredentials: true,
+                                params: isLoggedIn ? {} : { guestId },
+                              }
+                            );
 
                             if (res.data?.success) {
                               const last = res.data.messages.slice(-8);
@@ -1483,12 +1492,13 @@ function EnhacerHeader() {
                             return;
                           }
                           try {
-                            const res = await axios.get("/api/message/get", {
-                              withCredentials: true,
-                              params: isLoggedIn
-                                ? { conversationId: conv._id }
-                                : { conversationId: conv._id, guestId },
-                            });
+                            const res = await axios.get(
+                              `${API}/messages/${conv._id}`,
+                              {
+                                withCredentials: true,
+                                params: isLoggedIn ? {} : { guestId },
+                              }
+                            );
                             if (res.data?.success) {
                               const allText = res.data.messages
                                 .map((m: any) => m.content.toLowerCase())
@@ -1512,12 +1522,13 @@ function EnhacerHeader() {
                             setPreviewMessages(previewCache.current[conv._id]);
                           } else {
                             try {
-                              const res = await axios.get("/api/message/get", {
-                                withCredentials: true,
-                                params: isLoggedIn
-                                  ? { conversationId: conv._id }
-                                  : { conversationId: conv._id, guestId },
-                              });
+                              const res = await axios.get(
+                                `${API}/messages/${conv._id}`,
+                                {
+                                  withCredentials: true,
+                                  params: isLoggedIn ? {} : { guestId },
+                                }
+                              );
                               if (res.data?.success) {
                                 const last = res.data.messages.slice(-8);
                                 previewCache.current[conv._id] = last;

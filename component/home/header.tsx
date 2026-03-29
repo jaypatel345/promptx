@@ -9,7 +9,6 @@ import { useTheme } from "@/context/theme-context";
 // import { Router } from "next/router";
 import SiteAssistantModal from "@/component/SiteAssistantModal";
 import axios from "axios";
-import { line } from "framer-motion/client";
 
 export default function Header() {
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -43,7 +42,7 @@ export default function Header() {
     return window.scrollY >= threshold;
   }
   const handleGoogleLogin = () => {
-    window.location.href = "/api/auth/google";
+    window.location.href = "http://localhost:1571/api/auth/google";
   };
 
   const grokStyles = `
@@ -88,7 +87,7 @@ export default function Header() {
   useEffect(() => {
     const checkLogin = async () => {
       try {
-        const res = await axios.get("/api/me", { withCredentials: true });
+        const res = await axios.get("http://localhost:1571/api/user/me", { withCredentials: true });
 
         if (res.data?.user) {
           setIsLoggedIn(true);
@@ -140,7 +139,7 @@ export default function Header() {
       setLoading(true);
 
       const response = await axios.post(
-        "/api/login",
+        "http://localhost:1571/api/auth/login",
         {
           email: user.email,
           password: user.password,
@@ -149,7 +148,7 @@ export default function Header() {
       );
 
       if (response.data?.success) {
-        const me = await axios.get("/api/me", { withCredentials: true });
+        const me = await axios.get("http://localhost:1571/api/user/me", { withCredentials: true });
 
         if (me.data?.user) {
           setIsLoggedIn(true);
@@ -165,17 +164,12 @@ export default function Header() {
       setLoading(false);
     }
   };
-  // const logout = async () => {
-  //   await axios.post("/api/logout", {}, { withCredentials: true });
-  //   setIsLoggedIn(false);
-  //   setIsProfileMenuOpen(false);
-  // };
-
+  
   const logout = async () => {
     try {
-      await axios.post("/api/logout", {}, { withCredentials: true });
+      await axios.post("http://localhost:1571/api/auth/logout", {}, { withCredentials: true });
 
-      const me = await axios.get("/api/me", { withCredentials: true });
+      const me = await axios.get("http://localhost:1571/api/user/me", { withCredentials: true });
 
       if (!me.data?.user) {
         setIsLoggedIn(false);

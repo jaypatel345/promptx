@@ -45,6 +45,11 @@ export function ChatContextProvider({ children }: { children: React.ReactNode })
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [guestId, setGuestId] = useState<string | null>(null);
 
+  const API =
+    process.env.NEXT_PUBLIC_API ||
+    process.env.API ||
+    "http://localhost:1571/api";
+
   // Load from localStorage on boot
   useEffect(() => {
     const savedConversationId = localStorage.getItem("conversationId");
@@ -96,8 +101,8 @@ export function ChatContextProvider({ children }: { children: React.ReactNode })
     const gid = localStorage.getItem("guestId");
 
     const url = gid
-      ? `/api/conversation/list?guestId=${gid}`
-      : "/api/conversation/list";
+      ? `${API}/conversations?guestId=${encodeURIComponent(gid)}`
+      : `${API}/conversations`;
 
     const res = await fetch(url, {
       credentials: "include",

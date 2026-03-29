@@ -120,7 +120,7 @@ export default function SiteAssistantModal({
         content: m.content,
       }));
 
-      const res = await fetch("/api/ask", {
+      const res = await fetch("http://localhost:1571/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: payloadMessages }),
