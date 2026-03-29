@@ -1,36 +1,210 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🚀 PromptX
 
-## Getting Started
+> **Backend-Driven AI Prompt Optimization Platform**
 
-First, run the development server:
+PromptX is a scalable, backend-focused platform that transforms raw user prompts into structured, high-quality inputs for Large Language Models (LLMs).
+
+---
+
+## 🌐 Live Demo
+
+🔗 **Try it here:**  👉 [Live Demo](https://promptx.co.in/)
+
+---
+
+## 🧠 Problem Statement
+
+Most users write vague or unstructured prompts → resulting in poor AI outputs.
+
+**PromptX solves this by:**
+
+- ✅ Structuring prompts
+- ✅ Adding context
+- ✅ Improving clarity
+- ✅ Enhancing output quality
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---|---|
+| 🧠 Prompt Enhancement Engine | Converts simple input into optimized prompts |
+| ⚡ Fast Backend API | Low-latency processing using Node.js & Express |
+| 🧩 Modular Architecture | Easily extendable service-layer design |
+| 🔌 LLM Integration | Works with OpenAI and other AI providers |
+| 📈 Scalable Design | Built with real-world backend practices |
+
+---
+
+## 🖼️ Screenshots
+
+### 🏠 Homepage
+<!-- Add screenshot here -->
+
+### ✨ Prompt Optimization
+<!-- Add screenshot here -->
+
+---
+
+## 🏗️ System Architecture
+
+```
+Client (React)
+     ↓
+API Layer (Express)
+     ↓
+Service Layer (Prompt Engine)
+     ↓
+AI Layer (LLM APIs)
+     ↓
+Database (MongoDB)
+```
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Frontend** | React.js, Tailwind CSS |
+| **Backend** | Node.js, Express.js |
+| **Database** | MongoDB |
+| **AI Integration** | OpenAI API |
+| **Deployment** | Vercel |
+
+---
+
+## 📁 Project Structure
+
+```
+PromptX/
+│
+├── client/
+│   ├── components/
+│   ├── pages/
+│   └── services/
+│
+├── server/
+│   ├── controllers/
+│   ├── routes/
+│   ├── services/
+│   ├── models/
+│   ├── middleware/
+│   └── config/
+│
+├── screenshots/
+├── .env
+├── package.json
+└── README.md
+```
+
+---
+
+## ⚙️ Setup & Installation
+
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/<your-username>/promptx.git
+cd promptx
+```
+
+### 2. Backend Setup
+
+```bash
+cd server
+npm install
+```
+
+Create a `.env` file:
+
+```env
+PORT=5000
+MONGO_URI=<your_mongodb_uri>
+OPENAI_API_KEY=<your_api_key>
+```
+
+Run the backend:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Frontend Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cd client
+npm install
+npm start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🔌 API Reference
 
-To learn more about Next.js, take a look at the following resources:
+### Optimize Prompt
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+POST /api/prompt/optimize
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Request Body:**
 
-## Deploy on Vercel
+```json
+{
+  "input": "Explain blockchain"
+}
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Response:**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```json
+{
+  "optimizedPrompt": "Explain blockchain technology in simple terms with real-world examples and use cases."
+}
+```
+
+---
+
+## 🎯 Engineering Highlights
+
+- Clean backend architecture
+- RESTful API design
+- Service-layer abstraction
+- AI system integration
+- Scalable project structure
+
+---
+
+## 🚧 Roadmap
+
+- [ ] Authentication (JWT)
+- [ ] Prompt History
+- [ ] Prompt Scoring System
+- [ ] Multi-Model Support
+- [ ] Agent-Based Prompt Optimization
+- [ ] Rate Limiting & Security
+- [ ] Docker + Cloud Deployment
+
+---
+
+## 📊 Use Cases
+
+- AI tools & SaaS platforms
+- Developer productivity tools
+- Content generation systems
+- Prompt engineering platforms
+
+---
+
+## 👨‍💻 Author
+
+**Jay Patel**
+Backend-focused developer building scalable systems and AI platforms.
+
+---
+
+## ⭐ Support
+
+If you find this project useful, consider giving it a **⭐ star** on GitHub — it really helps!
