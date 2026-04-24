@@ -1,4 +1,4 @@
-# 🚀 PromptX
+#  PromptX
 
 > **Backend-Driven AI Prompt Optimization Platform**
 
@@ -6,48 +6,48 @@ PromptX is a scalable, backend-focused platform that transforms raw user prompts
 
 ---
 
-## 🌐 Live Demo
+##  Live Demo
 
 🔗 **Try it here:**  👉 [Live Demo](https://promptx.co.in/)
 
 ---
 
-## 🧠 Problem Statement
+##  Problem Statement
 
 Most users write vague or unstructured prompts → resulting in poor AI outputs.
 
 **PromptX solves this by:**
 
-- ✅ Structuring prompts
-- ✅ Adding context
-- ✅ Improving clarity
-- ✅ Enhancing output quality
+-  Structuring prompts
+-  Adding context
+-  Improving clarity
+-  Enhancing output quality
 
 ---
 
-## ✨ Features
+##  Features
 
 | Feature | Description |
 |---|---|
-| 🧠 Prompt Enhancement Engine | Converts simple input into optimized prompts |
-| ⚡ Fast Backend API | Low-latency processing using Node.js & Express |
-| 🧩 Modular Architecture | Easily extendable service-layer design |
-| 🔌 LLM Integration | Works with OpenAI and other AI providers |
-| 📈 Scalable Design | Built with real-world backend practices |
+|  Prompt Enhancement Engine | Converts simple input into optimized prompts |
+|  Fast Backend API | Low-latency processing using Node.js & Express |
+|  Modular Architecture | Easily extendable service-layer design |
+|  LLM Integration | Works with OpenAI and other AI providers |
+|  Scalable Design | Built with real-world backend practices |
 
 ---
 
-## 🖼️ Screenshots
+##  Screenshots
 
-### 🏠 Homepage
+###  Homepage
 <!-- Add screenshot here -->
 
-### ✨ Prompt Optimization
+###  Prompt Optimization
 <!-- Add screenshot here -->
 
 ---
 
-## 🏗️ System Architecture
+##  System Architecture
 
 ```
 Client (React)
@@ -63,7 +63,7 @@ Database (MongoDB)
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -75,7 +75,7 @@ Database (MongoDB)
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 PromptX/
@@ -101,7 +101,7 @@ PromptX/
 
 ---
 
-## ⚙️ Setup & Installation
+##  Setup & Installation
 
 ### 1. Clone Repository
 
@@ -141,7 +141,7 @@ npm start
 
 ---
 
-## 🔌 API Reference
+##  API Reference
 
 ### Optimize Prompt
 
@@ -167,7 +167,7 @@ POST /api/prompt/optimize
 
 ---
 
-## 🎯 Engineering Highlights
+##  Engineering Highlights
 
 - Clean backend architecture
 - RESTful API design
@@ -177,7 +177,7 @@ POST /api/prompt/optimize
 
 ---
 
-## 🚧 Roadmap
+##  Roadmap
 
 - [ ] Authentication (JWT)
 - [ ] Prompt History
@@ -189,7 +189,7 @@ POST /api/prompt/optimize
 
 ---
 
-## 📊 Use Cases
+##  Use Cases
 
 - AI tools & SaaS platforms
 - Developer productivity tools
@@ -198,13 +198,13 @@ POST /api/prompt/optimize
 
 ---
 
-## 👨‍💻 Author
+##  Author
 
 **Jay Patel**
 Backend-focused developer building scalable systems and AI platforms.
 
 ---
 
-## ⭐ Support
+##  Support
 
 If you find this project useful, consider giving it a **⭐ star** on GitHub — it really helps!
