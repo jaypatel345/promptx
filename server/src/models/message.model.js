@@ -1,27 +1,31 @@
 import mongoose from "mongoose";
 
-const messageSchema = new mongoose.Schema({
-  conversationId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Conversation",
-    required: true,
+const messageSchema = new mongoose.Schema(
+  {
+    conversationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Conversation",
+      required: true,
+    },
+    role: {
+      type: String,
+      enum: ["user", "assistant", "system"],
+      required: true,
+    },
+    content: {
+      type: String,
+      required: true,
+    },
+    attachments: [
+      {
+        type: String,
+        url: String,
+      },
+    ],
   },
-  role: {
-    type: String,
-    required: true,
-  },
-  content: {
-    type: String,
-    required: true,
-  },
-  attachments: {
-    type: Array,
-    default: [],
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  { timestamps: true },
+);
+
+messageSchema.index({ conversationId: 1, createdAt: 1 , _id: 1 });
 
 export default mongoose.model("Message", messageSchema);

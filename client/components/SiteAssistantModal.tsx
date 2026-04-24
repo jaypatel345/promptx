@@ -67,6 +67,7 @@ export default function SiteAssistantModal({
   // ESC to close
   useEffect(() => {
     if (!open) return;
+    
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -111,8 +112,8 @@ export default function SiteAssistantModal({
       content: effectiveQuestion,
     };
 
-    setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setMessages((prev) => [...prev, userMsg]);
 
     try {
       const payloadMessages = [...messages, userMsg].map((m) => ({
@@ -131,22 +132,22 @@ export default function SiteAssistantModal({
         throw new Error(text || `Request failed (${res.status})`);
       }
 
-      const data: { answer: string; sources?: Source[]; followups?: string[] } =
-        await res.json();
+      const resJson = await res.json();
+      const { answer, sources, followups } = resJson.data || {};
 
       const assistantMsg: ChatMessage = {
         id: uid(),
         role: "assistant",
-        content: data.answer || "Sorry — I couldn’t generate an answer.",
-        sources: data.sources ?? [],
-        followups: (data.followups ?? []).slice(0, 3),
+        content: answer || "Sorry — I couldn’t generate an answer.",
+        sources: sources ?? [],
+        followups: (followups ?? []).slice(0, 3),
       };
 
-      setMessages((prev) => [...prev, assistantMsg]);
+      setMessages((prevMessages) => [...prevMessages, assistantMsg]);
     } catch (e: any) {
       setError(e?.message ?? "Something went wrong");
-      setMessages((prev) => [
-        ...prev,
+      setMessages((prevMessages) => [
+        ...prevMessages,
         {
           id: uid(),
           role: "assistant",
@@ -177,10 +178,14 @@ export default function SiteAssistantModal({
       <div className="fixed inset-0 z-40 bg-white backdrop-blur-sm pointer-events-none dark:bg-black" />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-50 flex justify-center" onClick={onClose}>
+      <div className="fixed inset-0 z-50 flex justify-center" onClick={(e)=>{
+        if(e.target===e.currentTarget){
+          onClose();
+        }
+      }}>
         <div
           className="fixed left-1/2 top-[10vh] w-[92vw] max-w-3xl -translate-x-1/2 pointer-events-auto"
-          onClick={(e) => e.stopPropagation()}
+          
         >
           <div className="overflow-hidden">
             {/* Header */}
@@ -261,7 +266,7 @@ export default function SiteAssistantModal({
                         key={m.id}
                         className={classNames(
                           "flex",
-                          m.role === "user" ? "justify-end" : "justify-start"
+                          m.role === "user" ? "justify-end" : "justify-start",
                         )}
                       >
                         <div
@@ -269,7 +274,7 @@ export default function SiteAssistantModal({
                             "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap",
                             m.role === "user"
                               ? "bg-black text-white dark:bg-white dark:text-black"
-                              : "bg-black/5 text-black dark:bg-white/10 dark:text-white"
+                              : "bg-black/5 text-black dark:bg-white/10 dark:text-white",
                           )}
                         >
                           {m.content}
@@ -316,7 +321,7 @@ export default function SiteAssistantModal({
                     {loading && (
                       <div className="flex justify-start">
                         <div className="max-w-[85%] rounded-2xl bg-black/5 px-4 py-3 text-sm dark:bg-white/10">
-                        ....
+                          ....
                         </div>
                       </div>
                     )}

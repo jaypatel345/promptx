@@ -1,6 +1,11 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-dotenv.config();
+dotenv.config({
+  path:
+    process.env.NODE_ENV === "production"
+      ? ".env.production"
+      : ".env.development",
+});
 
 const MONGODB = process.env.MONGODB_URI || "";
 
@@ -14,6 +19,8 @@ export const connectDB = async () => {
 
     const connection = db.connection;
 
+    console.log("MongoDB connected successfully");
+
     connection.on("connected", () => {
       console.log("MongoDB connection established");
     });
@@ -21,7 +28,6 @@ export const connectDB = async () => {
     connection.on("error", (err) => {
       console.error("MongoDB connection error:", err);
     });
-
   } catch (err) {
     console.error("MongoDB connection failed:", err);
     process.exit(1);

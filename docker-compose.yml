@@ -1,0 +1,11 @@
+services:
+  server:
+    build: ./server
+    ports:
+      - "1571:1571"
+    env_file:
+      - ./server/.env.production
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    command: npm run dev

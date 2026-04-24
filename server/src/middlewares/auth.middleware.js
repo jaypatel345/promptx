@@ -4,14 +4,15 @@ import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 
 export const protect = asyncHandler(async (req, res, next) => {
-  const token = req.cookies?.token;
+  const token = req.cookies?.accessToken;
 
   if (!token) {
     throw new ApiError(401, "Not authorized, token missing");
   }
+
   let decoded;
   try {
-    decoded = jwt.verify(req.cookies.token, process.env.TOKEN_SECRET);
+    decoded = jwt.verify(token, process.env.TOKEN_SECRET);
   } catch {
     throw new ApiError(401, "Invalid token");
   }
@@ -23,6 +24,22 @@ export const protect = asyncHandler(async (req, res, next) => {
   }
 
   req.user = user;
+  next();
+});
+
+
+
+export const optionalAuth = asyncHandler(async (req, res, next) => {
+  const token = req.cookies?.token;
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.TOKEN_SECRET);
+      req.user = await User.findById(decoded.id).select("-password");
+    } catch {
+      // ignore invalid token → treat as guest
+    }
+  }
 
   next();
 });

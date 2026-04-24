@@ -32,7 +32,6 @@ export default function Header() {
   const [authChecked, setAuthChecked] = useState(false);
   const [headerKey, setHeaderKey] = useState(0);
 
-
   function checkScrollPosition() {
     const fullScreen = window.innerHeight;
     const halfScreen = fullScreen * 0.5;
@@ -87,7 +86,9 @@ export default function Header() {
   useEffect(() => {
     const checkLogin = async () => {
       try {
-        const res = await axios.get("http://localhost:1571/api/user/me", { withCredentials: true });
+        const res = await axios.get("http://localhost:1571/api/user/me", {
+          withCredentials: true,
+        });
 
         if (res.data?.user) {
           setIsLoggedIn(true);
@@ -148,7 +149,9 @@ export default function Header() {
       );
 
       if (response.data?.success) {
-        const me = await axios.get("http://localhost:1571/api/user/me", { withCredentials: true });
+        const me = await axios.get("http://localhost:1571/api/user/me", {
+          withCredentials: true,
+        });
 
         if (me.data?.user) {
           setIsLoggedIn(true);
@@ -164,12 +167,18 @@ export default function Header() {
       setLoading(false);
     }
   };
-  
+
   const logout = async () => {
     try {
-      await axios.post("http://localhost:1571/api/auth/logout", {}, { withCredentials: true });
+      await axios.post(
+        "http://localhost:1571/api/auth/logout",
+        {},
+        { withCredentials: true },
+      );
 
-      const me = await axios.get("http://localhost:1571/api/user/me", { withCredentials: true });
+      const me = await axios.get("http://localhost:1571/api/user/me", {
+        withCredentials: true,
+      });
 
       if (!me.data?.user) {
         setIsLoggedIn(false);
@@ -202,27 +211,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
           {/* Left: Logo */}
           <div className="flex items-center text-2xl sm:text-4xl font-semibold">
             <div className="relative h-10 w-auto">
-              {/* Large text logo */}
-              <Link
-                href="/"
-                aria-label="Home"
-                className={`absolute left-0 top-0 transition-all duration-500 ease-in-out 
-      ${isScrolled ? "opacity-0 translate-y-0" : "opacity-0 -translate-y-2"}
-    `}
-              >
-                <span className="cursor-pointer font-medium ml-2 md:ml-4 text-xl sm:text-2xl md:text-3xl">
-                  <span className="bg-clip-text dark:text-white text-black">
-                    prompt
-                  </span>
-                  <span className="relative">
-                    <span className="  text-2xl sm:text-[28px] md:text-[32px]">
-                      X
-                    </span>
-                  </span>
-                </span>
-              </Link>
-
-              {/* Small image logo (light / dark) */}
+              {/* logo */}
               <Link
                 href="/"
                 aria-label="Home"
@@ -245,7 +234,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
             </div>
 
             {/* Mobile Menu Toggle */}
-            <div
+            {/* <div
               className="absolute left-20  md:left-25 top-4 sm:top-5 cursor-pointer sm:relative sm:left-auto ml-8 sm:ml-14 md:top-0.5 mt-1.5 md:mt-0"
               onClick={() => setIsNavOpen(!isNavOpen)}
             >
@@ -268,7 +257,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                   fill="currentColor"
                 ></path>
               </svg>
-            </div>
+            </div> */}
           </div>
 
           {/* Right: Search + Login */}
@@ -276,8 +265,12 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
             <button
               aria-label="Search"
               className={`p-1 sm:p-2 rounded-full hover:bg-gray-100 transition dark:hover:bg-gray-700/40 md:ml-0 ml-3 ${
-                pathname == "/Enhancer" ? "hidden" : ""
+                pathname == "/" ? "" : "hidden"
               }`}
+              onClick={() => {
+                  setIsSearchOpen(true);
+                  setIsLoginOpen(false);
+                }}
             >
               <svg
                 width="18"
@@ -289,121 +282,11 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 className="text-black dark:text-white sm:w-5 sm:h-5"
-                onClick={() => {
-                  setIsSearchOpen(true);
-                  setIsLoginOpen(false);
-                }}
+                
               >
                 <circle cx="11" cy="11" r="7"></circle>
                 <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
               </svg>
-            </button>
-            <button
-              aria-label="Search"
-              className={`p-1 sm:p-2 rounded-full hover:bg-gray-100 transition dark:text-gray-50  dark:hover:bg-gray-500/40 ${
-                pathname == "/Enhancer" ? "" : "hidden"
-              }`}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="sm:w-5 sm:h-5"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsSettingOpen((prev) => !prev);
-                }}
-              >
-                <path
-                  stroke="currentColor"
-                  d="M13.5 3h-3C9.408 5.913 8.024 6.711 4.956 6.201l-1.5 2.598c1.976 2.402 1.976 4 0 6.402l1.5 2.598c3.068-.51 4.452.288 5.544 3.201h3c1.092-2.913 2.476-3.711 5.544-3.2l1.5-2.599c-1.976-2.402-1.976-4 0-6.402l-1.5-2.598c-3.068.51-4.452-.288-5.544-3.201Z"
-                ></path>
-                <circle cx="12" cy="12" r="2.5" fill="currentColor"></circle>
-              </svg>
-              <div
-                className={`absolute top-12 sm:top-15 right-20 sm:right-28 md:right-34 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 bg-gray-300/20 rounded-2xl transition-all duration-200 ease-in-out ${
-                  isSettingOpen ? "opacity-100" : "opacity-0"
-                }`}
-              >
-                <div
-                  className={`${
-                    theme == "light" ? "bg-gray-400/20" : ""
-                  } p-1.5 sm:p-2 hover:bg-gray-400/20 rounded cursor-pointer`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="sm:w-4 sm:h-4"
-                    onClick={() => setTheme("light")}
-                  >
-                    <circle cx="12" cy="12" r="4"></circle>
-                    <path d="M12 2v2"></path>
-                    <path d="M12 20v2"></path>
-                    <path d="m4.93 4.93 1.41 1.41"></path>
-                    <path d="m17.66 17.66 1.41 1.41"></path>
-                    <path d="M2 12h2"></path>
-                    <path d="M20 12h2"></path>
-                    <path d="m6.34 17.66-1.41 1.41"></path>
-                    <path d="m19.07 4.93-1.41 1.41"></path>
-                  </svg>
-                </div>
-                <div
-                  className={`${
-                    theme == "dark" ? "bg-gray-400/20 text-white" : ""
-                  } p-1.5 sm:p-2 hover:bg-gray-400/20 rounded cursor-pointer`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="lucide lucide-moon-star sm:w-4 sm:h-4"
-                    onClick={() => setTheme("dark")}
-                  >
-                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9"></path>
-                    <path d="M20 3v4"></path>
-                    <path d="M22 5h-4"></path>
-                  </svg>
-                </div>
-                <div
-                  className={`${
-                    theme == "system" ? "bg-gray-400/20" : ""
-                  } p-1.5 sm:p-2 hover:bg-gray-400/20 rounded cursor-pointer`}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="lucide lucide-monitor-smartphone sm:w-4 sm:h-4 "
-                    onClick={() => setTheme("light")}
-                  >
-                    <path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h8"></path>
-                    <path d="M10 19v-3.96 3.15"></path>
-                    <path d="M7 19h5"></path>
-                    <rect width="6" height="10" x="16" y="12" rx="2"></rect>
-                  </svg>
-                </div>
-              </div>
             </button>
 
             {/* Stable right slot (prevents search icon shifting) */}
@@ -462,13 +345,13 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                     )}
                   </button>
 
-                 {isProfileMenuOpen && (
-  <div
-    className="absolute z-50 w-44 bg-white dark:bg-neutral-900 rounded-xl border border-gray-200 dark:border-neutral-700
+                  {isProfileMenuOpen && (
+                    <div
+                      className="absolute z-50 w-44 bg-white dark:bg-neutral-900 rounded-xl border border-gray-200 dark:border-neutral-700
       top-full mt-1 right-0
       opacity-0 scale-[0.96] translate-y-1
       animate-[grokDropdown_0.22s_cubic-bezier(0.16,1,0.3,1)_forwards]"
-  >
+                    >
                       <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
                         Settings
                       </button>
@@ -551,7 +434,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                 </button>
               </div>
 
-              {/* ✅ FORM: Enter key will trigger submit */}
+              {/*  FORM: Enter key will trigger submit */}
               <form onSubmit={onLogin}>
                 <input
                   type="email"
@@ -573,22 +456,6 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                     disabled={loading}
                     className="border-b border-gray-300 w-full px-2 py-2 mb-9 text-black outline-none dark:text-white  sm:text-[15px] text-sm focus:border-gray-500 dark:focus:border-neutral-500"
                   />
-
-                  {/* <svg
-                    width="16"
-                    height="16"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                    viewBox="0 0 16 16"
-                    fill="currentColor"
-                    className="cursor-pointer ml-2 sm:ml-3 sm:w-[18px] sm:h-[18px] shrink-0 mb-3"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M8 2.5C3 2.5 0 8 0 8C0 8 3 13.5 8 13.5C13 13.5 16 8 16 8C16 8 13 2.5 8 2.5ZM10.4749 10.4749C9.8185 11.1313 8.92826 11.5 8 11.5C7.07174 11.5 6.1815 11.1313 5.52513 10.4749C4.86875 9.8185 4.5 8.92826 4.5 8C4.5 7.07174 4.86875 6.1815 5.52513 5.52513C6.1815 4.86875 7.07174 4.5 8 4.5C8.92826 4.5 9.8185 4.86875 10.4749 5.52513C11.1313 6.1815 11.5 7.07174 11.5 8C11.5 8.92826 11.1313 9.8185 10.4749 10.4749ZM9.76777 9.76777C10.2366 9.29893 10.5 8.66304 10.5 8C10.5 7.33696 10.2366 6.70107 9.76777 6.23223C9.29893 5.76339 8.66304 5.5 8 5.5C7.33696 5.5 6.70107 5.76339 6.23223 6.23223C5.76339 6.70107 5.5 7.33696 5.5 8C5.5 8.66304 5.76339 9.29893 6.23223 9.76777C6.70107 10.2366 7.33696 10.5 8 10.5C8.66304 10.5 9.29893 10.2366 9.76777 9.76777Z"
-                    ></path>
-                  </svg> */}
                 </div>
 
                 <button
@@ -691,7 +558,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
       )}
 
       {/* Navbar */}
-      <nav
+      {/* <nav
         className={`fixed h-screen bg-white transition-transform duration-300 z-30 sm:w-64 w-56 top-0 dark:text-white dark:bg-black   ${
           isNavOpen ? "translate-x-0" : "-translate-x-full"
         }`}
@@ -794,7 +661,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
             </Link>
           </li>
         </ul>
-      </nav>
+      </nav> */}
     </div>
   );
 }

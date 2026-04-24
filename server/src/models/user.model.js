@@ -5,14 +5,20 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, "please provide an email"],
     unique: true,
+    lowercase: true,
+    trim: true,
+    match: [/^\S+@\S+\.\S+$/, "Invalid email"],
   },
 
   username: {
     type: String,
+    trim: true,
+    sparse: true,
   },
 
   password: {
-    type: String, // Google users may not have password
+    type: String,
+    select: false,
   },
 
   provider: {
@@ -42,20 +48,23 @@ const userSchema = new mongoose.Schema({
   joined: {
     type: Date,
     default: Date.now,
+    index: true,
   },
-
-  forgotPasswordToken: String,
-  forgotPasswordTokenExpiry: Date,
-
-  verifyToken: String,
-  verifyTokenExpiry: Date,
 });
 
-userSchema.index({verifyToken:1,verifyTokenExpiry:1});
+//indexes
 
-// userSchema.index({googleId:1});
+// username
+userSchema.index({ username: 1 }, { unique: true, sparse: true });
 
-// important fix
+// Google login
+userSchema.index({ googleId: 1 }, { unique: true, sparse: true });
+
+// joined (for admin / sorting)
+userSchema.index({ joined: -1 });
+
 const User = mongoose.model("User", userSchema);
 
 export default User;
+
+

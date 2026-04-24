@@ -6,12 +6,13 @@ import {
   renameConversation,
   pinConversation,
 } from "../controllers/conversation.controller.js";
+import { optionalAuth } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
 router.post("/conversations", createConversation);
 
-router.get("/conversations", listConversations);
+router.get("/conversations",optionalAuth, listConversations);
 
 router.delete("/conversations/:id", deleteConversation);
 

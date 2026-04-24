@@ -5,17 +5,14 @@ const conversationSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      index: true,
     },
 
     guestId: {
       type: String,
-      index: true,
     },
 
     title: {
       type: String,
-      default: "New Chat",
       trim: true,
     },
 
@@ -26,7 +23,18 @@ const conversationSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
+
+conversationSchema.index({
+  userId: 1,
+  pinned: -1,
+  createdAt: -1,
+});
+conversationSchema.index({
+  guestId: 1,
+  pinnedAt: -1,
+  createdAt: -1,
+});
 
 export default mongoose.model("Conversation", conversationSchema);
