@@ -8,13 +8,11 @@ import { useUi } from "@/context/UiContext";
 import axios from "axios";
 import { useChat } from "@/context/ChatContext";
 import type { Message as ChatMessage } from "@/context/ChatContext";
+import { API_BASE } from "@/lib/apiBase";
 
 axios.defaults.withCredentials = true;
 
-const API =
-  process.env.NEXT_PUBLIC_API ||
-  process.env.API ||
-  "http://localhost:1571/api";
+const API = API_BASE;
 
 interface Attachment {
   id: string;

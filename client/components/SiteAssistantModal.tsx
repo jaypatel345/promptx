@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { API_BASE } from "@/lib/apiBase";
 
 type Source = { title: string; url: string };
 
@@ -121,7 +122,7 @@ export default function SiteAssistantModal({
         content: m.content,
       }));
 
-      const res = await fetch("http://localhost:1571/api/ask", {
+      const res = await fetch(`${API_BASE}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: payloadMessages }),

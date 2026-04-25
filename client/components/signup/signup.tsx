@@ -8,6 +8,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import signupImg from "@/public/vecteezy_cloud-computing-modern-flat-concept-for-web-banner-design_5879539.jpg";
 import { useUi } from "@/context/UiContext";
+import { API_BASE } from "@/lib/apiBase";
 
 function Signup() {
   const { theme } = useTheme();
@@ -24,7 +25,7 @@ function Signup() {
   const router = useRouter();
 
   const handleGoogleLogin = () => {
-    window.location.href = "/api/auth/google";
+    window.location.href = `${API_BASE}/auth/google`;
   };
 
   const onSignup = async (e: React.FormEvent) => {
@@ -41,7 +42,7 @@ function Signup() {
     setIsLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:1571/api/auth/signup",
+        `${API_BASE}/auth/signup`,
         {
           username: user.username,
           email: user.email,

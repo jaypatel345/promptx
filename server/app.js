@@ -24,18 +24,38 @@ app.use(
     origin: (origin, callback) => {
       if (!origin) return callback(null, true); // curl/postman/server-to-server
 
+      const normalize = (value) => value.trim().replace(/\/+$/, "");
+
+      const envOrigins = [
+        process.env.CLIENT_URL,
+        process.env.FRONTEND_URL,
+        process.env.DOMAIN,
+      ]
+        .filter(Boolean)
+        .map(normalize);
+
       const allowlist = new Set([
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "https://promptx.co.in",
+        "https://www.promptx.co.in",
+        ...envOrigins,
       ]);
 
       const lanDevRegex = /^http:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}):3000$/;
+      const vercelPreviewRegex = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
 
-      if (allowlist.has(origin) || lanDevRegex.test(origin)) {
+      const normalizedOrigin = normalize(origin);
+
+      if (
+        allowlist.has(normalizedOrigin) ||
+        lanDevRegex.test(normalizedOrigin) ||
+        vercelPreviewRegex.test(normalizedOrigin)
+      ) {
         return callback(null, true);
       }
 
-      return callback(new Error(`CORS blocked origin: ${origin}`));
+      return callback(null, false);
     },
     credentials: true,
   }),

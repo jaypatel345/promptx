@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { API_BASE } from "@/lib/apiBase";
 
 export interface Message {
   _id?: string;
@@ -45,10 +46,7 @@ export function ChatContextProvider({ children }: { children: React.ReactNode })
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [guestId, setGuestId] = useState<string | null>(null);
 
-  const API =
-    process.env.NEXT_PUBLIC_API ||
-    process.env.API ||
-    "http://localhost:1571/api";
+  const API = API_BASE;
 
   // Load from localStorage on boot
   useEffect(() => {

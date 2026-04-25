@@ -9,6 +9,7 @@ import { useTheme } from "@/context/theme-context";
 // import { Router } from "next/router";
 import SiteAssistantModal from "@/components/SiteAssistantModal";
 import { apiClient } from "@/lib/apiClient";
+import { API_BASE } from "@/lib/apiBase";
 
 export default function Header() {
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -41,7 +42,7 @@ export default function Header() {
     return window.scrollY >= threshold;
   }
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:1571/api/auth/google";
+    window.location.href = `${API_BASE}/auth/google`;
   };
 
   const grokStyles = `
