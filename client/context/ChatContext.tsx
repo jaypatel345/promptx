@@ -102,15 +102,22 @@ export function ChatContextProvider({ children }: { children: React.ReactNode })
       ? `${API}/conversations?guestId=${encodeURIComponent(gid)}`
       : `${API}/conversations`;
 
-    const res = await fetch(url, {
-      credentials: "include",
-    });
+    const res = await fetch(url, { credentials: "include" });
+
+    const contentType = res.headers.get("content-type") || "";
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || `Request failed (${res.status})`);
+    }
+
+    if (!contentType.includes("application/json")) {
+      const text = await res.text();
+      throw new Error(text || "Expected JSON response");
+    }
 
     const data = await res.json();
 
-    if (data?.success) {
-      setConversations(data?.data?.conversations || []);
-    }
+    if (data?.success) setConversations(data?.data?.conversations || []);
   } catch (err) {
     console.error("Failed to load history", err);
   } finally {
