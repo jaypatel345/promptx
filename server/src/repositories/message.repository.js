@@ -1,4 +1,4 @@
-import Message from "../models/conversation.model.js";
+import Message from "../models/message.model.js";
 
 export const messageRepository = {
   create: async (data) => {

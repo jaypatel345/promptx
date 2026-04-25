@@ -5,38 +5,52 @@ import dotenv from "dotenv";
 
 // Load environment
 dotenv.config({
-  path: process.env.NODE_ENV === "production"
+  path:
+process.env.NODE_ENV === "production"
     ? ".env.production"
     : ".env.development",
 });
 
-// Validate ENV (fail fast)
-if (!process.env.SUPABASE_DB_URL) {
-  throw new Error("SUPABASE_DB_URL is missing in environment variables");
-}
+let pool = null;
 
-// Create Pool (connection manager)
-export const pool = new Pool({
-  connectionString: process.env.SUPABASE_DB_URL,
-  ssl: {
-    require: true,
-    rejectUnauthorized: false,
-  },
-  max: 10, // max clients in pool
-  idleTimeoutMillis: 30000, // close idle clients after 30s
-  connectionTimeoutMillis: 5000, // fail if cannot connect in 5s
-});
+export const getPool = () => {
+  if (pool) return pool;
+  if (!process.env.SUPABASE_DB_URL) return null;
 
-//  Function to test DB connection on startup
+  pool = new Pool({
+    connectionString: process.env.SUPABASE_DB_URL,
+    ssl: {
+      require: true,
+      rejectUnauthorized: false,
+    },
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+  });
+
+  return pool;
+};
+
+// Test connection (called in server start)
 export const connectPostgres = async () => {
+  const p = getPool();
+
+  if (!p) {
+    console.warn(
+      "SUPABASE_DB_URL not set; skipping PostgreSQL connection (prompt history disabled).",
+    );
+    return;
+  }
+
   try {
-    const client = await pool.connect();
+    const client = await p.connect();
 
     console.log("PostgreSQL connected successfully");
 
-    client.release(); // VERY IMPORTANT (return to pool)
+    client.release(); // IMPORTANT
   } catch (error) {
     console.error("PostgreSQL connection failed:", error.message);
-    process.exit(1); // kill app if DB not connected
   }
 };
+
+export { pool };

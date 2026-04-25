@@ -29,17 +29,19 @@ export const protect = asyncHandler(async (req, res, next) => {
 
 
 
-export const optionalAuth = asyncHandler(async (req, res, next) => {
+export const optionalAuth = (req, res, next) => {
   const token = req.cookies?.token;
 
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, process.env.TOKEN_SECRET);
-      req.user = await User.findById(decoded.id).select("-password");
-    } catch {
-      // ignore invalid token → treat as guest
-    }
+  if (!token) {
+return next(); // allow guest
   }
 
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = decoded;
+    } catch (err) {
+      // ignore invalid token, treat as guest
+      }
+
   next();
-});
+};

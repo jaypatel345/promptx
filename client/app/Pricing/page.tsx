@@ -1,4 +1,4 @@
-import Header from "@/component/home/header";
+import Header from "@/components/home/header";
 import React from "react";
 
 export default function Page() {

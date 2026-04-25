@@ -1,3 +1,46 @@
+"use client";
+
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+
+import { useChat, type Message } from "@/context/ChatContext";
+import { useTheme } from "@/context/theme-context";
+import { useUi } from "@/context/UiContext";
+import { apiClient } from "@/lib/apiClient";
+import { API_BASE } from "@/lib/apiBase";
+
+const MOBILE_BREAKPOINT = 768;
+const API = API_BASE;
+
+type UserProfile = {
+  _id?: string;
+  email?: string;
+  name?: string;
+  avatar?: string;
+};
+
+function getErrorMessage(err: unknown) {
+  if (!err || typeof err !== "object") return "Unknown error";
+  const e = err as Record<string, unknown>;
+
+  const response = e["response"];
+  if (response && typeof response === "object") {
+    const data = (response as Record<string, unknown>)["data"];
+    if (data && typeof data === "object") {
+      const d = data as Record<string, unknown>;
+      const maybe = d["error"] ?? d["message"];
+      if (typeof maybe === "string" && maybe.trim()) return maybe;
+    }
+  }
+
+  const maybeMessage = e["message"];
+  if (typeof maybeMessage === "string" && maybeMessage.trim()) {
+    return maybeMessage;
+  }
+  return "Unknown error";
+}
+
 // --- PIN ICON COMPONENT (VISIBLE + FIXED) ---
 const PinIcon = ({ size = 12 }: { size?: number }) => (
   <svg
@@ -31,25 +74,18 @@ const PinIcon = ({ size = 12 }: { size?: number }) => (
     />
   </svg>
 );
-const API =
-  process.env.NEXT_PUBLIC_API ||
-  process.env.API ||
-  "http://localhost:1571/api";
 
 async function apiRenameConversation(
   conversationId: string,
   title: string,
-  guestId?: string
+  guestId?: string,
 ) {
-  const res = await fetch(
-    `${API}/conversations/${conversationId}/title`,
-    {
+  const res = await fetch(`${API}/conversations/${conversationId}/title`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ title, guestId }),
-    }
-  );
+  });
 
   if (!res.ok) throw new Error("Rename failed");
 }
@@ -57,34 +93,25 @@ async function apiRenameConversation(
 async function apiPinConversation(
   conversationId: string,
   pin: boolean,
-  guestId?: string
+  guestId?: string,
 ) {
-  const res = await fetch(
-    `${API}/conversations/${conversationId}/pin`,
-    {
+  const res = await fetch(`${API}/conversations/${conversationId}/pin`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ pin, guestId }),
-    }
-  );
+  });
 
   if (!res.ok) throw new Error("Pin failed");
 }
 
-async function apiDeleteConversation(
-  conversationId: string,
-  guestId?: string
-) {
-  const res = await fetch(
-    `${API}/conversations/${conversationId}`,
-    {
+async function apiDeleteConversation(conversationId: string, guestId?: string) {
+  const res = await fetch(`${API}/conversations/${conversationId}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ guestId }),
-    }
-  );
+  });
 
   const data = await res.json();
 
@@ -95,26 +122,26 @@ async function apiDeleteConversation(
   return data;
 }
 
-import { useTheme } from "@/context/theme-context";
-import Image from "next/image";
-import Link from "next/link";
-import { useUi } from "@/context/UiContext";
-import { usePathname } from "next/navigation";
-import axios from "axios";
-import React, { useState, useEffect, useRef } from "react";
-const MOBILE_BREAKPOINT = 768;
-import { useChat } from "@/context/ChatContext";
-import { Message } from "@/context/ChatContext";
-
 function EnhacerHeader() {
-  axios.defaults.withCredentials = true;
-  // --- Auth/guest ready state for message fetches ---
-  const [guestId, setGuestId] = useState<string | null>(null);
-  const [guestReady, setGuestReady] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { theme } = useTheme();
+  const {
+    loadConversation,
+    conversationId,
+    setConversationId,
+    setMessages,
+    startNewChat,
+    guestId,
+  } = useChat();
+  const {
+    isOpen,
+    setIsOpen,
+    setIsNavOpen,
+    isLoginOpen,
+    setIsLoginOpen,
+  } = useUi();
+
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [search, setSearch] = React.useState<string>("");
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [previewMessages, setPreviewMessages] = useState<Message[]>([]);
@@ -123,12 +150,11 @@ function EnhacerHeader() {
   >(null);
   const previewCache = useRef<Record<string, Message[]>>({});
   const searchCache = useRef<Record<string, string>>({});
-  const [isSettingOpen, setIsSettingOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isHistoryHovered, setIsHistoryHovered] = useState(false);
   const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
   const [openHistoryMenuId, setOpenHistoryMenuId] = useState<string | null>(
-    null
+    null,
   );
   // --- RENAME MODAL STATE ---
   const [isRenameOpen, setIsRenameOpen] = useState(false);
@@ -174,23 +200,15 @@ function EnhacerHeader() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-  const { isOpen, setIsOpen } = useUi();
-  const pathname = usePathname();
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const { isNavOpen, setIsNavOpen, isLoginOpen, setIsLoginOpen } = useUi();
-  const [user, setUser] = useState({
-    email: "",
-    password: "",
-  });
+  const [user, setUser] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
-  const { startNewChat } = useChat();
+  const guestReady = !!guestId;
   const canFetchMessages = authChecked && (isLoggedIn || guestReady);
    
-
   const [conversations, setConversations] = useState<
     {
       _id: string;
@@ -199,7 +217,7 @@ function EnhacerHeader() {
       pinnedAt?: string | null;
     }[]
   >([]);
-  const sorted = React.useMemo(() => {
+  const sorted = useMemo(() => {
     return [...conversations].sort((a, b) => {
       if (a.pinnedAt && b.pinnedAt) {
         return new Date(b.pinnedAt).getTime() - new Date(a.pinnedAt).getTime();
@@ -209,7 +227,7 @@ function EnhacerHeader() {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   }, [conversations]);
-  const latestConversations = React.useMemo(() => {
+  const latestConversations = useMemo(() => {
     return sorted.slice(0, 11);
   }, [sorted]);
   // --- HISTORY ACTION HANDLERS ---
@@ -222,18 +240,22 @@ function EnhacerHeader() {
 
   const confirmRename = async () => {
     if (!renameTargetId || !renameValue.trim()) return;
+    if (!isLoggedIn && !guestId) return;
 
     const prev = conversations;
 
     setConversations((prev) =>
       prev.map((c) =>
-        c._id === renameTargetId ? { ...c, title: renameValue.trim() } : c
-      )
+        c._id === renameTargetId ? { ...c, title: renameValue.trim() } : c,
+      ),
     );
 
     try {
-      const guestId = localStorage.getItem("guestId") || undefined;
-      await apiRenameConversation(renameTargetId, renameValue.trim(), guestId);
+      await apiRenameConversation(
+        renameTargetId,
+        renameValue.trim(),
+        isLoggedIn ? undefined : (guestId ?? undefined),
+      );
     } catch (err) {
       console.error(err);
       setConversations(prev);
@@ -245,7 +267,7 @@ function EnhacerHeader() {
   };
 
   const handlePinConversation = async (id: string) => {
-    const guestId = localStorage.getItem("guestId") || undefined;
+    if (!isLoggedIn && !guestId) return;
 
     const prev = conversations;
 
@@ -256,20 +278,23 @@ function EnhacerHeader() {
 
     setConversations((prev) =>
       prev.map((c) =>
-        c._id === id ? { ...c, pinnedAt: wasPinned ? null : now } : c
-      )
+        c._id === id ? { ...c, pinnedAt: wasPinned ? null : now } : c,
+      ),
     );
 
     try {
-      await apiPinConversation(id, !wasPinned, guestId);
+      await apiPinConversation(
+        id,
+        !wasPinned,
+        isLoggedIn ? undefined : (guestId ?? undefined),
+      );
 
-      const res = await axios.get(`${API}/conversations`, {
-        withCredentials: true,
-        params: isLoggedIn ? {} : { guestId },
+      const res = await apiClient.get(`/conversations`, {
+        params: isLoggedIn ? undefined : { guestId },
       });
 
       if (res.data?.success) {
-        setConversations(res.data.conversations);
+        setConversations(res.data.data?.conversations || []);
       }
     } catch (err) {
       console.error(err);
@@ -278,9 +303,7 @@ function EnhacerHeader() {
   };
 
   const handleDeleteConversation = async (id: string) => {
-    const localGuestId = !isLoggedIn
-      ? localStorage.getItem("guestId") || undefined
-      : undefined;
+    if (!isLoggedIn && !guestId) return;
 
     const prev = conversations;
 
@@ -294,24 +317,23 @@ function EnhacerHeader() {
 
     try {
       // IMPORTANT: Do NOT send guestId when logged in
-      await apiDeleteConversation(id, localGuestId);
+      await apiDeleteConversation(
+        id,
+        isLoggedIn ? undefined : (guestId ?? undefined),
+      );
 
-      const res = await axios.get(`${API}/conversations`, {
-        withCredentials: true,
-        params: isLoggedIn ? {} : { guestId: localGuestId },
+      const res = await apiClient.get(`/conversations`, {
+        params: isLoggedIn ? undefined : { guestId },
       });
 
       if (res.data?.success) {
-        setConversations(res.data.conversations);
+        setConversations(res.data.data?.conversations || []);
       }
     } catch (err) {
       console.error(err);
       setConversations(prev); // rollback
     }
   };
-  const { loadConversation, conversationId, setConversationId, setMessages } =
-    useChat();
-  const isGuest = !isLoggedIn;
   const historyScrollRef = useRef<HTMLDivElement | null>(null);
   const firstItemRef = useRef<HTMLDivElement | null>(null);
   const lastItemRef = useRef<HTMLDivElement | null>(null);
@@ -338,18 +360,8 @@ function EnhacerHeader() {
     return () => window.removeEventListener("resize", updateHeight);
   }, [latestConversations]);
 
-  useEffect(() => {
-    let id = localStorage.getItem("guestId");
-    if (!id) {
-      id = crypto.randomUUID();
-      localStorage.setItem("guestId", id);
-    }
-    setGuestId(id);
-    setGuestReady(true);
-  }, []);
-
   const handleGoogleLogin = () => {
-    window.location.href =  `${API}/auth/google`;
+    window.location.href = `${API}/auth/google`;
   };
   // Keyboard navigation for search modal
   useEffect(() => {
@@ -368,7 +380,7 @@ function EnhacerHeader() {
       if (!filteredConversations.length) return;
 
       const index = filteredConversations.findIndex(
-        (c) => c._id === previewConversationId
+        (c) => c._id === previewConversationId,
       );
 
       if (e.key === "ArrowDown") {
@@ -382,12 +394,13 @@ function EnhacerHeader() {
           (async () => {
             try {
               if (!canFetchMessages) return;
-              const res = await axios.get(`${API}/messages/${next._id}`, {
-                withCredentials: true,
-                params: isLoggedIn ? {} : { guestId },
+              if (!isLoggedIn && !guestId) return;
+              const res = await apiClient.get(`/messages/${next._id}`, {
+                params: isLoggedIn ? undefined : { guestId },
               });
               if (res.data?.success) {
-                const last = res.data.messages.slice(-8);
+                const msgs = res.data.data?.messages || [];
+                const last = msgs.slice(-8);
                 previewCache.current[next._id] = last;
                 setPreviewMessages(last);
               }
@@ -407,12 +420,13 @@ function EnhacerHeader() {
           (async () => {
             try {
               if (!canFetchMessages) return;
-              const res = await axios.get(`${API}/messages/${prev._id}`, {
-                withCredentials: true,
-                params: isLoggedIn ? {} : { guestId },
+              if (!isLoggedIn && !guestId) return;
+              const res = await apiClient.get(`/messages/${prev._id}`, {
+                params: isLoggedIn ? undefined : { guestId },
               });
               if (res.data?.success) {
-                const last = res.data.messages.slice(-8);
+                const msgs = res.data.data?.messages || [];
+                const last = msgs.slice(-8);
                 previewCache.current[prev._id] = last;
                 setPreviewMessages(last);
               }
@@ -439,25 +453,28 @@ function EnhacerHeader() {
     conversations,
     searchQuery,
     canFetchMessages,
+    isLoggedIn,
+    guestId,
   ]);
 
   // Prefetch message text for searching (background)
   useEffect(() => {
     const preloadSearchData = async () => {
       if (!canFetchMessages) return;
+      if (!isLoggedIn && !guestId) return;
       for (const conv of conversations) {
         if (searchCache.current[conv._id]) continue;
 
         try {
           if (!canFetchMessages) return;
-          const res = await axios.get(`${API}/messages/${conv._id}`, {
-            withCredentials: true,
-            params: isLoggedIn ? {} : { guestId },
+          const res = await apiClient.get(`/messages/${conv._id}`, {
+            params: isLoggedIn ? undefined : { guestId },
           });
 
           if (res.data?.success) {
-            const allText = res.data.messages
-              .map((m: any) => m.content.toLowerCase())
+            const msgs = res.data.data?.messages || [];
+            const allText = msgs
+              .map((m: { content: string }) => m.content.toLowerCase())
               .join(" ");
 
             searchCache.current[conv._id] = allText;
@@ -471,7 +488,7 @@ function EnhacerHeader() {
     if (isSearchModalOpen) {
       preloadSearchData();
     }
-  }, [isSearchModalOpen, conversations, canFetchMessages]);
+  }, [isSearchModalOpen, conversations, canFetchMessages, isLoggedIn, guestId]);
 
   useEffect(() => {
     if (!isSearchModalOpen) {
@@ -497,52 +514,62 @@ function EnhacerHeader() {
 
   const onLogout = async () => {
     try {
-      await axios.post(`${API}/auth/logout`, {}, { withCredentials: true });
+      await apiClient.post(`/auth/logout`, {});
 
       setIsLoggedIn(false);
       setUserProfile(null);
       setConversations([]);
       setConversationId(null);
       setMessages([]);
-      localStorage.removeItem("guestId");
     } catch (err) {
       console.error("Logout failed", err);
     }
   };
 
   useEffect(() => {
-    if (!isLoggedIn && !guestReady) return;
+if (!authChecked) return;
+    if (!isLoggedIn && !guestId) return;
 
-    const fetchHistory = async () => {
+    let cancelled = false;
+
+    (async () => {
       try {
-        const res = await axios.get(`${API}/conversations`, {
-          withCredentials: true,
-          params: isLoggedIn ? {} : { guestId },
+        const res = await apiClient.get(`/conversations`, {
+                    params: isLoggedIn ? undefined : { guestId },
         });
 
-        if (res.data?.success) {
-          setConversations(res.data.conversations);
+        if (!cancelled && res.data?.success) {
+          setConversations(res.data.data?.conversations || []);
         }
-      } catch (err) {
-        console.error("Failed to load history", err);
+      } catch (err: unknown) {
+        console.error(
+"Failed to load history",
+          getErrorMessage(err),
+);
       }
-    };
+    })();
 
-    fetchHistory();
-  }, [isLoggedIn, guestReady, guestId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [authChecked, isLoggedIn, guestId]);
 
   const openConversation = async (id: string) => {
+if (!id) {
+      console.error("Invalid conversation id");
+      return;
+    }
     try {
       if (!canFetchMessages) return;
-      const params = isLoggedIn ? {} : { guestId };
+if (!isLoggedIn && !guestId) return;
+      const params = isLoggedIn ? undefined : { guestId };
 
-      const res = await axios.get(`${API}/messages/${id}`, {
-        withCredentials: true,
-        params,
+      const res = await apiClient.get(`/messages/${id}`, {
+                params,
       });
 
       if (res.data?.success) {
-        loadConversation(id, res.data.messages);
+        loadConversation(id, res.data.data?.messages || []);
       }
     } catch (err) {
       console.error("Failed to open conversation", err);
@@ -550,43 +577,46 @@ function EnhacerHeader() {
   };
 
   const createNewChat = async () => {
-    startNewChat();
-
     try {
+      // 🚫 DO NOT update UI before backend success
+      if (!isLoggedIn && !guestId) {
+        console.warn("GuestId not ready, skipping create chat");
+        return;
+      }
+
       const payload = isLoggedIn ? {} : { guestId };
+      const res = await apiClient.post(`/conversations`, payload);
 
-      const res = await axios.post(`${API}/conversations`, payload, {
-        withCredentials: true,
-      });
+      const newId = res.data?.data?.conversationId;
+      if (!newId) {
+        console.error("No conversationId returned", res.data);
+        return;
+      }
 
-      if (res.data?.success) {
-        setConversationId(res.data.conversationId);
+      startNewChat();
+      setConversationId(newId);
 
-        const historyRes = await axios.get(`${API}/conversations`, {
-          withCredentials: true,
-          params: isLoggedIn ? {} : { guestId },
+        const historyRes = await apiClient.get(`/conversations`, {
+                    params: isLoggedIn ? undefined : { guestId },
         });
 
         if (historyRes.data?.success) {
-          setConversations(historyRes.data.conversations);
+          setConversations(historyRes.data.data?.conversations || []);
         }
-      }
-    } catch (err) {
-      console.error("Failed to create conversation", err);
+          } catch (err: unknown) {
+      console.error("Failed to create conversation", getErrorMessage(err));
     }
   };
 
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const res = await axios.get(`${API}/user/me`, { withCredentials: true });
+        const res = await apiClient.get(`/user/me`);
 
-        if (res.data?.success && !res.data.isGuest) {
+        if (res.data?.success && !res.data?.data?.isGuest) {
           setIsLoggedIn(true);
-          setUserProfile(res.data.user || null);
-          console.log("ME API user data:", res.data.user);
-          console.log("Avatar URL:", res.data.user?.avatar);
-        } else {
+          setUserProfile(res.data?.data?.user || null);
+                  } else {
           setIsLoggedIn(false);
           setUserProfile(null);
         }
@@ -608,38 +638,25 @@ function EnhacerHeader() {
     try {
       setLoading(true);
 
-      const response = await axios.post(
-           `${API}/auth/login`,
-        {
+      const response = await apiClient.post(`/auth/login`,         {
           email: user.email,
           password: user.password,
-        },
-        { withCredentials: true }
-      );
+        }      );
 
       if (response.data?.success) {
-        const me = await axios.get(`${API}/user/me`, { withCredentials: true });
-        if (me.data?.success) {
-          setIsLoggedIn(true);
-        }
-        setLoginError("");
+        const me = await apiClient.get(`/user/me`);
+        setIsLoggedIn(!!me.data?.success && !me.data?.data?.isGuest);
+                setLoginError("");
         setIsLoginOpen(false);
       }
-    } catch (error: any) {
-      const msg =
-        error?.response?.data?.error ||
-        error?.response?.data?.message ||
-        "Invalid email or password";
-
-      setLoginError(msg);
+    } catch (error: unknown) {
+      setLoginError(getErrorMessage(error) ||         "Invalid email or password");
     } finally {
       setLoading(false);
     }
   };
 
-  // Debug: log userProfile on every render
-  console.log("Header render: userProfile =", userProfile);
-  return (
+    return (
     <div className="">
       <div className="flex justify-between ">
         <div
@@ -967,6 +984,7 @@ function EnhacerHeader() {
                       <div
                         onClick={async () => {
                           if (isMobile) setIsMobileSidebarOpen(false);
+
                           if (!canFetchMessages) return;
 
                           setIsSearchModalOpen(true);
@@ -978,16 +996,17 @@ function EnhacerHeader() {
                           }
 
                           try {
-                            const res = await axios.get(
-                              `${API}/messages/${conv._id}`,
+if (!isLoggedIn && !guestId) return;
+                            const res = await apiClient.get(
+                              `/messages/${conv._id}`,
                               {
-                                withCredentials: true,
-                                params: isLoggedIn ? {} : { guestId },
-                              }
+                                                                params: isLoggedIn ? undefined : { guestId },
+                              },
                             );
 
                             if (res.data?.success) {
-                              const last = res.data.messages.slice(-8);
+                              const msgs = res.data.data?.messages || [];
+                              const last = msgs.slice(-8);
                               previewCache.current[conv._id] = last;
                               setPreviewMessages(last);
                             }
@@ -1015,7 +1034,7 @@ function EnhacerHeader() {
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpenHistoryMenuId((prev) =>
-                            prev === conv._id ? null : conv._id
+                            prev === conv._id ? null : conv._id,
                           );
                         }}
                         className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -1119,7 +1138,7 @@ function EnhacerHeader() {
                           onError={(e) => {
                             console.log(
                               "Avatar failed to load:",
-                              userProfile.avatar
+                              userProfile.avatar,
                             );
                             e.currentTarget.src = "/avatar.svg"; // fallback image
                           }}
@@ -1309,8 +1328,6 @@ function EnhacerHeader() {
                     disabled={loading}
                     className="border-b border-gray-300 w-full px-2 py-2 mb-9 text-black outline-none dark:text-white  sm:text-[15px] text-sm focus:border-gray-500 dark:focus:border-neutral-500"
                   />
-
-                
                 </div>
 
                 {loginError && (
@@ -1485,6 +1502,7 @@ function EnhacerHeader() {
                         key={conv._id}
                         onMouseEnter={async () => {
                           if (!canFetchMessages) return;
+if (!isLoggedIn && !guestId) return;
 
                           if (previewCache.current[conv._id]) {
                             setPreviewMessages(previewCache.current[conv._id]);
@@ -1492,19 +1510,21 @@ function EnhacerHeader() {
                             return;
                           }
                           try {
-                            const res = await axios.get(
-                              `${API}/messages/${conv._id}`,
+                            const res = await apiClient.get(
+                              `/messages/${conv._id}`,
                               {
-                                withCredentials: true,
-                                params: isLoggedIn ? {} : { guestId },
-                              }
+                                                                params: isLoggedIn ? undefined : { guestId },
+                              },
                             );
                             if (res.data?.success) {
-                              const allText = res.data.messages
-                                .map((m: any) => m.content.toLowerCase())
+                              const msgs = res.data.data?.messages || [];
+                              const allText = msgs
+                                .map((m: { content: string }) =>
+                                  m.content.toLowerCase(),
+                                )
                                 .join(" ");
                               searchCache.current[conv._id] = allText;
-                              const last = res.data.messages.slice(-8);
+                              const last = msgs.slice(-8);
                               previewCache.current[conv._id] = last;
                               setPreviewMessages(last);
                               setPreviewConversationId(conv._id);
@@ -1516,21 +1536,22 @@ function EnhacerHeader() {
                         onClick={async () => {
                           if (isMobile) setIsMobileSidebarOpen(false);
                           if (!canFetchMessages) return;
+                          if (!isLoggedIn && !guestId) return;
 
                           setPreviewConversationId(conv._id);
                           if (previewCache.current[conv._id]) {
                             setPreviewMessages(previewCache.current[conv._id]);
                           } else {
                             try {
-                              const res = await axios.get(
-                                `${API}/messages/${conv._id}`,
+                              const res = await apiClient.get(
+                                `/messages/${conv._id}`,
                                 {
-                                  withCredentials: true,
-                                  params: isLoggedIn ? {} : { guestId },
-                                }
+                                  params: isLoggedIn ? undefined : { guestId },
+                                },
                               );
                               if (res.data?.success) {
-                                const last = res.data.messages.slice(-8);
+                                const msgs = res.data.data?.messages || [];
+                                const last = msgs.slice(-8);
                                 previewCache.current[conv._id] = last;
                                 setPreviewMessages(last);
                               }
@@ -1703,7 +1724,8 @@ function EnhacerHeader() {
         }
 
         .grok-hover {
-          transition: transform 0.25s var(--grok-ease),
+          transition:
+transform 0.25s var(--grok-ease),
             box-shadow 0.25s var(--grok-ease);
         }
 

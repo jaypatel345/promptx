@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "@/context/theme-context";
 // import { Router } from "next/router";
 import SiteAssistantModal from "@/components/SiteAssistantModal";
-import axios from "axios";
+import { apiClient } from "@/lib/apiClient";
 
 export default function Header() {
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -86,20 +86,12 @@ export default function Header() {
   useEffect(() => {
     const checkLogin = async () => {
       try {
-        const res = await axios.get("http://localhost:1571/api/user/me", {
-          withCredentials: true,
-        });
-
-        if (res.data?.user) {
-          setIsLoggedIn(true);
-          setUserProfile(res.data.user || null);
-          console.log("ME API user data:", res.data.user);
-          console.log("Avatar URL:", res.data.user?.avatar);
-        } else {
-          setIsLoggedIn(false);
-          setUserProfile(null);
-        }
-      } catch (error) {
+        const res = await apiClient.get(`/user/me`);
+        const isGuest = !!res.data?.data?.isGuest;
+        const dataUser = res.data?.data?.user || null;
+        setIsLoggedIn(!!res.data?.success && !!dataUser && !isGuest);
+          setUserProfile(!isGuest ? dataUser : null);
+              } catch (error) {
         console.error("Auth check failed:", error);
         setIsLoggedIn(false);
         setUserProfile(null);
@@ -139,24 +131,15 @@ export default function Header() {
     try {
       setLoading(true);
 
-      const response = await axios.post(
-        "http://localhost:1571/api/auth/login",
-        {
+      const response = await apiClient.post(`/auth/login`,         {
           email: user.email,
           password: user.password,
-        },
-        { withCredentials: true },
-      );
+        }      );
 
       if (response.data?.success) {
-        const me = await axios.get("http://localhost:1571/api/user/me", {
-          withCredentials: true,
-        });
-
-        if (me.data?.user) {
-          setIsLoggedIn(true);
-        }
-
+        const me = await apiClient.get(`/user/me`);
+          setIsLoggedIn(!!me.data?.success && !me.data?.data?.isGuest);
+        
         setAuthChecked(true);
         setIsLoginOpen(false);
         setHeaderKey((k) => k + 1);
@@ -170,21 +153,10 @@ export default function Header() {
 
   const logout = async () => {
     try {
-      await axios.post(
-        "http://localhost:1571/api/auth/logout",
-        {},
-        { withCredentials: true },
-      );
-
-      const me = await axios.get("http://localhost:1571/api/user/me", {
-        withCredentials: true,
-      });
-
-      if (!me.data?.user) {
+      await apiClient.post(`/auth/logout`, {});
         setIsLoggedIn(false);
         setUserProfile(null);
-      }
-    } catch (error) {
+          } catch (error) {
       console.error("Logout failed:", error);
     } finally {
       setIsProfileMenuOpen(false);
@@ -261,11 +233,12 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
           </div>
 
           {/* Right: Search + Login */}
-          <div className="flex items-center gap-2 sm:gap-4 md:gap-6 ">
+          <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
+{/* Search Button */}
             <button
               aria-label="Search"
               className={`p-1 sm:p-2 rounded-full hover:bg-gray-100 transition dark:hover:bg-gray-700/40 md:ml-0 ml-3 ${
-                pathname == "/" ? "" : "hidden"
+                pathname === "/" ? "" : "hidden"
               }`}
               onClick={() => {
                   setIsSearchOpen(true);
@@ -282,49 +255,39 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 className="text-black dark:text-white sm:w-5 sm:h-5"
-                
-              >
+                              >
                 <circle cx="11" cy="11" r="7"></circle>
                 <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
               </svg>
             </button>
 
-            {/* Stable right slot (prevents search icon shifting) */}
-            <div className="w-[88px] sm:w-24 flex justify-end ">
-              {!authChecked || isLoggedIn === null ? (
-                <div className="w-9 h-9"></div>
-              ) : isLoggedIn === true ? (
-                // Show avatar when logged in
+            {/* Right Slot */}
+            <div className="w-[88px] sm:w-24 flex justify-end">
+{/* LOADING STATE */}
+              {!authChecked ? (
+                <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-neutral-700 animate-pulse" />
+              ) : userProfile ? (
+                /* LOGGED IN STATE */
                 <div
                   ref={profileMenuRef}
-                  className="relative z-40 flex items-center justify-center mr-5 overflow-visible"
+                  className="relative z-999 flex items-center justify-center mr-5 overflow-visible"
                 >
+{/* Avatar Button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsProfileMenuOpen((v) => !v);
                     }}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center overflow-hidden ${
-                      userProfile?.avatar
-                        ? "bg-transparent"
-                        : "bg-gray-200 dark:bg-neutral-700"
-                    }`}
-                  >
-                    {userProfile?.avatar && userProfile.avatar.trim() !== "" ? (
+                    className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden bg-gray-200 dark:bg-neutral-700"
+                                      >
+                    {userProfile?.avatar?.trim() ? (
                       <img
                         src={userProfile.avatar}
                         alt="User avatar"
                         referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover rounded-full block"
-                        onLoad={() =>
-                          console.log("Avatar loaded:", userProfile.avatar)
-                        }
+                        className="w-full h-full object-cover rounded-full"
                         onError={(e) => {
-                          console.log(
-                            "Avatar failed to load:",
-                            userProfile.avatar,
-                          );
-                          e.currentTarget.src = "/avatar.svg"; // fallback image
+                                                    e.currentTarget.src = "/avatar.svg";
                         }}
                       />
                     ) : (
@@ -345,23 +308,23 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                     )}
                   </button>
 
+{/* Dropdown */}
                   {isProfileMenuOpen && (
-                    <div
-                      className="absolute z-50 w-44 bg-white dark:bg-neutral-900 rounded-xl border border-gray-200 dark:border-neutral-700
-      top-full mt-1 right-0
-      opacity-0 scale-[0.96] translate-y-1
-      animate-[grokDropdown_0.22s_cubic-bezier(0.16,1,0.3,1)_forwards]"
-                    >
+                    <div                       className="absolute z-1000 w-44 bg-white dark:bg-neutral-900 rounded-xl border border-gray-200 dark:border-neutral-700       top-full mt-1 right-0">
                       <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
                         Settings
                       </button>
+
                       <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
                         Upgrade plan
                       </button>
+
                       <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
                         Help
                       </button>
+
                       <div className="h-px bg-gray-200 dark:bg-neutral-700 my-1" />
+
                       <button
                         onClick={() => {
                           setIsProfileMenuOpen(false);
@@ -375,9 +338,9 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                   )}
                 </div>
               ) : (
-                // Show login button when NOT logged in
+                /* NOT LOGGED IN STATE */
                 <button
-                  className="px-4 sm:px-4 md:px-5 py-2 sm:py-2 bg-gray-300/40 text-black rounded-full hover:bg-gray-200 transition cursor-pointer text-[13px] sm:text-[12px] md:text-[13px] dark:bg-white dark:text-black dark:hover:bg-white/90"
+                  className="px-4 sm:px-4 md:px-5 py-2 bg-gray-300/40 text-black rounded-full hover:bg-gray-200 transition text-[13px] dark:bg-white dark:text-black dark:hover:bg-white/90"
                   onClick={() => {
                     setIsLoginOpen(true);
                     setIsNavOpen(false);
