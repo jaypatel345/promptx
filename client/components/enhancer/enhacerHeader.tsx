@@ -645,7 +645,10 @@ if (!isLoggedIn && !guestId) return;
 
       if (response.data?.success) {
         const me = await apiClient.get(`/user/me`);
-        setIsLoggedIn(!!me.data?.success && !me.data?.data?.isGuest);
+        const isGuest = !!me.data?.data?.isGuest;
+        const dataUser = me.data?.data?.user || null;
+        setIsLoggedIn(!!me.data?.success && !!dataUser && !isGuest);
+        setUserProfile(!isGuest ? (dataUser as UserProfile) : null);
                 setLoginError("");
         setIsLoginOpen(false);
       }

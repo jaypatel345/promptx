@@ -12,7 +12,7 @@ export const protect = asyncHandler(async (req, res, next) => {
 
   let decoded;
   try {
-    decoded = jwt.verify(token, process.env.TOKEN_SECRET);
+    decoded = jwt.verify(token, process.env.ACCESSTOKEN_SECRET);
   } catch {
     throw new ApiError(401, "Invalid token");
   }
@@ -30,18 +30,23 @@ export const protect = asyncHandler(async (req, res, next) => {
 
 
 export const optionalAuth = (req, res, next) => {
-  const token = req.cookies?.token;
+  const token = req.cookies?.accessToken;
 
   if (!token) {
 return next(); // allow guest
   }
 
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = decoded;
-    } catch (err) {
-      // ignore invalid token, treat as guest
-      }
+  try {
+    const decoded = jwt.verify(token, process.env.ACCESSTOKEN_SECRET);
 
-  next();
+    // Keep it non-async to preserve middleware signature; hydrate user in background
+    User.findById(decoded.id)
+      .select("-password")
+      .then((user) => {
+        if (user) req.user = user;
+      })
+      .finally(() => next());
+  } catch {
+    next(); // invalid token -> guest
+  }
 };

@@ -93,8 +93,8 @@ function Enhancer() {
       try {
         const res = await axios.get(`${API}/user/me`, { withCredentials: true });
         if (res.data?.success) {
-          // Backend returns { success, isGuest }. Treat guests as logged out.
-          setIsLoggedIn(!res.data?.isGuest);
+          // Backend returns { success, data: { isGuest } }. Treat guests as logged out.
+          setIsLoggedIn(!res.data?.data?.isGuest);
         } else {
           setIsLoggedIn(false);
         }
@@ -271,9 +271,10 @@ function Enhancer() {
         if (!res.ok) throw new Error("Failed to fetch messages");
 
         const data = await res.json();
+        const messages = data?.data?.messages ?? data?.messages;
 
-        if (!cancelled && Array.isArray(data.messages)) {
-          setMessages(data.messages);
+        if (!cancelled && Array.isArray(messages)) {
+          setMessages(messages);
         }
       } catch (err) {
         if (!cancelled) {
@@ -485,10 +486,12 @@ function Enhancer() {
         if (!res.ok) throw new Error("Failed to create conversation");
 
         const data = await res.json();
+        const newConversationId =
+          data?.data?.conversationId ?? data?.conversationId;
 
-        if (!data.conversationId) throw new Error("Invalid conversation ID");
+        if (!newConversationId) throw new Error("Invalid conversation ID");
 
-        activeConversationId = data.conversationId as string;
+        activeConversationId = newConversationId as string;
         setConversationId(activeConversationId);
         localStorage.setItem("conversationId", activeConversationId);
         await refreshHistory();
@@ -500,44 +503,54 @@ function Enhancer() {
       }
       const safeConversationId = activeConversationId as string;
 
-      // Save user message
-      const saveUserRes = await fetch(`${API}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          conversationId: safeConversationId,
-          role: "user",
-          content: userMessage,
-        }),
-      });
-
-      if (!saveUserRes.ok) throw new Error("Failed to save user message");
-
       let res: Response;
+      const gid = guestId ?? localStorage.getItem("guestId");
+      const chatUrl =
+        gid && !isLoggedIn
+          ? `${API}/chat/send?guestId=${encodeURIComponent(gid)}`
+          : `${API}/chat/send`;
 
       if (outgoingAttachments.length > 0) {
         const formData = new FormData();
-        formData.append("message", userMessage);
+        formData.append("conversationId", safeConversationId);
+        formData.append("content", userMessage);
         outgoingAttachments.forEach((a) => formData.append("files", a.file));
 
-        res = await fetch(`${API}/chat`, {
+        res = await fetch(chatUrl, {
           method: "POST",
           body: formData,
           credentials: "include",
         });
       } else {
-        res = await fetch(`${API}/chat`, {
+        res = await fetch(chatUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ message: userMessage }),
+          body: JSON.stringify({
+            conversationId: safeConversationId,
+            content: userMessage,
+          }),
         });
+      }
+
+      if (!res.ok) {
+        let serverMessage = "";
+        try {
+          const errJson = await res.json();
+          serverMessage = errJson?.message || errJson?.error || "";
+        } catch {
+          // ignore JSON parsing errors
+        }
+        throw new Error(serverMessage || `Request failed (${res.status})`);
       }
 
       const data = await res.json();
 
-      const finalText = data?.response || "No response generated";
+      const finalText =
+        data?.data?.aiMessage?.content ||
+        data?.aiMessage?.content ||
+        data?.response ||
+        "No response generated";
 
       // Insert empty assistant bubble first
       setMessages((prev: ChatMessage[]) => [
@@ -550,21 +563,6 @@ function Enhancer() {
       // Type it like ChatGPT
       await typeMessage(finalText, setMessages);
 
-      //  Save assistant message
-      const saveAssistantRes = await fetch(`${API}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          conversationId: safeConversationId,
-          role: "assistant",
-          content: finalText,
-        }),
-      });
-
-      if (!saveAssistantRes.ok) {
-        console.error("Failed to save assistant message");
-      }
     } catch (err) {
       setMessages((prev) => [
         ...prev,

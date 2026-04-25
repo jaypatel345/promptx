@@ -10,7 +10,7 @@ import { optionalAuth } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-router.post("/conversations", createConversation);
+router.post("/conversations", optionalAuth, createConversation);
 
 router.get("/conversations",optionalAuth, listConversations);
 

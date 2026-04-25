@@ -32,8 +32,8 @@ export const loginUser = asyncHandler(async (req, res) => {
 });
 // LOGOUT
 export const logoutUser = (req, res) => {
-  res.clearCookie("AccessToken");
-  res.clearCookie("RefreshToken");
+  res.clearCookie("accessToken");
+  res.clearCookie("refreshToken");
 
   return sendResponse(res, "Logged out successfully", 200);
 };

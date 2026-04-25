@@ -4,7 +4,7 @@ import { conversationRepository } from "../repositories/conversation.repository.
 export const conversationService = {
   createConversation: async (req) => {
     const { title, guestId } = req.body;
-    const userId = req.user?.id || null;
+    const userId = req.user?._id || null;
 
     if (!userId && !guestId) {
       throw new ApiError(400, "Missing guestId or login token");
@@ -21,7 +21,7 @@ export const conversationService = {
 
   listConversations: async (req) => {
     const { guestId } = req.query;
-    const userId = req.user?.id;
+    const userId = req.user?._id;
 
     const query = userId ? { userId } : guestId ? { guestId } : null;
 
@@ -37,7 +37,7 @@ export const conversationService = {
   deleteConversation: async (req) => {
     const { id } = req.params;
     const { guestId } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user?._id;
 
     if (!id) {
       throw new ApiError(400, "Conversation id required");
@@ -60,7 +60,7 @@ export const conversationService = {
   renameConversation: async (req) => {
     const { id } = req.params;
     const { title, guestId } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user?._id;
 
     if (!title) {
       throw new ApiError(400, "Title is required");
@@ -86,7 +86,7 @@ export const conversationService = {
   pinConversation: async (req) => {
     const { id } = req.params;
     const { pin, guestId } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user?._id;
 
     const query = {
       _id: id,

@@ -110,8 +110,8 @@ export function ChatContextProvider({ children }: { children: React.ReactNode })
 
     const data = await res.json();
 
-    if (data.success) {
-      setConversations(data.conversations);
+    if (data?.success) {
+      setConversations(data?.data?.conversations || []);
     }
   } catch (err) {
     console.error("Failed to load history", err);

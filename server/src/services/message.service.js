@@ -30,8 +30,15 @@ export const messageService = {
     return messageRepository.findByConversation(query);
   },
 
-  createMessage: async (req) => {
-    const { conversationId, role, content, attachments } = req.body;
+  createMessage: async (reqOrPayload) => {
+    const body =
+      reqOrPayload &&
+      typeof reqOrPayload === "object" &&
+      "body" in reqOrPayload
+        ? reqOrPayload.body
+        : reqOrPayload;
+
+    const { conversationId, role, content, attachments } = body || {};
 
     if (!conversationId || !role || !content) {
       throw new ApiError(400, "Missing required fields");
@@ -55,7 +62,7 @@ export const messageService = {
         (!conversation.title || conversation.title === "New Chat")
       ) {
         conversation.title = content.split(" ").slice(0, 6).join(" ");
-        await conversationRepository.update(conversation);
+        await conversationRepository.save(conversation);
       }
     }
 
