@@ -1,4 +1,5 @@
 import express from "express";
+import { loadEnv } from "./src/config/env.js";
 import authRoutes from "./src/routes/auth.routes.js";
 import cookieParser from "cookie-parser";
 import errorHandler from "./src/middlewares/error.middleware.js";
@@ -13,6 +14,8 @@ import cors from "cors";
 import requestLogger from "./src/middlewares/requestLogger.js";
 
 const app = express();
+
+loadEnv();
 
 // Middlewares
 app.use(express.json());

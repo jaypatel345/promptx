@@ -69,12 +69,30 @@ export const chatService = {
         model: process.env.GROQ_MODEL || "llama-3",
       };
 
-      // console.log("Postgres payload:", payload); // correct log
+      if (process.env.POSTGRES_DEBUG === "1") {
+        console.log("PostgreSQL prompt_history payload:", {
+          user_id: payload.user_id,
+          model: payload.model,
+          prompt_len: String(payload.prompt || "").length,
+          response_len: String(payload.response || "").length,
+        });
+      }
 
       try {
-        await postgresService.savePromptHistory(payload);
+        const pgResult = await postgresService.savePromptHistory(payload);
+        if (process.env.POSTGRES_DEBUG === "1") {
+          console.log("PostgreSQL prompt_history insert:", pgResult);
+        }
       } catch (err) {
-        console.error("FULL Postgres error:", err); //  log full error
+        console.error("FULL Postgres error:", err); // log full error
+        // Fail-fast in production by default so you don't silently lose data.
+        // Set POSTGRES_REQUIRED=0 if you want to allow chat responses even when history write fails.
+        if (
+          process.env.POSTGRES_REQUIRED !== "0" &&
+          process.env.NODE_ENV === "production"
+        ) {
+          throw err;
+        }
       }
     }
 

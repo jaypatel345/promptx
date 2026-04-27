@@ -1,11 +1,7 @@
 import mongoose from "mongoose";
-import dotenv from "dotenv";
-dotenv.config({
-  path:
-    process.env.NODE_ENV === "production"
-      ? ".env.production"
-      : ".env.development",
-});
+import { loadEnv } from "./env.js";
+
+loadEnv();
 
 const MONGODB = process.env.MONGODB_URI || "";
 
@@ -19,7 +15,11 @@ export const connectDB = async () => {
 
     const connection = db.connection;
 
-    console.log("MongoDB connected successfully");
+    console.log("MongoDB connected successfully", {
+      host: connection.host,
+      name: connection.name,
+      readyState: connection.readyState,
+    });
 
     connection.on("connected", () => {
       console.log("MongoDB connection established");
