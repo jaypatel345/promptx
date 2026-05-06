@@ -27,7 +27,7 @@ jobs:
     env:
       NODE_ENV: test
       DISABLE_EMAIL: "true"
-      MONGO_URI_TEST: mongodb://127.0.0.1:27017/promptx_test
+      MONGO_URI_TEST: ${{ secrets.MONGO_URI_TEST }}
 
     steps:
       - uses: actions/checkout@v4
