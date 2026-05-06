@@ -2,7 +2,7 @@ name: Run Tests
 
 on:
   push:
-    branches: [ "*" ]
+    branches: ["*"]
   pull_request:
 
 jobs:
@@ -11,19 +11,18 @@ jobs:
 
     defaults:
       run:
-        working-directory: server   #  FIX: point to backend
+        working-directory: server
+
+    env:
+      MONGO_URI_TEST: mongodb+srv://PatelJay345:Jayamar1976@cluster0.jdzy3tv.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0 #  ADD THIS
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run tests
-        run: npm test
+      - run: npm install
+      - run: npm test
