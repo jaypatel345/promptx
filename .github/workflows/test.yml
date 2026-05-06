@@ -13,8 +13,21 @@ jobs:
       run:
         working-directory: server
 
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd="mongosh --quiet --eval 'db.runCommand({ ping: 1 })' || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     env:
-      MONGO_URI_TEST: mongodb+srv://PatelJay345:Jayamar1976@cluster0.jdzy3tv.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0 #  ADD THIS
+      NODE_ENV: test
+      DISABLE_EMAIL: "true"
+      MONGO_URI_TEST: mongodb://127.0.0.1:27017/promptx_test
 
     steps:
       - uses: actions/checkout@v4
@@ -24,5 +37,14 @@ jobs:
         with:
           node-version: 20
 
-      - run: npm install
+      - name: Wait for MongoDB
+        run: |
+          for i in {1..30}; do
+            (echo > /dev/tcp/127.0.0.1/27017) >/dev/null 2>&1 && exit 0
+            sleep 1
+          done
+          echo "MongoDB did not become ready in time" >&2
+          exit 1
+
+      - run: npm ci
       - run: npm test

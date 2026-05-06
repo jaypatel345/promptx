@@ -15,11 +15,15 @@ const { signupUser } = await import("../../controllers/auth.controller.js");
 const { register } = await import("../../services/user.service.js");
 const { default: ApiError } = await import("../../utils/ApiError.js");
 
+const makeEmail = () =>
+  `test+${Date.now()}_${Math.random().toString(16).slice(2)}@example.com`;
+
 describe("Auth Controller - register", () => {
   test("should register user successfully", async () => {
+    const email = makeEmail();
     const mockUser = {
       _id: "123",
-      email: "test@test.com",
+      email,
       username: "testuser",
       joined: new Date(),
     };
@@ -27,7 +31,7 @@ describe("Auth Controller - register", () => {
 
     const req = {
       body: {
-        email: "test@test.com",
+        email,
         username: "testuser",
         password: "123456",
       },
@@ -48,7 +52,7 @@ describe("Auth Controller - register", () => {
         data: expect.objectContaining({
           user: expect.objectContaining({
             _id: "123",
-            email: "test@test.com",
+            email,
             username: "testuser",
           }),
         }),
@@ -58,10 +62,11 @@ describe("Auth Controller - register", () => {
   });
   test("should throw error if user exists", async () => {
     register.mockRejectedValue(new ApiError(400, "User already exists"));
+    const email = makeEmail();
 
     const req = {
       body: {
-        email: "test@test.com",
+        email,
         username: "testuser",
         password: "123456",
       },
@@ -107,10 +112,11 @@ describe("Auth Controller - register", () => {
   });
   test("should register call with correct payload", async () => {
     register.mockResolvedValue({});
+    const email = makeEmail();
 
     const req = {
       body: {
-        email: "test@test.com",
+        email,
         username: "testuser",
         password: "123456",
       },
@@ -148,9 +154,10 @@ describe("Auth Controller - register", () => {
   });
   test("should not call next on success", async () => {
     register.mockResolvedValue({});
+    const email = makeEmail();
     const req = {
       body: {
-        email: "test@test.com",
+        email,
         username: "testuser",
         password: "123456",
       },

@@ -19,6 +19,19 @@ export const loadEnv = () => {
 
   const envPath = process.env.DOTENV_PATH || getEnvPath();
   const isProd = process.env.NODE_ENV === "production";
+  const isTest = process.env.NODE_ENV === "test";
+
+  // In tests (especially CI), we want env vars to be explicit and not depend on a local .env file.
+  // Allow opting in via LOAD_DOTENV_TEST=1 for local debugging.
+  if (isTest && process.env.LOAD_DOTENV_TEST !== "1") {
+    console.log("Environment loaded", {
+      node_env: process.env.NODE_ENV || "undefined",
+      dotenv: false,
+      reason: "test env vars expected",
+    });
+    loaded = true;
+    return;
+  }
 
   // Production platforms (Render/Fly/Railway/etc.) usually inject env vars already.
   // We only load dotenv in production if explicitly requested, or if key DB env vars

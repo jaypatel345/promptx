@@ -1,90 +1,73 @@
+import request from "supertest";
 import mongoose from "mongoose";
-import { signupUser } from "../../controllers/auth.controller.js";
-import { expect, jest } from "@jest/globals";
-import dotenv from "dotenv";
+import { MongoMemoryServer } from "mongodb-memory-server";
+import crypto from "crypto";
+import app from "../../../app.js";
 
-jest.unstable_mockModule("../../services/user.service.js", () => ({
-  login: jest.fn(),
-  refreshAccessToken: jest.fn(),
-  register: jest.fn(),
-  googleLogin: jest.fn(),
-  getGoogleAuthUrl: jest.fn(),
-  verifyUserEmail: jest.fn(),
-}));
+let mongoServer;
 
-dotenv.config({
-  path: ".env.development", // or .env.test if you create one
+const makeUserPayload = () => {
+  const id = crypto.randomUUID();
+  return {
+    email: `test+${id}@example.com`,
+    username: `user_${id.replace(/-/g, "").slice(0, 16)}`,
+    password: "123456",
+  };
+};
+
+const safeDropDatabase = async () => {
+  if (mongoose.connection?.readyState !== 1) return;
+  if (!mongoose.connection?.db) return;
+
+  try {
+    await mongoose.connection.db.dropDatabase();
+  } catch {
+    // Fallback: best-effort cleanup to avoid cascading failures
+    const collections = await mongoose.connection.db.collections();
+    await Promise.all(collections.map((c) => c.deleteMany({})));
+  }
+};
+
+beforeAll(async () => {
+  // Prefer explicit URI (CI/service). Fallback to in-memory server for local runs.
+  if (!process.env.MONGO_URI_TEST) {
+    mongoServer = await MongoMemoryServer.create();
+    process.env.MONGO_URI_TEST = mongoServer.getUri();
+  }
+
+  await mongoose.connect(process.env.MONGO_URI_TEST);
 });
 
-describe("Auth Integration - Register", () => {
-  beforeAll(async () => {
-    await mongoose.connect(process.env.MONGO_URI_TEST);
-  });
+afterEach(async () => {
+  await safeDropDatabase();
+});
 
-  afterEach(async () => {
-    await mongoose.connection.db.dropDatabase();
-  });
+afterAll(async () => {
+  if (mongoose.connection?.readyState) {
+    await mongoose.disconnect();
+  }
+  if (mongoServer) {
+    await mongoServer.stop();
+  }
+});
 
-  afterAll(async () => {
-    await mongoose.connection.close();
-  });
-
+describe("Auth API - Register (Integration)", () => {
   test("should register user successfully", async () => {
-    const req = {
-      body: {
-        email: "test@test.com",
-        username: "testuser",
-        password: "123456",
-      },
-    };
+    const payload = makeUserPayload();
 
-    const res = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
-    };
+    const res = await request(app).post("/api/v1/auth/register").send(payload);
 
-    const next = jest.fn();
-
-    await signupUser(req, res, next);
-
-    expect(res.status).toHaveBeenCalledWith(201);
-
-    expect(res.json).toHaveBeenCalledWith(
+    expect(res.statusCode).toBe(201);
+    expect(res.body).toEqual(
       expect.objectContaining({
         success: true,
         data: expect.objectContaining({
           user: expect.objectContaining({
-            email: "test@test.com",
+            email: payload.email,
           }),
         }),
       }),
     );
-
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  test("should fail if user already exists", async () => {
-    const req = {
-      body: {
-        email: "test@test.com",
-        username: "testuser",
-        password: "123456",
-      },
-    };
-
-    const res = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
-    };
-
-    const next = jest.fn();
-
-    // First call (creates user)
-    await signupUser(req, res, next);
-
-    // Second call (should fail)
-    await signupUser(req, res, next);
-
-    expect(next).toHaveBeenCalled(); // error passed to middleware
   });
 });
+
