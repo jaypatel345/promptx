@@ -4,6 +4,9 @@ import User from "../models/user.model.js";
 
 export const sendEmail = async ({ email, emailType, userId }) => {
   try {
+    const shouldSkipEmail =
+      process.env.DISABLE_EMAIL === "true" || process.env.NODE_ENV === "test";
+
     const hashedToken = await bcrypt.hash(userId.toString(), 10);
 
     if (emailType === "VERIFY") {
@@ -18,6 +21,10 @@ export const sendEmail = async ({ email, emailType, userId }) => {
         forgotPasswordToken: hashedToken,
         forgotPasswordTokenExpiry: Date.now() + 3600000,
       });
+    }
+
+    if (shouldSkipEmail) {
+      return { skipped: true };
     }
 
     const transport = nodemailer.createTransport({

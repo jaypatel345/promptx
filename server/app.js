@@ -5,13 +5,13 @@ import cookieParser from "cookie-parser";
 import errorHandler from "./src/middlewares/error.middleware.js";
 import userRoutes from "./src/routes/user.routes.js";
 import askRoutes from "./src/routes/ask.routes.js";
-// import enhanceRoutes from "./src/routes/enhance.routes.js";  remove later
 import teamRoutes from "./src/routes/team.routes.js";
 import messageRoutes from "./src/routes/message.routes.js";
 import conversationRoutes from "./src/routes/conversation.routes.js";
-import chatRoutes from "./src/routes/chat.routes.js"; //  NEW
+import chatRoutes from "./src/routes/chat.routes.js"; 
 import cors from "cors";
 import requestLogger from "./src/middlewares/requestLogger.js";
+import testRoutes from "./src/routes/test.route.js";
 
 const app = express();
 
@@ -68,14 +68,16 @@ app.use(
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api", askRoutes);
-// app.use("/api", enhanceRoutes);  REMOVE from public usage
+// app.use("/api", enhanceRoutes); 
 app.use("/api", teamRoutes);
 
 //  NEW MAIN CHAT ROUTE
 app.use("/api", chatRoutes);
-
-app.use("/api", messageRoutes); // keep for GET only
+app.use("/api", messageRoutes); 
 app.use("/api", conversationRoutes);
+
+//Redis Test Route
+app.use("/api",testRoutes);
 
 // GLOBAL ERROR HANDLER
 app.use(errorHandler);

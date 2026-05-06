@@ -13,7 +13,6 @@ const userSchema = new mongoose.Schema({
   username: {
     type: String,
     trim: true,
-    sparse: true,
   },
 
   password: {
@@ -66,5 +65,4 @@ userSchema.index({ joined: -1 });
 const User = mongoose.model("User", userSchema);
 
 export default User;
-
 

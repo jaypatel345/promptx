@@ -8,6 +8,7 @@ export const chatService = {
   sendMessage: async (req) => {
     const { conversationId, content } = req.body;
     const attachments = req.files || [];
+    const start = Date.now();
 
     // -------------------------
     // 1. Validate input
@@ -47,25 +48,25 @@ export const chatService = {
     });
 
     // -------------------------
-    // 5. Save AI message (Mongo)  FIXED
+    // 5. Save AI message (Mongo)
     // -------------------------
     const aiMessage = await messageService.createMessage({
       conversationId,
       role: "assistant",
-      content: aiResponse,
+      content: aiResponse.content,
       attachments: [],
     });
 
     // -------------------------
     // 6. Save prompt_history (Postgres)
     // -------------------------
-    const userId = req.user?._id || req.query.guestId || "test_user";
+    const userId = req.user?._id || req.query.guestId;
 
     if (userId) {
       const payload = {
         user_id: userId,
         prompt: content,
-        response: aiResponse,
+        response: aiResponse.content,
         model: process.env.GROQ_MODEL || "llama-3",
       };
 
@@ -95,9 +96,28 @@ export const chatService = {
         }
       }
     }
+    // -------------------------
+    // 7. Usage_Log
+    // -------------------------
+    const tokenUsed = aiResponse.usage?.total_tokens || 0;
+    try {
+      const Usage_log = await postgresService.saveUsageLog({
+        user_id: userId,
+        action: "chat",
+        tokens_used: tokenUsed,
+        metadata: {
+          model: process.env.GROQ_MODEL || "llama-3",
+          latency_ms: Date.now() - start,
+          status: "success",
+        },
+      });
+      console.log("PostgreSQL Usage_log insert:", Usage_log);
+    } catch (err) {
+      console.error("Usage log failed:", err);
+    }
 
     // -------------------------
-    // 7. Return response
+    // 8. Return response
     // -------------------------
     return {
       success: true,

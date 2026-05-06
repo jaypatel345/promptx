@@ -110,11 +110,12 @@ export const aiService = {
       }
     );
 
-    const data = await response.json();
-
     if (!response.ok) {
-      throw new ApiError(response.status, "AI request failed");
+      const errorText = await response.text();
+      throw new ApiError(response.status, `AI request failed: ${errorText}`);
     }
+
+    const data = await response.json();
 
     let content = data?.choices?.[0]?.message?.content;
 
@@ -130,6 +131,10 @@ export const aiService = {
       }
     }
 
-    return content || "No response generated";
+    return {
+      content,
+      usage: data?.usage || null,
+      model: MODEL,
+    };
   },
 };

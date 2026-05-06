@@ -20,6 +20,15 @@ client/node_modules
 .env
 .env.*
 
+#message data
+
+export.js
+package.json
+package-lock.json
+messages.csv
+messages_summary.json
+messages_clean.csv
+
 # next.js
 /.next/
 /out/
