@@ -11,7 +11,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: Server   #  FIX: point to backend
+        working-directory: server   #  FIX: point to backend
 
     steps:
       - name: Checkout code
