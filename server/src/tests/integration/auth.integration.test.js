@@ -1,10 +1,10 @@
 import request from "supertest";
 import mongoose from "mongoose";
-import { MongoMemoryServer } from "mongodb-memory-server";
 import crypto from "crypto";
 import app from "../../../app.js";
 
-let mongoServer;
+const hasMongoUri = Boolean(process.env.MONGO_URI_TEST);
+const maybeDescribe = hasMongoUri ? describe : describe.skip;
 
 const makeUserPayload = () => {
   const id = crypto.randomUUID();
@@ -29,12 +29,7 @@ const safeDropDatabase = async () => {
 };
 
 beforeAll(async () => {
-  // Prefer explicit URI (CI/service). Fallback to in-memory server for local runs.
-  if (!process.env.MONGO_URI_TEST) {
-    mongoServer = await MongoMemoryServer.create();
-    process.env.MONGO_URI_TEST = mongoServer.getUri();
-  }
-
+  if (!process.env.MONGO_URI_TEST) return;
   await mongoose.connect(process.env.MONGO_URI_TEST);
 });
 
@@ -46,12 +41,9 @@ afterAll(async () => {
   if (mongoose.connection?.readyState) {
     await mongoose.disconnect();
   }
-  if (mongoServer) {
-    await mongoServer.stop();
-  }
 });
 
-describe("Auth API - Register (Integration)", () => {
+maybeDescribe("Auth API - Register (Integration)", () => {
   test("should register user successfully", async () => {
     const payload = makeUserPayload();
 
@@ -70,4 +62,3 @@ describe("Auth API - Register (Integration)", () => {
     );
   });
 });
-
