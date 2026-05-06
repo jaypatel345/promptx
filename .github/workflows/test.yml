@@ -9,10 +9,6 @@ jobs:
   server-tests:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: server
-
     env:
       NODE_ENV: test
       DISABLE_EMAIL: "true"
@@ -21,13 +17,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Detect server directory
+        shell: bash
+        run: |
+          if [ -d "server" ]; then
+            echo "SERVER_DIR=server" >> "$GITHUB_ENV"
+          elif [ -d "Server" ]; then
+            echo "SERVER_DIR=Server" >> "$GITHUB_ENV"
+          else
+            echo "Could not find server directory (expected ./server or ./Server)" >&2
+            ls -la
+            exit 1
+          fi
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
+ 
+      - name: Install server deps
+        shell: bash
+        run: cd "$SERVER_DIR" && npm ci
 
-      - run: npm ci
-      - run: npm test
+      - name: Run server tests
+        shell: bash
+        run: cd "$SERVER_DIR" && npm test
 
   deploy:
     needs: server-tests
@@ -36,4 +50,11 @@ jobs:
 
     steps:
       - name: Deploy to Render
-        run: curl ${{ secrets.RENDER_DEPLOY_HOOK }}
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK secret is missing/empty" >&2
+            exit 1
+          fi
+          curl -fsSL -X POST "$RENDER_DEPLOY_HOOK"
