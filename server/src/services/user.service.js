@@ -20,10 +20,18 @@ import {
   findValidVerifyToken,
   deleteTokenById,
 } from "../repositories/token.repository.js";
+import logger from "../config/logger.js";
 
-const register = async (data) => {
+const register = async (data, requestId) => {
   const { username, email, password } = data;
+  logger.info({
+    requestId,
+    service: "register",
+    action: "signup_started",
+    email,
+  });
 
+  
   if (!username || !email || !password) {
     throw new ApiError(400, "Username, email, and password are required");
   }
@@ -31,6 +39,13 @@ const register = async (data) => {
   const existingUser = await findByEmail(email);
 
   if (existingUser) {
+    logger.warn({
+      requestId,
+      service: "register",
+      action: "signup_failed_existing_user",
+      email,
+    });
+
     throw new ApiError(400, "User already exists");
   }
 
@@ -49,6 +64,20 @@ const register = async (data) => {
     email,
     emailType: "VERIFY",
     userId: savedUser._id,
+  });
+
+  logger.info({
+    requestId,
+    service: "register",
+    action: "verification_email_sent",
+    userId: savedUser._id.toString(),
+  });
+
+  logger.info({
+    requestId,
+    service: "register",
+    action: "signup_completed",
+    userId: savedUser._id.toString(),
   });
 
   return {

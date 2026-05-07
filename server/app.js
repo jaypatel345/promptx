@@ -8,14 +8,17 @@ import askRoutes from "./src/routes/ask.routes.js";
 import teamRoutes from "./src/routes/team.routes.js";
 import messageRoutes from "./src/routes/message.routes.js";
 import conversationRoutes from "./src/routes/conversation.routes.js";
-import chatRoutes from "./src/routes/chat.routes.js"; 
+import chatRoutes from "./src/routes/chat.routes.js";
 import cors from "cors";
 import requestLogger from "./src/middlewares/requestLogger.js";
 import testRoutes from "./src/routes/test.route.js";
+import { requestIdMiddleware } from "./src/middlewares/requestId.middleware.js";
+import healthRoutes from "../server/src/routes/health.routes.js";
+import { errorMiddleware } from "./src/middlewares/errorMiddleware.js";
 
 const app = express();
 
-console.log("Server starting...")
+console.log("Server starting...");
 
 loadEnv();
 
@@ -23,6 +26,7 @@ loadEnv();
 app.use(express.json());
 app.use(cookieParser());
 app.use(requestLogger);
+app.use(requestIdMiddleware);
 
 app.use(
   cors({
@@ -47,7 +51,8 @@ app.use(
         ...envOrigins,
       ]);
 
-      const lanDevRegex = /^http:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}):3000$/;
+      const lanDevRegex =
+        /^http:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}):3000$/;
       const vercelPreviewRegex = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
 
       const normalizedOrigin = normalize(origin);
@@ -71,18 +76,21 @@ app.use("/api/auth", authRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api", askRoutes);
-// app.use("/api", enhanceRoutes); 
+// app.use("/api", enhanceRoutes);
 app.use("/api", teamRoutes);
 
 //  NEW MAIN CHAT ROUTE
 app.use("/api", chatRoutes);
-app.use("/api", messageRoutes); 
+app.use("/api", messageRoutes);
 app.use("/api", conversationRoutes);
 
 //Redis Test Route
-app.use("/api",testRoutes);
+app.use("/api", testRoutes);
 
+
+//health check route
+app.use("/health", healthRoutes);
 // GLOBAL ERROR HANDLER
 app.use(errorHandler);
-
+app.use(errorMiddleware);
 export default app;

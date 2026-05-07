@@ -6,7 +6,7 @@ import { sendResponse } from "../utils/sendResponse.js";
 // CURRENT USER
 export const getCurrentUser = asyncHandler(async (req, res) => {
   const userId = getDataFromToken(req);
-
+  
   if (!userId) {
     return sendResponse(res, "Guest user", 200, {
       user: null,
@@ -15,7 +15,7 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findById(userId).select(
-    "email username avatar provider googleId joined isVerified isAdmin"
+    "email username avatar provider googleId joined isVerified isAdmin",
   );
 
   if (!user) {
