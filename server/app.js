@@ -12,11 +12,10 @@ import chatRoutes from "./src/routes/chat.routes.js";
 import cors from "cors";
 import requestLogger from "./src/middlewares/requestLogger.js";
 import testRoutes from "./src/routes/test.route.js";
-import ApiError from "./src/utils/ApiError.js";
 
 const app = express();
 
-throw new ApiError(500,"CI BREAK TEST");
+console.log("Server starting...")
 
 loadEnv();
 
