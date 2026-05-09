@@ -13,7 +13,7 @@ import cors from "cors";
 import requestLogger from "./src/middlewares/requestLogger.js";
 import testRoutes from "./src/routes/test.route.js";
 import { requestIdMiddleware } from "./src/middlewares/requestId.middleware.js";
-import healthRoutes from "../server/src/routes/health.routes.js";
+import healthRoutes from "./src/routes/health.routes.js";
 import { errorMiddleware } from "./src/middlewares/errorMiddleware.js";
 
 const app = express();
@@ -86,7 +86,6 @@ app.use("/api", conversationRoutes);
 
 //Redis Test Route
 app.use("/api", testRoutes);
-
 
 //health check route
 app.use("/health", healthRoutes);

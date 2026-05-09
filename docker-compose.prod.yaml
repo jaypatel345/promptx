@@ -1,0 +1,24 @@
+services:
+  server:
+    build: ./server
+
+    ports:
+      - "1571:1571"
+
+    env_file:
+      - ./server/.env.production
+
+    command: npm start
+
+    restart: unless-stopped
+
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+
+    ports:
+      - "6379:6379"
+
+    restart: unless-stopped
