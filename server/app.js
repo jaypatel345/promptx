@@ -48,6 +48,7 @@ app.use(
         "http://127.0.0.1:3000",
         "https://promptx.co.in",
         "https://www.promptx.co.in",
+        "https://api.promptx.co.in",
         ...envOrigins,
       ]);
 
