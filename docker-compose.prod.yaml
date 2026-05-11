@@ -8,6 +8,9 @@ services:
     env_file:
       - ./server/.env.production
 
+    environment:
+      NODE_ENV: production
+
     command: npm start
 
     restart: unless-stopped
