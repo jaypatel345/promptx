@@ -35,6 +35,7 @@ describe("Auth Controller - register", () => {
         username: "testuser",
         password: "123456",
       },
+      requestId: "test-request-id",
     };
     const res = {
       status: jest.fn().mockReturnThis(),
@@ -44,7 +45,7 @@ describe("Auth Controller - register", () => {
 
     await signupUser(req, res, next);
 
-    expect(register).toHaveBeenCalledWith(req.body);
+    expect(register).toHaveBeenCalledWith(req.body, req.requestId);
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -70,6 +71,7 @@ describe("Auth Controller - register", () => {
         username: "testuser",
         password: "123456",
       },
+      requestId: "test-request-id",
     };
 
     const res = {
@@ -91,7 +93,10 @@ describe("Auth Controller - register", () => {
       new ApiError(400, "Username, email, and password are required"),
     );
 
-    const req = { body: {} };
+    const req = {
+      body: {},
+      requestId: "test-request-id",
+    };
 
     const res = {
       status: jest.fn().mockReturnThis(),
@@ -120,6 +125,7 @@ describe("Auth Controller - register", () => {
         username: "testuser",
         password: "123456",
       },
+      requestId: "test-request-id",
     };
     const res = {
       status: jest.fn().mockReturnThis(),
@@ -130,12 +136,13 @@ describe("Auth Controller - register", () => {
     await signupUser(req, res, next);
 
     expect(register).toHaveBeenCalledTimes(1);
-    expect(register).toHaveBeenCalledWith(req.body);
+    expect(register).toHaveBeenCalledWith(req.body, req.requestId);
   });
   test("should handle unexpected error", async () => {
     register.mockRejectedValue(new ApiError(500, "something broke"));
     const req = {
       body: {},
+      requestId: "test-request-id",
     };
     const res = {
       status: jest.fn().mockReturnThis(),
@@ -161,6 +168,7 @@ describe("Auth Controller - register", () => {
         username: "testuser",
         password: "123456",
       },
+      requestId: "test-request-id",
     };
     const res = {
       status: jest.fn().mockReturnThis(),
@@ -181,7 +189,14 @@ describe("Auth Controller - register", () => {
 
     const next = jest.fn();
 
-    await signupUser({ body: {} }, res, next);
+    await signupUser(
+      {
+        body: {},
+        requestId: "test-request-id",
+      },
+      res,
+      next,
+    );
 
     expect(res.status).not.toHaveBeenCalled();
     expect(res.json).not.toHaveBeenCalled();
@@ -196,6 +211,7 @@ describe("Auth Controller - register", () => {
         username: "test",
         password: "123456",
       },
+      requestId: "test-request-id",
     };
 
     const next = jest.fn();
@@ -214,6 +230,7 @@ describe("Auth Controller - register", () => {
         username: "",
         password: "",
       },
+      requestId: "test-request-id",
     };
     const next = jest.fn();
 

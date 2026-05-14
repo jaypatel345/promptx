@@ -14,7 +14,7 @@ import { cookie15Min, cookie7Days } from "../utils/cookieOptions.js";
 export const signupUser = asyncHandler(async (req, res) => {
   const user = await register(req.body,req.requestId);
 
-  console.log(req.requestId);
+  // console.log(req.requestId);
   return sendResponse(res, "User created successfully", 201, {
     user,
   });
