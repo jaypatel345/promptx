@@ -47,7 +47,7 @@ maybeDescribe("Auth API - Register (Integration)", () => {
   test("should register user successfully", async () => {
     const payload = makeUserPayload();
 
-    const res = await request(app).post("/api/v1/auth/register").send(payload);
+    const res = await request(app).post("/api/auth/register").send(payload);
 
     expect(res.statusCode).toBe(201);
     expect(res.body).toEqual(
