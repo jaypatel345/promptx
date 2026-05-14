@@ -6,7 +6,7 @@ services:
       - "1571:1571"
 
     env_file:
-      - ./server/.env
+      - ./server/.env.development
 
     volumes:
       - ./server:/app
@@ -14,4 +14,8 @@ services:
 
     command: npm run dev
 
+    restart: unless-stopped
+
+    redis:
+    image: redis:alpine
     restart: unless-stopped

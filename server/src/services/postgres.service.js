@@ -1,8 +1,8 @@
-import { getPool } from "../config/postgres.js";
+import PostgresDB from "../config/postgres.js";
 
 const postgresService = {
   savePromptHistory: async ({ user_id, prompt, response, model }) => {
-    const pool = getPool();
+    const pool = PostgresDB.getPool();
 
     const query = `
       INSERT INTO public.prompt_history (user_id, prompt, response, model)
@@ -36,7 +36,7 @@ const postgresService = {
     }
   },
   saveUsageLog: async ({ user_id, action, tokens_used, metadata }) => {
-    const pool = getPool();
+    const pool = PostgresDB.getPool();
 
     if (!pool) {
       throw new Error("Postgres pool not initialized");

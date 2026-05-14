@@ -1,6 +1,6 @@
 import { loadEnv } from "./config/env.js";
-import { connectDB } from "./config/db.js";
-import { connectPostgres } from "./config/postgres.js";
+import MongoDB from "./config/db.js";
+import PostgresDB from "./config/postgres.js";
 
 loadEnv();
 
@@ -12,10 +12,10 @@ const PORT = process.env.PORT || 1571;
 const startServer = async () => {
   try {
     // Connect MongoDB
-    await connectDB();
+    await MongoDB.connect();
 
     // Connect PostgreSQL
-    await connectPostgres();
+    await PostgresDB.connect();
 
     // Start server ONLY ONCE
     app.listen(PORT, () => {

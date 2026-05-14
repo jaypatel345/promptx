@@ -1,47 +1,67 @@
 import Redis from "ioredis";
 
-let redis;
+class RedisClient {
+  static instance = null;
 
-if (process.env.NODE_ENV !== "test") {
-  // ioredis supports REDIS_URL and standard host/port envs via constructor options.
-  // Default `new Redis()` will use 127.0.0.1:6379.
-  redis = process.env.REDIS_URL ? new Redis(process.env.REDIS_URL) : new Redis();
+  static getInstance() {
+    if (process.env.NODE_ENV === "test") {
+      return null;
+    }
 
-  redis.on("connect", () => {
-    console.log("Redis connected");
-  });
+    if (this.instance) {
+      console.log("Using existing Redis connection");
+      return this.instance;
+    }
 
-  redis.on("ready", () => {
-    console.log("Redis ready");
-  });
+    this.instance = process.env.REDIS_URL
+      ? new Redis(process.env.REDIS_URL)
+      : new Redis();
 
-  redis.on("error", (err) => {
-    // Prevent "Unhandled error event" crashes/noise and keep logs actionable.
-    console.error("Redis error:", {
-      message: err?.message,
-      code: err?.code,
+    this.instance.on("connect", () => {
+      console.log("Redis connected");
     });
-  });
 
-  redis.on("reconnecting", () => {
-    console.warn("Redis reconnecting");
-  });
+    this.instance.on("ready", () => {
+      console.log("Redis ready");
+    });
+
+    this.instance.on("error", (err) => {
+      console.error("Redis error:", {
+        message: err?.message,
+        code: err?.code,
+      });
+    });
+
+    this.instance.on("reconnecting", () => {
+      console.warn("Redis reconnecting");
+    });
+
+    return this.instance;
+  }
+
+  static async ping(timeoutMs = 500) {
+    const redis = this.getInstance();
+
+    if (!redis) {
+      return { ok: false, reason: "disabled" };
+    }
+
+    try {
+      const pong = await Promise.race([
+        redis.ping(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("timeout")), timeoutMs),
+        ),
+      ]);
+
+      return { ok: pong === "PONG" };
+    } catch (error) {
+      return {
+        ok: false,
+        reason: error?.message || "ping_failed",
+      };
+    }
+  }
 }
 
-export const pingRedis = async (timeoutMs = 500) => {
-  if (!redis) return { ok: false, reason: "disabled" };
-
-  try {
-    const pong = await Promise.race([
-      redis.ping(),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("timeout")), timeoutMs),
-      ),
-    ]);
-    return { ok: pong === "PONG" };
-  } catch (error) {
-    return { ok: false, reason: error?.message || "ping_failed" };
-  }
-};
-
-export default redis;
+export default RedisClient;

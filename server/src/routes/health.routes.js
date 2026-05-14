@@ -1,7 +1,8 @@
 import express from "express";
 import mongoose from "mongoose";
-import redisClient, { pingRedis } from "../config/redis.js";
-import { getPool } from "../config/postgres.js";
+import redisClient from "../config/redis.js";
+import PostgresDB from "../config/postgres.js";
+import RedisClient from "../config/redis.js";
 
 const router = express.Router();
 
@@ -13,7 +14,7 @@ router.get("/", async (req, res) => {
     // PostgreSQL check
     let postgresConnected = false;
     try {
-      const pool = getPool();
+      const pool = PostgresDB.getPool();
       const pgResult = await pool.query("SELECT 1");
       postgresConnected = Boolean(pgResult);
     } catch {
@@ -27,7 +28,7 @@ router.get("/", async (req, res) => {
       if (!redisClient) {
         redisState = "disabled";
       } else {
-        const ping = await pingRedis(500);
+        const ping = await RedisClient.ping(500);
         redisConnected = ping.ok;
         redisState = ping.ok ? "connected" : "disconnected";
       }
