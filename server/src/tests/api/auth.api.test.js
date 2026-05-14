@@ -41,7 +41,7 @@ maybeDescribe("Auth API - Register", () => {
 
   test("should register user successfully", async () => {
     const payload = makeUserPayload();
-    const res = await request(app).post("/api/v1/auth/register").send(payload);
+    const res = await request(app).post("/api/auth/signup").send(payload);
 
     //  Status check
     expect(res.statusCode).toBe(201);
@@ -55,21 +55,21 @@ maybeDescribe("Auth API - Register", () => {
   });
   test("should fail if user allready exists", async () => {
     const payload = makeUserPayload();
-    await request(app).post("/api/v1/auth/register").send(payload);
-    const res = await request(app).post("/api/v1/auth/register").send(payload);
+    await request(app).post("/api/auth/signup").send(payload);
+    const res = await request(app).post("/api/auth/signup").send(payload);
     // service throws 400 for already exists
     expect(res.statusCode).toBe(400);
   });
   test("should not return password in response", async () => {
     const payload = makeUserPayload();
-    const res = await request(app).post("/api/v1/auth/register").send(payload);
+    const res = await request(app).post("/api/auth/signup").send(payload);
     expect(res.body.data.user.password).toBeUndefined();
   });
   test("should fail on wrong password", async () => {
     const payload = makeUserPayload();
-    await request(app).post("/api/v1/auth/register").send(payload);
+    await request(app).post("/api/auth/signup").send(payload);
 
-    const res = await request(app).post("/api/v1/auth/login").send({
+    const res = await request(app).post("/api/auth/login").send({
       email: payload.email,
       password: "wrong",
     });

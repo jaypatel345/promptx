@@ -12,7 +12,6 @@ import {
 const router = express.Router();
 
 router.post("/signup", signupUser);
-router.post("/register", signupUser);
 router.post("/login", loginUser);
 router.post("/logout", logoutUser);
 router.get("/google", googleAuthRedirect);
