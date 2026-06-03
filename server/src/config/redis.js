@@ -62,6 +62,53 @@ class RedisClient {
       };
     }
   }
+
+  static async get(key) {
+    const redis = this.getInstance();
+    if (!redis) {
+      return null;
+    }
+
+    return redis.get(key);
+  }
+
+  static async set(key, value, ...args) {
+    const redis = this.getInstance();
+    if (!redis) {
+      return null;
+    }
+
+    return redis.set(key, value, ...args);
+  }
+
+  static async del(key) {
+    const redis = this.getInstance();
+    if (!redis) {
+      return null;
+    }
+
+    return redis.del(key);
+  }
+
+  static async close() {
+    if (!this.instance) {
+      return;
+    }
+
+    const redis = this.instance;
+    this.instance = null;
+
+    try {
+      await redis.quit();
+      console.log("Redis connection closed");
+    } catch (error) {
+      console.error("Redis close error:", {
+        message: error?.message,
+        code: error?.code,
+      });
+      redis.disconnect();
+    }
+  }
 }
 
 export default RedisClient;

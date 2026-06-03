@@ -91,7 +91,9 @@ app.use("/api", testRoutes);
 //health check route
 app.use("/health", healthRoutes);
 // GLOBAL ERROR HANDLER
-app.use(queueRoutes);
+if (process.env.NODE_ENV !== "test") {
+  app.use(queueRoutes);
+}
 app.use(errorHandler);
 app.use(errorMiddleware);
 export default app;

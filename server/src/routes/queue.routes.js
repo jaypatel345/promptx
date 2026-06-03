@@ -16,13 +16,15 @@ const serverAdapter = new ExpressAdapter();
 
 serverAdapter.setBasePath("/admin/queues");
 
-createBullBoard({
+if (process.env.NODE_ENV !== "test") {
+  createBullBoard({
 
-  queues: [new BullMQAdapter(aiQueue)],
+    queues: [new BullMQAdapter(aiQueue)],
 
-  serverAdapter,
+    serverAdapter,
 
-});
+  });
+}
 
 router.use("/admin/queues", serverAdapter.getRouter());
 

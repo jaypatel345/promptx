@@ -1,34 +1,3 @@
-import { loadEnv } from "./config/env.js";
-import MongoDB from "./config/db.js";
-import PostgresDB from "./config/postgres.js";
+// Compatibility entry point. The application lifecycle lives in src/index.js.
+import "./index.js";
 
-loadEnv();
-
-// NOTE: import app after env is loaded (ESM static imports are hoisted)
-const { default: app } = await import("../app.js");
-
-const PORT = process.env.PORT || 1571;
-
-const startServer = async () => {
-  try {
-    // Connect MongoDB
-    await MongoDB.connect();
-
-    // Connect PostgreSQL
-    await PostgresDB.connect();
-
-    // Start server ONLY ONCE
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-
-  } catch (error) {
-    console.error("Server startup failed:", {
-      message: error?.message,
-      stack: error?.stack,
-    });
-    process.exit(1);
-  }
-};
-
-startServer();

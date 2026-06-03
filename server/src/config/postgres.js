@@ -83,6 +83,18 @@ class PostgresDB {
       throw error;
     }
   }
+
+  static async close() {
+    if (!this.pool) {
+      return;
+    }
+
+    const pool = this.pool;
+    this.pool = null;
+
+    await pool.end();
+    console.log("PostgreSQL pool closed");
+  }
 }
 
 export default PostgresDB;

@@ -45,5 +45,15 @@ class MongoDB {
       process.exit(1);
     }
   }
+
+  static async close() {
+    if (!this.instance) {
+      return;
+    }
+
+    await mongoose.disconnect();
+    this.instance = null;
+    console.log("MongoDB connection closed");
+  }
 }
 export default MongoDB;
