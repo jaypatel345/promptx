@@ -15,6 +15,7 @@ import testRoutes from "./src/routes/test.route.js";
 import { requestIdMiddleware } from "./src/middlewares/requestId.middleware.js";
 import healthRoutes from "./src/routes/health.routes.js";
 import { errorMiddleware } from "./src/middlewares/errorMiddleware.js";
+import queueRoutes from "./src/routes/queue.routes.js";
 
 const app = express();
 
@@ -77,7 +78,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api", askRoutes);
-// app.use("/api", enhanceRoutes);
 app.use("/api", teamRoutes);
 
 //  NEW MAIN CHAT ROUTE
@@ -91,6 +91,7 @@ app.use("/api", testRoutes);
 //health check route
 app.use("/health", healthRoutes);
 // GLOBAL ERROR HANDLER
+app.use(queueRoutes);
 app.use(errorHandler);
 app.use(errorMiddleware);
 export default app;

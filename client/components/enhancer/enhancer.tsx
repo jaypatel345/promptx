@@ -85,11 +85,14 @@ function Enhancer() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const isSendingRef = useRef(false);
+  const showLanding = hydrated && messages.length === 0;
 
   useEffect(() => {
     async function checkSession() {
       try {
-        const res = await axios.get(`${API}/user/me`, { withCredentials: true });
+        const res = await axios.get(`${API}/user/me`, {
+          withCredentials: true,
+        });
         if (res.data?.success) {
           // Backend returns { success, data: { isGuest } }. Treat guests as logged out.
           setIsLoggedIn(!res.data?.data?.isGuest);
@@ -151,14 +154,13 @@ function Enhancer() {
   //  Track object URLs to revoke later
   const objectUrlsRef = useRef<Set<string>>(new Set());
 
-
   const resizeTextarea = () => {
-  const el = textareaRef.current;
-  if (!el) return;
+    const el = textareaRef.current;
+    if (!el) return;
 
-  el.style.height = "auto";
-  el.style.height = `${el.scrollHeight}px`;
-};
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  };
   useEffect(() => {
     return () => {
       objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
@@ -167,7 +169,10 @@ function Enhancer() {
   }, []);
 
   const makeId = (): string => {
-    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    if (
+      typeof crypto !== "undefined" &&
+      typeof crypto.randomUUID === "function"
+    ) {
       return crypto.randomUUID();
     }
     return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -179,7 +184,7 @@ function Enhancer() {
     const sizes = ["B", "KB", "MB", "GB", "TB"];
     const i = Math.min(
       sizes.length - 1,
-      Math.floor(Math.log(bytes) / Math.log(k))
+      Math.floor(Math.log(bytes) / Math.log(k)),
     );
     const value = bytes / Math.pow(k, i);
     const decimals = value >= 10 || i === 0 ? 0 : 1;
@@ -191,7 +196,7 @@ function Enhancer() {
 
     setAttachments((prev) => {
       const existing = new Set(
-        prev.map((a) => `${a.file.name}-${a.file.size}-${a.file.lastModified}`)
+        prev.map((a) => `${a.file.name}-${a.file.size}-${a.file.lastModified}`),
       );
 
       const next: Attachment[] = [];
@@ -252,7 +257,7 @@ function Enhancer() {
         const url =
           !isLoggedIn && guestId
             ? `${API}/messages/${conversationId}?guestId=${encodeURIComponent(
-                guestId
+                guestId,
               )}`
             : `${API}/messages/${conversationId}`;
 
@@ -389,7 +394,7 @@ function Enhancer() {
   const typeMessage = async (
     fullText: string,
     setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
-    delay = 15
+    delay = 15,
   ) => {
     setIsTyping(true);
     let current = "";
@@ -433,25 +438,19 @@ function Enhancer() {
   };
 
   async function handleSend(): Promise<void> {
-    if (loading || isSendingRef.current) return;
-    isSendingRef.current = true;
+  if (loading || isSendingRef.current) return;
 
-    const hasText = input.trim().length > 0;
-    const hasFiles = attachments.length > 0;
+  isSendingRef.current = true;
+  setLoading(true);
 
-    if (!hasText && !hasFiles) {
-      isSendingRef.current = false;
-      return;
-    }
+  try {
+    if (!input.trim() && attachments.length === 0) return;
 
     const userMessage = input;
-    const outgoingAttachments = attachments.slice();
+    const outgoingAttachments = attachments;
 
-    setInput("");
-    setAttachments([]);
-    setIsUploadMenuOpen(false);
-
-    setMessages((prev: ChatMessage[]) => [
+    // optimistic UI
+    setMessages((prev) => [
       ...prev,
       {
         role: "user",
@@ -459,125 +458,182 @@ function Enhancer() {
         attachments: outgoingAttachments.length
           ? outgoingAttachments
           : undefined,
-      } as ChatMessage,
+      },
     ]);
 
-    setLoading(true);
+    setInput("");
+    setAttachments([]);
 
-    try {
-      let activeConversationId: string | null = conversationId;
+    // create conversation if missing
+    let activeConversationId = conversationId;
 
-      // ✅ ALWAYS create conversation if missing
-      if (!activeConversationId) {
-        const guestId = localStorage.getItem("guestId");
-
-        const res = await fetch(`${API}/conversations`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            title: userMessage.slice(0, 30),
-            guestId,
-          }),
-        });
-
-        if (!res.ok) throw new Error("Failed to create conversation");
-
-        const data = await res.json();
-        const newConversationId =
-          data?.data?.conversationId ?? data?.conversationId;
-
-        if (!newConversationId) throw new Error("Invalid conversation ID");
-
-        activeConversationId = newConversationId as string;
-        setConversationId(activeConversationId);
-        localStorage.setItem("conversationId", activeConversationId);
-        await refreshHistory();
-      }
-
-      // ❌ HARD BLOCK if still null
-      if (!activeConversationId) {
-        throw new Error("Conversation ID missing");
-      }
-      const safeConversationId = activeConversationId as string;
-
-      let res: Response;
-      const gid = guestId ?? localStorage.getItem("guestId");
-      const chatUrl =
-        gid && !isLoggedIn
-          ? `${API}/chat/send?guestId=${encodeURIComponent(gid)}`
-          : `${API}/chat/send`;
-
-      if (outgoingAttachments.length > 0) {
-        const formData = new FormData();
-        formData.append("conversationId", safeConversationId);
-        formData.append("content", userMessage);
-        outgoingAttachments.forEach((a) => formData.append("files", a.file));
-
-        res = await fetch(chatUrl, {
-          method: "POST",
-          body: formData,
-          credentials: "include",
-        });
-      } else {
-        res = await fetch(chatUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            conversationId: safeConversationId,
-            content: userMessage,
-          }),
-        });
-      }
-
-      if (!res.ok) {
-        let serverMessage = "";
-        try {
-          const errJson = await res.json();
-          serverMessage = errJson?.message || errJson?.error || "";
-        } catch {
-          // ignore JSON parsing errors
-        }
-        throw new Error(serverMessage || `Request failed (${res.status})`);
-      }
+    if (!activeConversationId) {
+      const res = await fetch(`${API}/conversations`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          title: userMessage.slice(0, 30),
+          guestId: localStorage.getItem("guestId"),
+        }),
+      });
 
       const data = await res.json();
 
-      const finalText =
-        data?.data?.aiMessage?.content ||
-        data?.aiMessage?.content ||
-        data?.response ||
-        "No response generated";
+      activeConversationId =
+        data?.data?.conversationId;
 
-      // Insert empty assistant bubble first
-      setMessages((prev: ChatMessage[]) => [
-        ...prev,
-        { role: "assistant", content: "" } as ChatMessage,
-      ]);
+      if (!activeConversationId) {
+        throw new Error("Failed to create conversation");
+      }
 
-      // Set loading to false BEFORE typing starts
-      setLoading(false);
-      // Type it like ChatGPT
-      await typeMessage(finalText, setMessages);
-
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Error: " + (err as Error).message,
-        } as ChatMessage,
-      ]);
-    } finally {
-      isSendingRef.current = false;
-      setLoading(false);
-      textareaRef.current?.focus();
+      setConversationId(activeConversationId);
     }
+
+    // send message
+    const gid = localStorage.getItem("guestId");
+
+    const chatUrl =
+      gid && !isLoggedIn
+        ? `${API}/chat/send?guestId=${gid}`
+        : `${API}/chat/send`;
+
+    let res: Response;
+
+    if (outgoingAttachments.length > 0) {
+      const formData = new FormData();
+
+      formData.append(
+        "conversationId",
+        activeConversationId
+      );
+
+      formData.append("content", userMessage);
+
+      outgoingAttachments.forEach((a) => {
+        formData.append("files", a.file);
+      });
+
+      res = await fetch(chatUrl, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+    } else {
+
+      res = await fetch(chatUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          conversationId: activeConversationId,
+          content: userMessage,
+        }),
+      });
+    }
+
+    if (!res.ok) {
+      throw new Error("Failed to send message");
+    }
+
+    // insert loading assistant bubble
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: "Thinking...",
+      },
+    ]);
+
+    // POLLING EVERY SECOND
+    const pollInterval = setInterval(async () => {
+
+      try {
+
+        const messagesUrl =
+          gid && !isLoggedIn
+            ? `${API}/messages/${activeConversationId}?guestId=${encodeURIComponent(gid)}`
+            : `${API}/messages/${activeConversationId}`;
+
+        const res = await fetch(messagesUrl, {
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!res.ok) {
+          clearInterval(pollInterval);
+          setLoading(false);
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: `Error: Failed to fetch messages (${res.status})`,
+            },
+          ]);
+          return;
+        }
+
+        const data = await res.json();
+
+        const messages =
+          data?.data?.messages || [];
+
+        const lastMessage =
+          messages[messages.length - 1];
+
+        // if assistant response exists
+        if (
+          lastMessage &&
+          lastMessage.role === "assistant"
+        ) {
+
+          clearInterval(pollInterval);
+
+          setMessages(messages);
+
+          setLoading(false);
+        }
+
+      } catch (err) {
+        console.warn("Message polling stopped:", err);
+        clearInterval(pollInterval);
+        setLoading(false);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "Error: Backend server is not reachable",
+          },
+        ]);
+      }
+
+    }, 1000);
+
+  } catch (err) {
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content:
+          "Error: " + (err as Error).message,
+      },
+    ]);
+
+  } finally {
+
+    isSendingRef.current = false;
+    textareaRef.current?.focus();
   }
+}
 
   const handleKeyPress = (
-    e: React.KeyboardEvent<HTMLTextAreaElement>
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
   ): void => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -586,28 +642,23 @@ function Enhancer() {
   };
 
   useEffect(() => {
-  const isMobile = window.innerWidth < 640;
+    const isMobile = window.innerWidth < 640;
 
-  // Close sidebar by default on mobile
-  if (isMobile) {
-    setIsNavOpen(false);
-  }
-}, []);
+    // Close sidebar by default on mobile
+    if (isMobile) {
+      setIsNavOpen(false);
+    }
+  }, []);
 
-useEffect(() => {
-  requestAnimationFrame(() => {
-    const el = textareaRef.current;
-    if (!el) return;
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (!el) return;
 
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
-  });
-}, [isNavOpen]);
-
- 
-
-  const showLanding = hydrated && messages.length === 0;
-  const showChat = hydrated && messages.length > 0;
+      el.style.height = "auto";
+      el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+    });
+  }, [isNavOpen]);
 
   return (
     <div className="flex w-full h-screen md:h-screen   overflow-hidden overflow-x-hidden relative overscroll-none">
@@ -910,7 +961,7 @@ useEffect(() => {
                               <button
                                 onClick={() =>
                                   setOpenMenuIndex(
-                                    openMenuIndex === index ? null : index
+                                    openMenuIndex === index ? null : index,
                                   )
                                 }
                                 className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -1122,23 +1173,23 @@ useEffect(() => {
                   </svg>
                 </button>
 
-<textarea
-  ref={textareaRef}
-  rows={1}
-  placeholder="Ask anything"
-  value={input}
-  onChange={(e) => {
-    setInput(e.target.value);
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
+                  placeholder="Ask anything"
+                  value={input}
+                  onChange={(e) => {
+                    setInput(e.target.value);
 
-    requestAnimationFrame(() => {
-      const el = textareaRef.current;
-      if (!el) return;
-      el.style.height = "auto";
-      el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
-    });
-  }}
-  onKeyDown={handleKeyPress}
-  className="
+                    requestAnimationFrame(() => {
+                      const el = textareaRef.current;
+                      if (!el) return;
+                      el.style.height = "auto";
+                      el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+                    });
+                  }}
+                  onKeyDown={handleKeyPress}
+                  className="
     w-full
     box-border
     text-[16px]
@@ -1154,7 +1205,7 @@ useEffect(() => {
     max-h-30
     py-1
   "
-/>
+                />
                 <button
                   className="flex items-center gap-2 shrink-0"
                   onClick={() => {

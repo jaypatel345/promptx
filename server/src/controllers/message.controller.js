@@ -5,6 +5,7 @@ import { messageService } from "../services/message.service.js";
 export const getMessages = asyncHandler(async (req, res) => {
   const messages = await messageService.getMessages(req);
 
+  res.set("Cache-Control", "no-store");
   return sendResponse(res, "Messages fetched", 200, { messages });
 });
 

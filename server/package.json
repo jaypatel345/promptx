@@ -6,14 +6,18 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "worker": "nodemon src/workers/ai.worker.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@bull-board/api": "^7.1.5",
+    "@bull-board/express": "^7.1.5",
     "bcryptjs": "^3.0.3",
+    "bullmq": "^5.77.6",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",

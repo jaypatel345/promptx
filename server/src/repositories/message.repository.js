@@ -10,4 +10,14 @@ export const messageRepository = {
       .sort({ createdAt: 1, _id: 1 })
       .limit(50);
   },
+  findByIdAndConversation: async (
+    messageId,
+    conversationId
+  ) => {
+    return Message.findOne({
+      _id: messageId,
+      conversationId,
+    });
+
+  },
 };
