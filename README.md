@@ -57,27 +57,27 @@ PromptX is useful for developers, creators, students, teams, and AI product buil
 
 ```mermaid
 flowchart TD
-  User[User / Browser] --> Client[Next.js 16 Client<br/>React 19 + Tailwind CSS]
-  Client -->|REST + cookies| API[Express 5 API<br/>server/app.js]
+  User["User / Browser"] --> Client["Next.js 16 Client<br/>React 19 + Tailwind CSS"]
+  Client -->|"REST + cookies"| API["Express 5 API<br/>server/app.js"]
 
-  API --> Middleware[Middleware<br/>CORS, cookies, request IDs, pino logs, optional JWT auth]
-  Middleware --> Routes[Routes<br/>auth, user, chat, conversations, messages, ask, team, health, queues]
-  Routes --> Controllers[Controllers]
-  Controllers --> Services[Services<br/>auth, chat, AI, messages, conversations, Redis, PostgreSQL]
-  Services --> Repositories[Repositories]
+  API --> Middleware["Middleware<br/>CORS, cookies, request IDs, pino logs, optional JWT auth"]
+  Middleware --> Routes["Routes<br/>auth, user, chat, conversations, messages, ask, team, health, queues"]
+  Routes --> Controllers["Controllers"]
+  Controllers --> Services["Services<br/>auth, chat, AI, messages, conversations, Redis, PostgreSQL"]
+  Services --> Repositories["Repositories"]
 
-  Repositories --> Mongo[(MongoDB / Mongoose<br/>users, tokens, conversations, messages, ai jobs)]
-  Services --> Redis[(Redis / ioredis)]
-  Services --> Postgres[(Supabase PostgreSQL<br/>prompt_history, usage log service)]
+  Repositories --> Mongo["MongoDB / Mongoose<br/>users, tokens, conversations, messages, ai jobs"]
+  Services --> Redis["Redis / ioredis"]
+  Services --> Postgres["Supabase PostgreSQL<br/>prompt_history, usage log service"]
 
-  Services --> Queue[BullMQ Queue<br/>ai-jobs]
-  Queue --> Worker[AI Worker<br/>server/src/workers/ai.worker.js]
-  Worker --> Groq[Groq API<br/>OpenAI-compatible client]
+  Services --> Queue["BullMQ Queue<br/>ai-jobs"]
+  Queue --> Worker["AI Worker<br/>server/src/workers/ai.worker.js"]
+  Worker --> Groq["Groq API<br/>OpenAI-compatible client"]
   Worker --> Mongo
   Worker --> Postgres
 
-  API --> BullBoard[Bull Board<br/>/admin/queues]
-  API --> Health[/health]
+  API --> BullBoard["Bull Board<br/>/admin/queues"]
+  API --> Health["/health"]
 ```
 
 ### Main Request Flow
@@ -534,19 +534,19 @@ During `next build`, `next-sitemap` runs through the `postbuild` script.
 
 ## Screenshots
 
-Images are available in `client/public/`. Add GitHub-rendered screenshots here when final product screenshots are selected.
+Screenshots are stored in `public/`.
 
-### Homepage
+### Home Page
 
-<!-- Add screenshot here -->
+![PromptX home page](public/Home_Page.png)
 
 ### Prompt Enhancer
 
-<!-- Add screenshot here -->
+![PromptX prompt enhancer](public/Prompt_Enhancer.png)
 
-### Chat / Conversation Flow
+### Conversation Flow
 
-<!-- Add screenshot here -->
+![PromptX conversation flow](public/Conversation_Flow.png)
 
 ---
 
