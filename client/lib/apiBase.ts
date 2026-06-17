@@ -40,4 +40,4 @@ export const API_BASE =
     ? shouldUseProxyInProd()
       ? "/api"
       : normalizeApiBase(rawBase)
-    : normalizeApiBase(rawBase || "http://localhost:1571/api");
+    : normalizeApiBase(rawBase || "http://localhost:1571");

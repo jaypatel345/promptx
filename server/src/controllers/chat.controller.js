@@ -17,6 +17,8 @@ export const sendMessage = async (req, res, next) => {
       }),
     );
 
+
+console.log("AI SERVICE EXECUTED");
     const result = await chatService.sendMessage(req);
     res.json(result);
   } catch (err) {

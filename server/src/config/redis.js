@@ -4,40 +4,39 @@ class RedisClient {
   static instance = null;
 
   static getInstance() {
-    if (process.env.NODE_ENV === "test") {
-      return null;
-    }
+  if (process.env.NODE_ENV === "test") {
+    return null;
+  }
 
-    if (this.instance) {
-      console.log("Using existing Redis connection");
-      return this.instance;
-    }
-
-    this.instance = process.env.REDIS_URL
-      ? new Redis(process.env.REDIS_URL)
-      : new Redis();
-
-    this.instance.on("connect", () => {
-      console.log("Redis connected");
-    });
-
-    this.instance.on("ready", () => {
-      console.log("Redis ready");
-    });
-
-    this.instance.on("error", (err) => {
-      console.error("Redis error:", {
-        message: err?.message,
-        code: err?.code,
-      });
-    });
-
-    this.instance.on("reconnecting", () => {
-      console.warn("Redis reconnecting");
-    });
-
+  if (this.instance) {
     return this.instance;
   }
+
+  this.instance = process.env.REDIS_URL
+    ? new Redis(process.env.REDIS_URL)
+    : new Redis();
+
+  this.instance.on("connect", () => {
+    console.log("Redis connected");
+  });
+
+  this.instance.on("ready", () => {
+    console.log("Redis ready");
+  });
+
+  this.instance.on("error", (err) => {
+    console.error("Redis error:", {
+      message: err?.message,
+      code: err?.code,
+    });
+  });
+
+  this.instance.on("reconnecting", () => {
+    console.warn("Redis reconnecting");
+  });
+
+  return this.instance;
+}
 
   static async ping(timeoutMs = 500) {
     const redis = this.getInstance();

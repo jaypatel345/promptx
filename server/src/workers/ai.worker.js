@@ -6,8 +6,12 @@ import {
   updateAiJobStatus,
 } from "../repositories/aiJob.repository.js";
 import { messageService } from "../services/message.service.js";
-import { aiService } from "../services/ai.service.js";
+import {  aiService } from "../services/ai.service.js";
 import postgresService from "../services/postgres.service.js";
+import { getPromptSignature } from "../utils/promptSignature.js";
+import { SYSTEM_PROMPT } from "../prompts/systemPrompt.js";
+
+const WORKER_STARTED_AT = new Date().toISOString();
 
 const logWorkerEvent = (level, event, meta = {}) => {
   const logger = level === "error" ? console.error : console.log;
@@ -24,11 +28,18 @@ const logWorkerEvent = (level, event, meta = {}) => {
 
 const processAiJob = async (job) => {
   const { aiJobId, requestId } = job.data;
+  const promptSignature = getPromptSignature(SYSTEM_PROMPT);
 
   logWorkerEvent("info", "worker.job.received", {
     requestId,
+    jobId: job.id,
     queueJobId: job.id,
     aiJobId,
+    pid: process.pid,
+    workerStartedAt: WORKER_STARTED_AT,
+    queueName: AI_JOB_QUEUE_NAME,
+    systemPromptSha256: promptSignature.sha256,
+    systemPromptPreview: promptSignature.preview,
     data: job.data,
   });
 
@@ -76,10 +87,27 @@ const processAiJob = async (job) => {
     contentLength: String(userMessage?.content || "").length,
     attachmentCount: userMessage?.attachments?.length || 0,
   });
+  console.log(
+    JSON.stringify({
+      level: "info",
+      event: "worker.enhancePrompt.entered",
+      service: "ai-worker",
+      timestamp: new Date().toISOString(),
+      pid: process.pid,
+      workerStartedAt: WORKER_STARTED_AT,
+      queueName: AI_JOB_QUEUE_NAME,
+      jobId: job.id,
+      queueJobId: job.id,
+      aiJobId,
+    }),
+  );
 
   const aiResponse = await aiService.enhancePrompt({
     message: userMessage.content,
     files: userMessage.attachments,
+    requestId,
+    queueJobId: job.id,
+    aiJobId,
   });
 
   const aiMessage = await messageService.createMessage({
@@ -171,6 +199,8 @@ export const createAiWorker = () => {
   worker.on("ready", () => {
     logWorkerEvent("info", "worker.started", {
       queueName: AI_JOB_QUEUE_NAME,
+      pid: process.pid,
+      workerStartedAt: WORKER_STARTED_AT,
     });
   });
 
@@ -202,4 +232,3 @@ export const createAiWorker = () => {
 
   return worker;
 };
-

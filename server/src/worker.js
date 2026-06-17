@@ -7,6 +7,22 @@ import { startWorkers, stopWorkers } from "./workers/index.js";
 
 loadEnv();
 
+if (process.env.NODE_ENV !== "production") {
+  console.log(
+    JSON.stringify({
+      level: "warn",
+      event: "standalone_worker.disabled_in_development",
+      service: "worker-process",
+      timestamp: new Date().toISOString(),
+      pid: process.pid,
+      nodeEnv: process.env.NODE_ENV || "undefined",
+      message:
+        "Local development uses the API server worker started from src/index.js. Standalone worker.js is disabled.",
+    }),
+  );
+  process.exit(0);
+}
+
 let shuttingDown = false;
 
 const logWorkerProcess = (level, event, meta = {}) => {
@@ -77,4 +93,3 @@ process.on("SIGINT", () => {
 process.on("SIGTERM", () => {
   void shutdown("SIGTERM");
 });
-

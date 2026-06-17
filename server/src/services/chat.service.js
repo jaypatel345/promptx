@@ -104,6 +104,7 @@ export const chatService = {
       throw new ApiError(500, "User message _id is not a valid MongoDB ObjectId");
     }
 
+
     // // -------------------------
     // // 4. Call AI
     // // -------------------------

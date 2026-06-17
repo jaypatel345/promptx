@@ -36,8 +36,14 @@ const postgresService = {
     }
   },
   saveUsageLog: async ({ user_id, action, tokens_used, metadata }) => {
-    const pool = PostgresDB.getPool();
+    const pool = await PostgresDB.getPool();
 
+    console.log("SAVE_USAGE_LOG EXECUTED", {
+      user_id,
+      action,
+      timestamp: new Date().toISOString(),
+      stack: new Error().stack,
+    });
     if (!pool) {
       throw new Error("Postgres pool not initialized");
     }

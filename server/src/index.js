@@ -4,6 +4,7 @@ import PostgresDB from "./config/postgres.js";
 import RedisClient from "./config/redis.js";
 import aiJobQueue, { AI_JOB_QUEUE_NAME } from "./queues/aiJob.queue.js";
 import { startWorkers, stopWorkers } from "./workers/index.js";
+import { cleanupStaleLocalWorkerProcesses } from "./utils/localWorkerProcessGuard.js";
 
 loadEnv();
 
@@ -11,6 +12,7 @@ const { default: app } = await import("../app.js");
 
 const PORT = process.env.PORT || 1571;
 
+console.log(PORT)
 let server = null;
 let shuttingDown = false;
 
@@ -72,6 +74,19 @@ const startRedis = async () => {
   logStartup("info", "redis.connected");
 };
 
+const cleanupLocalWorkerProcesses = async () => {
+  const staleProcesses = await cleanupStaleLocalWorkerProcesses({
+    logger: console.log,
+  });
+
+  if (staleProcesses.length > 0) {
+    logStartup("warn", "local_worker_cleanup.completed", {
+      currentPid: process.pid,
+      stalePids: staleProcesses.map((processInfo) => processInfo.pid),
+    });
+  }
+};
+
 const shutdown = async (signal = "manual") => {
   if (shuttingDown) {
     return;
@@ -118,6 +133,7 @@ const startApplication = async () => {
     await MongoDB.connect();
     await PostgresDB.connect();
     await startRedis();
+    await cleanupLocalWorkerProcesses();
     await startWorkers();
 
     logStartup("info", "queues.processing", {
@@ -142,6 +158,10 @@ process.on("SIGINT", () => {
 
 process.on("SIGTERM", () => {
   void shutdown("SIGTERM");
+});
+
+process.once("SIGUSR2", () => {
+  void shutdown("SIGUSR2");
 });
 
 process.on("unhandledRejection", (reason) => {
