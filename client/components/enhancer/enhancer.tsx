@@ -577,7 +577,7 @@ function Enhancer() {
 
         const data = await res.json();
 
-        const fetchedMessages =
+        const fetchedMessages: ChatMessage[] =
           data?.data?.messages || [];
 
         const lastMessage =
