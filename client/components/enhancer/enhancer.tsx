@@ -85,6 +85,7 @@ function Enhancer() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const isSendingRef = useRef(false);
+  const pendingAssistantCountRef = useRef<number | null>(null);
   const showLanding = hydrated && messages.length === 0;
 
   useEffect(() => {
@@ -394,18 +395,18 @@ function Enhancer() {
   const typeMessage = async (
     fullText: string,
     setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
-    delay = 15,
+    lineDelay = 35,
   ) => {
     setIsTyping(true);
+    const lines = fullText.split("\n");
     let current = "";
 
-    for (let i = 0; i < fullText.length; i++) {
-      current += fullText[i];
+    for (let i = 0; i < lines.length; i++) {
+      current += (i === 0 ? "" : "\n") + lines[i];
 
       setMessages((prev) => {
         const last = prev[prev.length - 1];
 
-        // If last is assistant, update it
         if (last?.role === "assistant") {
           const updated = [...prev];
           updated[updated.length - 1] = {
@@ -415,13 +416,14 @@ function Enhancer() {
           return updated;
         }
 
-        // Otherwise, do nothing
         return prev;
       });
 
-      await new Promise((res) => setTimeout(res, delay));
+      await new Promise((res) => setTimeout(res, lineDelay));
     }
+
     setIsTyping(false);
+    pendingAssistantCountRef.current = null;
   };
 
   //  Drag & drop
@@ -450,16 +452,19 @@ function Enhancer() {
     const outgoingAttachments = attachments;
 
     // optimistic UI
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "user",
-        content: userMessage,
-        attachments: outgoingAttachments.length
-          ? outgoingAttachments
-          : undefined,
-      },
-    ]);
+    setMessages((prev) => {
+      pendingAssistantCountRef.current = prev.length + 1;
+      return [
+        ...prev,
+        {
+          role: "user",
+          content: userMessage,
+          attachments: outgoingAttachments.length
+            ? outgoingAttachments
+            : undefined,
+        },
+      ];
+    });
 
     setInput("");
     setAttachments([]);
@@ -541,15 +546,6 @@ function Enhancer() {
       throw new Error("Failed to send message");
     }
 
-    // insert loading assistant bubble
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "assistant",
-        content: "Thinking...",
-      },
-    ]);
-
     // POLLING EVERY SECOND
     const pollInterval = setInterval(async () => {
 
@@ -568,6 +564,7 @@ function Enhancer() {
         if (!res.ok) {
           clearInterval(pollInterval);
           setLoading(false);
+          pendingAssistantCountRef.current = null;
           setMessages((prev) => [
             ...prev,
             {
@@ -580,29 +577,41 @@ function Enhancer() {
 
         const data = await res.json();
 
-        const messages =
+        const fetchedMessages =
           data?.data?.messages || [];
 
         const lastMessage =
-          messages[messages.length - 1];
+          fetchedMessages[fetchedMessages.length - 1];
 
-        // if assistant response exists
+        const pendingCount = pendingAssistantCountRef.current;
+
+        // wait for a new assistant message (not an older turn)
         if (
-          lastMessage &&
-          lastMessage.role === "assistant"
+          pendingCount !== null &&
+          fetchedMessages.length > pendingCount &&
+          lastMessage?.role === "assistant" &&
+          lastMessage.content?.trim()
         ) {
 
           clearInterval(pollInterval);
-
-          setMessages(messages);
-
           setLoading(false);
+
+          const fullContent = lastMessage.content;
+          const messagesForTyping = fetchedMessages.map((m, idx) =>
+            idx === fetchedMessages.length - 1
+              ? { ...m, content: "" }
+              : m,
+          );
+
+          setMessages(messagesForTyping);
+          await typeMessage(fullContent, setMessages);
         }
 
       } catch (err) {
         console.warn("Message polling stopped:", err);
         clearInterval(pollInterval);
         setLoading(false);
+        pendingAssistantCountRef.current = null;
         setMessages((prev) => [
           ...prev,
           {
@@ -860,9 +869,17 @@ function Enhancer() {
                           ))}
                         </div>
                       ) : null}
-                      {message.content ? (
+                      {message.content ||
+                      (isTyping &&
+                        index === messages.length - 1 &&
+                        message.role === "assistant") ? (
                         <p className="text-sm whitespace-pre-wrap wrap-break-word">
                           {message.content}
+                          {isTyping &&
+                            index === messages.length - 1 &&
+                            message.role === "assistant" && (
+                              <span className="inline-block w-0.5 h-4 ml-0.5 bg-current animate-pulse align-middle" />
+                            )}
                         </p>
                       ) : null}
                       {/* Assistant actions outside bubble */}
