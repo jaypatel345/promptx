@@ -81,10 +81,10 @@ async function apiRenameConversation(
   guestId?: string,
 ) {
   const res = await fetch(`${API}/conversations/${conversationId}/title`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ title, guestId }),
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ title, guestId }),
   });
 
   if (!res.ok) throw new Error("Rename failed");
@@ -96,10 +96,10 @@ async function apiPinConversation(
   guestId?: string,
 ) {
   const res = await fetch(`${API}/conversations/${conversationId}/pin`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ pin, guestId }),
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ pin, guestId }),
   });
 
   if (!res.ok) throw new Error("Pin failed");
@@ -107,10 +107,10 @@ async function apiPinConversation(
 
 async function apiDeleteConversation(conversationId: string, guestId?: string) {
   const res = await fetch(`${API}/conversations/${conversationId}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ guestId }),
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ guestId }),
   });
 
   const data = await res.json();
@@ -132,13 +132,8 @@ function EnhacerHeader() {
     startNewChat,
     guestId,
   } = useChat();
-  const {
-    isOpen,
-    setIsOpen,
-    setIsNavOpen,
-    isLoginOpen,
-    setIsLoginOpen,
-  } = useUi();
+  const { isOpen, setIsOpen, setIsNavOpen, isLoginOpen, setIsLoginOpen } =
+    useUi();
 
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -208,7 +203,7 @@ function EnhacerHeader() {
   const [loginError, setLoginError] = useState("");
   const guestReady = !!guestId;
   const canFetchMessages = authChecked && (isLoggedIn || guestReady);
-   
+
   const [conversations, setConversations] = useState<
     {
       _id: string;
@@ -527,7 +522,7 @@ function EnhacerHeader() {
   };
 
   useEffect(() => {
-if (!authChecked) return;
+    if (!authChecked) return;
     if (!isLoggedIn && !guestId) return;
 
     let cancelled = false;
@@ -535,17 +530,14 @@ if (!authChecked) return;
     (async () => {
       try {
         const res = await apiClient.get(`/conversations`, {
-                    params: isLoggedIn ? undefined : { guestId },
+          params: isLoggedIn ? undefined : { guestId },
         });
 
         if (!cancelled && res.data?.success) {
           setConversations(res.data.data?.conversations || []);
         }
       } catch (err: unknown) {
-        console.error(
-"Failed to load history",
-          getErrorMessage(err),
-);
+        console.error("Failed to load history", getErrorMessage(err));
       }
     })();
 
@@ -555,17 +547,17 @@ if (!authChecked) return;
   }, [authChecked, isLoggedIn, guestId]);
 
   const openConversation = async (id: string) => {
-if (!id) {
+    if (!id) {
       console.error("Invalid conversation id");
       return;
     }
     try {
       if (!canFetchMessages) return;
-if (!isLoggedIn && !guestId) return;
+      if (!isLoggedIn && !guestId) return;
       const params = isLoggedIn ? undefined : { guestId };
 
       const res = await apiClient.get(`/messages/${id}`, {
-                params,
+        params,
       });
 
       if (res.data?.success) {
@@ -596,14 +588,14 @@ if (!isLoggedIn && !guestId) return;
       startNewChat();
       setConversationId(newId);
 
-        const historyRes = await apiClient.get(`/conversations`, {
-                    params: isLoggedIn ? undefined : { guestId },
-        });
+      const historyRes = await apiClient.get(`/conversations`, {
+        params: isLoggedIn ? undefined : { guestId },
+      });
 
-        if (historyRes.data?.success) {
-          setConversations(historyRes.data.data?.conversations || []);
-        }
-          } catch (err: unknown) {
+      if (historyRes.data?.success) {
+        setConversations(historyRes.data.data?.conversations || []);
+      }
+    } catch (err: unknown) {
       console.error("Failed to create conversation", getErrorMessage(err));
     }
   };
@@ -616,7 +608,7 @@ if (!isLoggedIn && !guestId) return;
         if (res.data?.success && !res.data?.data?.isGuest) {
           setIsLoggedIn(true);
           setUserProfile(res.data?.data?.user || null);
-                  } else {
+        } else {
           setIsLoggedIn(false);
           setUserProfile(null);
         }
@@ -638,10 +630,10 @@ if (!isLoggedIn && !guestId) return;
     try {
       setLoading(true);
 
-      const response = await apiClient.post(`/auth/login`,         {
-          email: user.email,
-          password: user.password,
-        }      );
+      const response = await apiClient.post(`/auth/login`, {
+        email: user.email,
+        password: user.password,
+      });
 
       if (response.data?.success) {
         const me = await apiClient.get(`/user/me`);
@@ -649,29 +641,29 @@ if (!isLoggedIn && !guestId) return;
         const dataUser = me.data?.data?.user || null;
         setIsLoggedIn(!!me.data?.success && !!dataUser && !isGuest);
         setUserProfile(!isGuest ? (dataUser as UserProfile) : null);
-                setLoginError("");
+        setLoginError("");
         setIsLoginOpen(false);
       }
     } catch (error: unknown) {
-      setLoginError(getErrorMessage(error) ||         "Invalid email or password");
+      setLoginError(getErrorMessage(error) || "Invalid email or password");
     } finally {
       setLoading(false);
     }
   };
 
-    return (
+  return (
     <div className="">
       <div className="flex justify-between ">
         <div
           className={`flex flex-col transition-all duration-300 ease-(--grok-ease) pr-5 h-screen min-h-0 border-r border-gray-200 dark:border-neutral-600 z-50 bg-white dark:bg-black
   ${
     isMobile
-      ? `fixed top-0 left-0 w-[60vw] max-w-[420px] transform ${
+      ? `fixed top-0 left-0 w-[60vw] max-w-105 transform ${
           isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`
       : isOpen
-      ? "w-60 opacity-100"
-      : "w-15 opacity-100"
+        ? "w-60 opacity-100"
+        : "w-15 opacity-100"
   }`}
           style={{ overflow: "visible" }}
         >
@@ -941,7 +933,7 @@ if (!isLoggedIn && !guestId) return;
           <div className="mt-0 ml-2 flex flex-col relative items-start gap-1 pl-2 py-2 pr-3 rounded-2xl transition-all duration-200 w-full flex-1 min-h-0 overflow-hidden">
             {isOpen && !isHistoryCollapsed && (
               <div
-                className="absolute left-5 top-[5px] w-px bg-gray-200 dark:bg-neutral-700 transition-all duration-300"
+                className="absolute left-5 top-1.25 w-px bg-gray-200 dark:bg-neutral-700 transition-all duration-300"
                 style={{
                   height: `${historyLineHeight}px`,
                   WebkitMaskImage:
@@ -957,7 +949,7 @@ if (!isLoggedIn && !guestId) return;
                 className={`ml-4 -mt-2 flex flex-col gap-0.5 text-md w-full pr-2 hide-scrollbar overscroll-contain p-1 rounded-2xl transition-all duration-300 ease-(--grok-ease) ${
                   isHistoryCollapsed
                     ? "opacity-0 -translate-y-2 pointer-events-none max-h-0 overflow-hidden"
-                    : "opacity-100 translate-y-0 max-h-[500px]"
+                    : "opacity-100 translate-y-125"
                 }`}
                 style={{
                   WebkitOverflowScrolling: "touch",
@@ -978,8 +970,8 @@ if (!isLoggedIn && !guestId) return;
                         index === 0
                           ? firstItemRef
                           : index === latestConversations.length - 1
-                          ? lastItemRef
-                          : null
+                            ? lastItemRef
+                            : null
                       }
                       key={conv._id}
                       className="relative group"
@@ -999,11 +991,11 @@ if (!isLoggedIn && !guestId) return;
                           }
 
                           try {
-if (!isLoggedIn && !guestId) return;
+                            if (!isLoggedIn && !guestId) return;
                             const res = await apiClient.get(
                               `/messages/${conv._id}`,
                               {
-                                                                params: isLoggedIn ? undefined : { guestId },
+                                params: isLoggedIn ? undefined : { guestId },
                               },
                             );
 
@@ -1505,7 +1497,7 @@ if (!isLoggedIn && !guestId) return;
                         key={conv._id}
                         onMouseEnter={async () => {
                           if (!canFetchMessages) return;
-if (!isLoggedIn && !guestId) return;
+                          if (!isLoggedIn && !guestId) return;
 
                           if (previewCache.current[conv._id]) {
                             setPreviewMessages(previewCache.current[conv._id]);
@@ -1516,7 +1508,7 @@ if (!isLoggedIn && !guestId) return;
                             const res = await apiClient.get(
                               `/messages/${conv._id}`,
                               {
-                                                                params: isLoggedIn ? undefined : { guestId },
+                                params: isLoggedIn ? undefined : { guestId },
                               },
                             );
                             if (res.data?.success) {
@@ -1728,7 +1720,7 @@ if (!isLoggedIn && !guestId) return;
 
         .grok-hover {
           transition:
-transform 0.25s var(--grok-ease),
+            transform 0.25s var(--grok-ease),
             box-shadow 0.25s var(--grok-ease);
         }
 

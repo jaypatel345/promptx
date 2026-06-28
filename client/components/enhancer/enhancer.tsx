@@ -440,128 +440,161 @@ function Enhancer() {
   };
 
   async function handleSend(): Promise<void> {
-  if (loading || isSendingRef.current) return;
+    if (loading || isSendingRef.current) return;
 
-  isSendingRef.current = true;
-  setLoading(true);
+    isSendingRef.current = true;
+    setLoading(true);
 
-  try {
-    if (!input.trim() && attachments.length === 0) return;
+    try {
+      if (!input.trim() && attachments.length === 0) return;
 
-    const userMessage = input;
-    const outgoingAttachments = attachments;
+      const userMessage = input;
+      const outgoingAttachments = attachments;
 
-    // optimistic UI
-    setMessages((prev) => {
-      pendingAssistantCountRef.current = prev.length + 1;
-      return [
-        ...prev,
-        {
-          role: "user",
-          content: userMessage,
-          attachments: outgoingAttachments.length
-            ? outgoingAttachments
-            : undefined,
-        },
-      ];
-    });
-
-    setInput("");
-    setAttachments([]);
-
-    // create conversation if missing
-    let activeConversationId = conversationId;
-
-    if (!activeConversationId) {
-      const res = await fetch(`${API}/conversations`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          title: userMessage.slice(0, 30),
-          guestId: localStorage.getItem("guestId"),
-        }),
+      // optimistic UI
+      setMessages((prev) => {
+        pendingAssistantCountRef.current = prev.length + 1;
+        return [
+          ...prev,
+          {
+            role: "user",
+            content: userMessage,
+            attachments: outgoingAttachments.length
+              ? outgoingAttachments
+              : undefined,
+          },
+        ];
       });
 
-      const data = await res.json();
+      setInput("");
+      setAttachments([]);
 
-      activeConversationId =
-        data?.data?.conversationId;
+      // create conversation if missing
+      let activeConversationId = conversationId;
 
       if (!activeConversationId) {
-        throw new Error("Failed to create conversation");
-      }
-
-      setConversationId(activeConversationId);
-    }
-
-    // send message
-    const gid = localStorage.getItem("guestId");
-
-    const chatUrl =
-      gid && !isLoggedIn
-        ? `${API}/chat/send?guestId=${gid}`
-        : `${API}/chat/send`;
-
-    let res: Response;
-
-    if (outgoingAttachments.length > 0) {
-      const formData = new FormData();
-
-      formData.append(
-        "conversationId",
-        activeConversationId
-      );
-
-      formData.append("content", userMessage);
-
-      outgoingAttachments.forEach((a) => {
-        formData.append("files", a.file);
-      });
-
-      res = await fetch(chatUrl, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-
-    } else {
-
-      res = await fetch(chatUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          conversationId: activeConversationId,
-          content: userMessage,
-        }),
-      });
-    }
-
-    if (!res.ok) {
-      throw new Error("Failed to send message");
-    }
-
-    // POLLING EVERY SECOND
-    const pollInterval = setInterval(async () => {
-
-      try {
-
-        const messagesUrl =
-          gid && !isLoggedIn
-            ? `${API}/messages/${activeConversationId}?guestId=${encodeURIComponent(gid)}`
-            : `${API}/messages/${activeConversationId}`;
-
-        const res = await fetch(messagesUrl, {
+        const res = await fetch(`${API}/conversations`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
           credentials: "include",
-          cache: "no-store",
+          body: JSON.stringify({
+            title: userMessage.slice(0, 30),
+            guestId: localStorage.getItem("guestId"),
+          }),
         });
 
-        if (!res.ok) {
+        const data = await res.json();
+
+        activeConversationId = data?.data?.conversationId;
+
+        if (!activeConversationId) {
+          throw new Error("Failed to create conversation");
+        }
+
+        setConversationId(activeConversationId);
+      }
+
+      // send message
+      const gid = localStorage.getItem("guestId");
+
+      const chatUrl =
+        gid && !isLoggedIn
+          ? `${API}/chat/send?guestId=${gid}`
+          : `${API}/chat/send`;
+
+      let res: Response;
+
+      if (outgoingAttachments.length > 0) {
+        const formData = new FormData();
+
+        formData.append("conversationId", activeConversationId);
+
+        formData.append("content", userMessage);
+
+        outgoingAttachments.forEach((a) => {
+          formData.append("files", a.file);
+        });
+
+        res = await fetch(chatUrl, {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        });
+      } else {
+        res = await fetch(chatUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            conversationId: activeConversationId,
+            content: userMessage,
+          }),
+        });
+      }
+
+      if (!res.ok) {
+        throw new Error("Failed to send message");
+      }
+
+      // POLLING EVERY SECOND
+      const pollInterval = setInterval(async () => {
+        try {
+          const messagesUrl =
+            gid && !isLoggedIn
+              ? `${API}/messages/${activeConversationId}?guestId=${encodeURIComponent(gid)}`
+              : `${API}/messages/${activeConversationId}`;
+
+          const res = await fetch(messagesUrl, {
+            credentials: "include",
+            cache: "no-store",
+          });
+
+          if (!res.ok) {
+            clearInterval(pollInterval);
+            setLoading(false);
+            pendingAssistantCountRef.current = null;
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "assistant",
+                content: `Error: Failed to fetch messages (${res.status})`,
+              },
+            ]);
+            return;
+          }
+
+          const data = await res.json();
+
+          const fetchedMessages: ChatMessage[] = data?.data?.messages || [];
+
+          const lastMessage = fetchedMessages[fetchedMessages.length - 1];
+
+          const pendingCount = pendingAssistantCountRef.current;
+
+          // wait for a new assistant message (not an older turn)
+          if (
+            pendingCount !== null &&
+            fetchedMessages.length > pendingCount &&
+            lastMessage?.role === "assistant" &&
+            lastMessage.content?.trim()
+          ) {
+            clearInterval(pollInterval);
+            setLoading(false);
+
+            const fullContent = lastMessage.content;
+            const messagesForTyping = fetchedMessages.map((m, idx) =>
+              idx === fetchedMessages.length - 1 ? { ...m, content: "" } : m,
+            );
+
+            setMessages(messagesForTyping);
+            await typeMessage(fullContent, setMessages);
+          }
+        } catch (err) {
+          console.warn("Message polling stopped:", err);
           clearInterval(pollInterval);
           setLoading(false);
           pendingAssistantCountRef.current = null;
@@ -569,77 +602,24 @@ function Enhancer() {
             ...prev,
             {
               role: "assistant",
-              content: `Error: Failed to fetch messages (${res.status})`,
+              content: "Error: Backend server is not reachable",
             },
           ]);
-          return;
         }
-
-        const data = await res.json();
-
-        const fetchedMessages: ChatMessage[] =
-          data?.data?.messages || [];
-
-        const lastMessage =
-          fetchedMessages[fetchedMessages.length - 1];
-
-        const pendingCount = pendingAssistantCountRef.current;
-
-        // wait for a new assistant message (not an older turn)
-        if (
-          pendingCount !== null &&
-          fetchedMessages.length > pendingCount &&
-          lastMessage?.role === "assistant" &&
-          lastMessage.content?.trim()
-        ) {
-
-          clearInterval(pollInterval);
-          setLoading(false);
-
-          const fullContent = lastMessage.content;
-          const messagesForTyping = fetchedMessages.map((m, idx) =>
-            idx === fetchedMessages.length - 1
-              ? { ...m, content: "" }
-              : m,
-          );
-
-          setMessages(messagesForTyping);
-          await typeMessage(fullContent, setMessages);
-        }
-
-      } catch (err) {
-        console.warn("Message polling stopped:", err);
-        clearInterval(pollInterval);
-        setLoading(false);
-        pendingAssistantCountRef.current = null;
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: "Error: Backend server is not reachable",
-          },
-        ]);
-      }
-
-    }, 1000);
-
-  } catch (err) {
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "assistant",
-        content:
-          "Error: " + (err as Error).message,
-      },
-    ]);
-
-  } finally {
-
-    isSendingRef.current = false;
-    textareaRef.current?.focus();
+      }, 1000);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Error: " + (err as Error).message,
+        },
+      ]);
+    } finally {
+      isSendingRef.current = false;
+      textareaRef.current?.focus();
+    }
   }
-}
 
   const handleKeyPress = (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
@@ -858,7 +838,7 @@ function Enhancer() {
                               )}
 
                               <div className="min-w-0">
-                                <div className="text-xs font-medium truncate max-w-[170px]">
+                                <div className="text-xs font-medium truncate max-w-42.5">
                                   {a.file.name}
                                 </div>
                                 <div className="text-[11px] opacity-70">
@@ -1210,7 +1190,7 @@ function Enhancer() {
     w-full
     box-border
     text-[16px]
-    leading-[22px]
+    leading-5.5
     outline-none
     bg-transparent
     text-black
@@ -1218,7 +1198,7 @@ function Enhancer() {
     dark:placeholder-gray-400
     resize-none
     overflow-hidden
-    min-h-[22px]
+    min-h-5.5
     max-h-30
     py-1
   "
