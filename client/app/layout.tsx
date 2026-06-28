@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
+import { Analytics } from "@vercel/analytics/next";
 import { UiProvider } from "@/context/UiContext";
 import { ThemeProvider } from "@/context/theme-context";
 import LenisProvider from "@/components/LenisProvider";
@@ -144,6 +144,7 @@ export default function RootLayout({
             </ChatContextProvider>
           </UiProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
