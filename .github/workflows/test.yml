@@ -2,7 +2,7 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: ["dev", "main", "feature/*"]
+    branches: ["dev", "main", "feature/*", v2]
   pull_request:
 
 jobs:
@@ -34,7 +34,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
- 
+
       - name: Install server deps
         shell: bash
         run: cd "$SERVER_DIR" && npm ci
