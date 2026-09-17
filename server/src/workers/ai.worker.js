@@ -63,6 +63,16 @@ const processAiJob = async (job) => {
     status: aiJob.status,
   });
 
+  // The user may have hit "Stop" while this job was still queued.
+  if (aiJob.status === "cancelled") {
+    logWorkerEvent("info", "worker.ai_job.already_cancelled", {
+      requestId,
+      queueJobId: job.id,
+      aiJobId,
+    });
+    return;
+  }
+
   const updatedJob = await updateAiJobStatus(aiJobId, "processing", {
     startedAt: new Date(),
   });
@@ -102,13 +112,45 @@ const processAiJob = async (job) => {
     }),
   );
 
-  const aiResponse = await aiService.enhancePrompt({
-    message: userMessage.content,
-    files: userMessage.attachments,
-    requestId,
-    queueJobId: job.id,
-    aiJobId,
-  });
+  // Cooperative cancellation: BullMQ can't interrupt a job that's already
+  // running, so poll Mongo (the cross-process source of truth) for a
+  // "cancelled" status set by the /chat/cancel route and abort the in-flight
+  // AI request as soon as we see it.
+  const abortController = new AbortController();
+  const cancelPoll = setInterval(async () => {
+    try {
+      const latest = await getAiJobId(aiJobId);
+      if (latest?.status === "cancelled") {
+        abortController.abort();
+      }
+    } catch {
+      // transient read failure — the next tick will retry
+    }
+  }, 700);
+
+  let aiResponse;
+  try {
+    aiResponse = await aiService.enhancePrompt({
+      message: userMessage.content,
+      files: userMessage.attachments,
+      requestId,
+      queueJobId: job.id,
+      aiJobId,
+      signal: abortController.signal,
+    });
+  } catch (err) {
+    if (err.name === "AbortError") {
+      logWorkerEvent("info", "worker.ai_job.cancelled_mid_flight", {
+        requestId,
+        queueJobId: job.id,
+        aiJobId,
+      });
+      return;
+    }
+    throw err;
+  } finally {
+    clearInterval(cancelPoll);
+  }
 
   const aiMessage = await messageService.createMessage({
     conversationId: aiJob.conversationId,

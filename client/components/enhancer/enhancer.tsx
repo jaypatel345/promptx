@@ -81,12 +81,29 @@ function Enhancer() {
   >({});
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
 
-  const [hydrated, setHydrated] = useState(false);
+  // Optimistic default: a brand-new user has nothing to load, so render
+  // immediately. Only flipped to false (briefly) when we discover there's
+  // an existing, uncached conversation that actually needs a fetch.
+  const [hydrated, setHydrated] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const isSendingRef = useRef(false);
   const pendingAssistantCountRef = useRef<number | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const activeAiJobIdRef = useRef<string | null>(null);
+  const stopTypingRef = useRef(false);
+  const sendAbortControllerRef = useRef<AbortController | null>(null);
   const showLanding = hydrated && messages.length === 0;
+
+  // Stop polling if the component unmounts (e.g. user navigates away) mid-response
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     async function checkSession() {
@@ -242,8 +259,17 @@ function Enhancer() {
 
     let cancelled = false;
     let retried = false;
+    // Cache-first: if we already have messages for this conversation (e.g.
+    // restored from localStorage, or passed in via loadConversation), show
+    // them immediately and refresh quietly in the background instead of
+    // blanking the screen with a loading state.
+    const hadCachedMessages = messages.length > 0;
 
     async function loadMessages() {
+      if (!hadCachedMessages) {
+        setHydrated(false);
+      }
+
       try {
         setLoadingMessages(true);
 
@@ -264,11 +290,23 @@ function Enhancer() {
 
         const res = await fetch(url, { credentials: "include" });
 
-        // If unauthorized, retry once after short delay
+        // If unauthorized, retry once after a short delay (handles the auth
+        // cookie not being attached yet on the very first request)
         if (res.status === 401 && !retried) {
           retried = true;
-          await new Promise((r) => setTimeout(r, 400));
+          await new Promise((r) => setTimeout(r, 150));
           if (!cancelled) return loadMessages();
+          return;
+        }
+
+        // This conversation no longer belongs to the current user/guest
+        // (stale localStorage id, cleared cookies, etc.) — don't get stuck,
+        // just start fresh instead of retrying forever.
+        if (res.status === 404 || res.status === 401) {
+          if (!cancelled) {
+            setConversationId(null);
+            setMessages([]);
+          }
           return;
         }
 
@@ -398,10 +436,13 @@ function Enhancer() {
     lineDelay = 35,
   ) => {
     setIsTyping(true);
+    stopTypingRef.current = false;
     const lines = fullText.split("\n");
     let current = "";
 
     for (let i = 0; i < lines.length; i++) {
+      if (stopTypingRef.current) break;
+
       current += (i === 0 ? "" : "\n") + lines[i];
 
       setMessages((prev) => {
@@ -445,6 +486,9 @@ function Enhancer() {
     isSendingRef.current = true;
     setLoading(true);
 
+    const abortController = new AbortController();
+    sendAbortControllerRef.current = abortController;
+
     try {
       if (!input.trim() && attachments.length === 0) return;
 
@@ -483,6 +527,7 @@ function Enhancer() {
             title: userMessage.slice(0, 30),
             guestId: localStorage.getItem("guestId"),
           }),
+          signal: abortController.signal,
         });
 
         const data = await res.json();
@@ -521,6 +566,7 @@ function Enhancer() {
           method: "POST",
           body: formData,
           credentials: "include",
+          signal: abortController.signal,
         });
       } else {
         res = await fetch(chatUrl, {
@@ -533,6 +579,7 @@ function Enhancer() {
             conversationId: activeConversationId,
             content: userMessage,
           }),
+          signal: abortController.signal,
         });
       }
 
@@ -540,8 +587,23 @@ function Enhancer() {
         throw new Error("Failed to send message");
       }
 
-      // POLLING EVERY SECOND
-      const pollInterval = setInterval(async () => {
+      const sendResult = await res.json().catch(() => null);
+      activeAiJobIdRef.current = sendResult?.data?.aiJobId ?? null;
+
+      // POLLING EVERY SECOND, with a timeout so a stuck AI job doesn't spin forever
+      const MAX_POLL_ATTEMPTS = 60; // ~60 seconds
+      let pollAttempts = 0;
+
+      const stopPolling = () => {
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+      };
+
+      pollIntervalRef.current = setInterval(async () => {
+        pollAttempts += 1;
+
         try {
           const messagesUrl =
             gid && !isLoggedIn
@@ -554,9 +616,10 @@ function Enhancer() {
           });
 
           if (!res.ok) {
-            clearInterval(pollInterval);
+            stopPolling();
             setLoading(false);
             pendingAssistantCountRef.current = null;
+            activeAiJobIdRef.current = null;
             setMessages((prev) => [
               ...prev,
               {
@@ -582,8 +645,9 @@ function Enhancer() {
             lastMessage?.role === "assistant" &&
             lastMessage.content?.trim()
           ) {
-            clearInterval(pollInterval);
+            stopPolling();
             setLoading(false);
+            activeAiJobIdRef.current = null;
 
             const fullContent = lastMessage.content;
             const messagesForTyping = fetchedMessages.map((m, idx) =>
@@ -592,12 +656,29 @@ function Enhancer() {
 
             setMessages(messagesForTyping);
             await typeMessage(fullContent, setMessages);
+            return;
+          }
+
+          if (pollAttempts >= MAX_POLL_ATTEMPTS) {
+            stopPolling();
+            setLoading(false);
+            pendingAssistantCountRef.current = null;
+            activeAiJobIdRef.current = null;
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "assistant",
+                content:
+                  "Error: The AI is taking longer than expected to respond. Please try again in a moment.",
+              },
+            ]);
           }
         } catch (err) {
           console.warn("Message polling stopped:", err);
-          clearInterval(pollInterval);
+          stopPolling();
           setLoading(false);
           pendingAssistantCountRef.current = null;
+          activeAiJobIdRef.current = null;
           setMessages((prev) => [
             ...prev,
             {
@@ -608,6 +689,20 @@ function Enhancer() {
         }
       }, 1000);
     } catch (err) {
+      // The user hitting "Stop" while this initial request was still in
+      // flight also lands here (aborting it rejects the fetch) — handleStop
+      // already reset all the UI state, so there's nothing left to do.
+      if ((err as Error)?.name === "AbortError") {
+        return;
+      }
+
+      // Reached only when sending/creating the conversation itself failed,
+      // before the polling loop (which manages its own loading state) ever
+      // started — without this, the "thinking" indicator would stay stuck
+      // on screen forever and the input would stay disabled.
+      setLoading(false);
+      pendingAssistantCountRef.current = null;
+      activeAiJobIdRef.current = null;
       setMessages((prev) => [
         ...prev,
         {
@@ -616,10 +711,48 @@ function Enhancer() {
         },
       ]);
     } finally {
+      sendAbortControllerRef.current = null;
       isSendingRef.current = false;
       textareaRef.current?.focus();
     }
   }
+
+  // Interrupts a response that's still being generated: stops polling for
+  // it, cuts off the typing animation wherever it is, and best-effort tells
+  // the backend to cancel the underlying AI job (skips it if still queued,
+  // aborts the in-flight request to the model if it's already running).
+  const handleStop = async (): Promise<void> => {
+    stopTypingRef.current = true;
+
+    sendAbortControllerRef.current?.abort();
+    sendAbortControllerRef.current = null;
+
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+
+    setLoading(false);
+    setIsTyping(false);
+    pendingAssistantCountRef.current = null;
+
+    const jobId = activeAiJobIdRef.current;
+    activeAiJobIdRef.current = null;
+
+    if (!jobId) return;
+
+    try {
+      const gid = localStorage.getItem("guestId");
+      const cancelUrl =
+        gid && !isLoggedIn
+          ? `${API}/chat/cancel/${jobId}?guestId=${gid}`
+          : `${API}/chat/cancel/${jobId}`;
+
+      await fetch(cancelUrl, { method: "POST", credentials: "include" });
+    } catch (err) {
+      console.warn("Failed to cancel AI job:", err);
+    }
+  };
 
   const handleKeyPress = (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
@@ -682,10 +815,20 @@ function Enhancer() {
             }}
           >
             {!hydrated ? (
-              <div className="flex items-center justify-center min-h-[calc(100vh-14rem)]">
-                <div className="text-gray-500 dark:text-gray-400 animate-pulse">
-                  Loading conversation...
-                </div>
+              // Skeleton placeholder — only ever shown when we know there's
+              // an existing, uncached conversation to fetch.
+              <div className="space-y-6 py-4 px-0 mt-5 animate-pulse" aria-hidden="true">
+                {[
+                  { align: "justify-end", width: "w-40" },
+                  { align: "justify-start", width: "w-72" },
+                  { align: "justify-end", width: "w-28" },
+                ].map((row, i) => (
+                  <div key={i} className={`flex ${row.align}`}>
+                    <div
+                      className={`h-9 rounded-2xl bg-gray-100 dark:bg-neutral-800 ${row.width}`}
+                    />
+                  </div>
+                ))}
               </div>
             ) : showLanding ? (
               // Landing View
@@ -710,7 +853,12 @@ function Enhancer() {
             ) : (
               // Chat Messages
               <div className="space-y-6 py-4 px-0 pointer-events-auto mt-5">
-                {messages.map((message, index) => (
+                {messages.map((message, index) => {
+                  const isErrorMessage =
+                    message.role === "assistant" &&
+                    message.content?.trim().startsWith("Error:");
+
+                  return (
                   <div
                     key={message._id || `${message.role}-${index}`}
                     className={`flex gap-2 group relative ${
@@ -786,9 +934,11 @@ function Enhancer() {
                     )}
                     <div
                       className={`relative w-fit max-w-[85%] sm:max-w-[75%] ${
-                        message.role === "user"
-                          ? "bg-gray-100 text-black dark:bg-neutral-700 dark:text-white "
-                          : "text-black dark:text-white"
+                        isErrorMessage
+                          ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-900"
+                          : message.role === "user"
+                            ? "bg-gray-100 text-black dark:bg-neutral-700 dark:text-white "
+                            : "text-black dark:text-white"
                       } rounded-2xl px-4 py-3 `}
                     >
                       {/*  Show attachments inside the chat bubble */}
@@ -853,8 +1003,21 @@ function Enhancer() {
                       (isTyping &&
                         index === messages.length - 1 &&
                         message.role === "assistant") ? (
-                        <p className="text-sm whitespace-pre-wrap wrap-break-word">
-                          {message.content}
+                        <p className="text-sm whitespace-pre-wrap wrap-break-word flex items-start gap-1.5">
+                          {isErrorMessage && (
+                            <svg
+                              width="15"
+                              height="15"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              className="shrink-0 mt-0.5"
+                            >
+                              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
+                              <path d="M12 7.5V13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                              <circle cx="12" cy="16.2" r="1" fill="currentColor" />
+                            </svg>
+                          )}
+                          <span>{message.content}</span>
                           {isTyping &&
                             index === messages.length - 1 &&
                             message.role === "assistant" && (
@@ -864,6 +1027,7 @@ function Enhancer() {
                       ) : null}
                       {/* Assistant actions outside bubble */}
                       {message.role === "assistant" &&
+                        !isErrorMessage &&
                         !(isTyping && index === messages.length - 1) && (
                           <div className="flex flex-row justify-start gap-1 opacity-40 hover:opacity-100 transition">
                             <button
@@ -998,11 +1162,25 @@ function Enhancer() {
                         )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
 
                 {loading && !isTyping && messages.length > 0 && (
-                  <div className="flex justify-start px-4 py-2">
-                    <div className="w-2 h-2 bg-neutral-800 rounded-full animate-breathe" />
+                  <div className="flex justify-start px-2">
+                    <div className="flex items-center gap-1 rounded-2xl px-4 py-3">
+                      <span
+                        className="w-1.5 h-1.5 bg-neutral-400 dark:bg-neutral-500 rounded-full typing-dot"
+                        style={{ animationDelay: "0ms" }}
+                      />
+                      <span
+                        className="w-1.5 h-1.5 bg-neutral-400 dark:bg-neutral-500 rounded-full typing-dot"
+                        style={{ animationDelay: "150ms" }}
+                      />
+                      <span
+                        className="w-1.5 h-1.5 bg-neutral-400 dark:bg-neutral-500 rounded-full typing-dot"
+                        style={{ animationDelay: "300ms" }}
+                      />
+                    </div>
                   </div>
                 )}
                 <div ref={messagesEndRef} />
@@ -1206,13 +1384,19 @@ function Enhancer() {
                 <button
                   className="flex items-center gap-2 shrink-0"
                   onClick={() => {
-                    handleSend();
-                    setIsNavOpen(false);
+                    if (loading || isTyping) {
+                      handleStop();
+                    } else {
+                      handleSend();
+                      setIsNavOpen(false);
+                    }
                   }}
                   disabled={
-                    (input.trim().length === 0 && attachments.length === 0) ||
-                    loading
+                    !(loading || isTyping) &&
+                    input.trim().length === 0 &&
+                    attachments.length === 0
                   }
+                  aria-label={loading || isTyping ? "Stop generating" : "Send message"}
                 >
                   <svg
                     width="20"
@@ -1220,13 +1404,18 @@ function Enhancer() {
                     viewBox="0 0 20 20"
                     fill="currentColor"
                     className={`bg-black text-white dark:bg-white dark:text-black rounded-full border w-9 h-9 sm:w-10 sm:h-10 py-2 cursor-pointer transition-opacity ${
-                      (input.trim().length === 0 && attachments.length === 0) ||
-                      loading
+                      !(loading || isTyping) &&
+                      input.trim().length === 0 &&
+                      attachments.length === 0
                         ? "opacity-50 cursor-not-allowed"
                         : "hover:bg-black/80 dark:hover:bg-white/80"
                     }`}
                   >
-                    <path d="M8.99992 16V6.41407L5.70696 9.70704C5.31643 10.0976 4.68342 10.0976 4.29289 9.70704C3.90237 9.31652 3.90237 8.6835 4.29289 8.29298L9.29289 3.29298L9.36907 3.22462C9.76184 2.90427 10.3408 2.92686 10.707 3.29298L15.707 8.29298L15.7753 8.36915C16.0957 8.76192 16.0731 9.34092 15.707 9.70704C15.3408 10.0732 14.7618 10.0958 14.3691 9.7754L14.2929 9.70704L10.9999 6.41407V16C10.9999 16.5523 10.5522 17 9.99992 17C9.44764 17 8.99992 16.5523 8.99992 16Z" />
+                    {loading || isTyping ? (
+                      <rect x="6" y="6" width="8" height="8" rx="1.5" />
+                    ) : (
+                      <path d="M8.99992 16V6.41407L5.70696 9.70704C5.31643 10.0976 4.68342 10.0976 4.29289 9.70704C3.90237 9.31652 3.90237 8.6835 4.29289 8.29298L9.29289 3.29298L9.36907 3.22462C9.76184 2.90427 10.3408 2.92686 10.707 3.29298L15.707 8.29298L15.7753 8.36915C16.0957 8.76192 16.0731 9.34092 15.707 9.70704C15.3408 10.0732 14.7618 10.0958 14.3691 9.7754L14.2929 9.70704L10.9999 6.41407V16C10.9999 16.5523 10.5522 17 9.99992 17C9.44764 17 8.99992 16.5523 8.99992 16Z" />
+                    )}
                   </svg>
                 </button>
               </div>

@@ -143,6 +143,7 @@ export const aiService = {
     requestId,
     queueJobId,
     aiJobId,
+    signal,
   }) => {
     if (!process.env.GROQ_API_KEY) {
       throw new ApiError(500, "Missing GROQ_API_KEY");
@@ -181,7 +182,7 @@ export const aiService = {
     console.log("Files count:", processedFiles.length);
     console.log("Built user content:\n", userContent);
 
-    const MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+    const MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
     console.log("Model:", MODEL);
     console.log("System prompt SHA256:", promptSignature.sha256);
@@ -213,6 +214,7 @@ export const aiService = {
             },
           ],
         }),
+        signal,
       },
     );
 

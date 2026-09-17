@@ -818,57 +818,6 @@ function EnhacerHeader() {
               </span>
             )}
           </div>
-          <div
-            className={`mt-1 ml-2 flex flex-row items-center gap-1 pl-3 py-2.5 pr-5  rounded-2xl  transition-all duration-200 ease-(--grok-ease) hover:-translate-y dark:hover:bg-neutral-700/60 cursor-pointer
-            ${isOpen ? "hover:bg-gray-100" : ""}`}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              width={20}
-              height={20}
-              className="shrink-0 flex items-center justify-center w-5 h-5"
-              preserveAspectRatio="xMidYMid meet"
-            >
-              <defs>
-                <clipPath id="lottie_clip_371">
-                  <rect width={24} height={24} x={0} y={0} />
-                </clipPath>
-              </defs>
-
-              <g clipPath="url(#lottie_clip_371)">
-                {/* Bottom rounded bar */}
-                <g transform="translate(12 15.25)">
-                  <path
-                    d="M-8.5,-4.25 H8.5 V-2.15 C8.5,0.09 8.5,1.21 8.064,2.066 C7.681,2.819 7.069,3.431 6.316,3.814 C5.46,4.25 4.34,4.25 2.1,4.25 H-2.1 C-4.34,4.25 -5.46,4.25 -6.316,3.814 C-7.069,3.431 -7.681,2.819 -8.064,2.066 C-8.5,1.21 -8.5,0.09 -8.5,-2.15 Z"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="butt"
-                    strokeLinejoin="miter"
-                    fill="none"
-                  />
-                </g>
-
-                {/* Top container */}
-                <g transform="translate(12 8.25)">
-                  <path
-                    d="M8.5,3.75 V-1.75 H1 L-3,-3.75 H-8.5 V3.75"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="butt"
-                    strokeLinejoin="miter"
-                    fill="none"
-                  />
-                </g>
-              </g>
-            </svg>
-
-            {isOpen && (
-              <span className="ml-2 flex  flex-row font-medium text-[15px]   ">
-                Project
-              </span>
-            )}
-          </div>
           {/* --- HISTORY MENU BUTTON --- */}
           <div
             className={`mt-1 ml-2 flex flex-row items-center gap-2 pl-3 py-2.5 pr-5 rounded-2xl transition-all duration-800  hover:-translate-y dark:hover:bg-neutral-700/60 cursor-pointer ${
@@ -1087,7 +1036,10 @@ function EnhacerHeader() {
                           onClick={(e) => e.stopPropagation()}
                           className="fixed w-36 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-xl z-[99999] text-sm"
                           style={{
-                            left: '200px',
+                            left: `${Math.min(
+                              (buttonRects.current[conv._id]?.left ?? 200),
+                              (typeof window !== "undefined" ? window.innerWidth : 1024) - 154,
+                            )}px`,
                             top: `${buttonRects.current[conv._id]?.top || 0}px`,
                           }}
                         >
@@ -1209,9 +1161,13 @@ function EnhacerHeader() {
                         <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
                           Settings
                         </button>
-                        <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
+                        <Link 
+                          href="/Pricing"
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm block"
+                          onClick={() => setIsProfileMenuOpen(false)}
+                        >
                           Upgrade plan
-                        </button>
+                        </Link>
                         <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
                           Help
                         </button>

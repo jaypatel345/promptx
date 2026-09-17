@@ -3,6 +3,10 @@ import { conversationRepository } from "../repositories/conversation.repository.
 import ApiError from "../utils/ApiError.js";
 import aiJobModel from "../models/aiJob.model.js";
 import aiJobQueue from "../queues/aiJob.queue.js";
+import {
+  getAiJobId,
+  cancelAiJobIfActive,
+} from "../repositories/aiJob.repository.js";
 import mongoose from "mongoose";
 
 const firstValue = (value) => (Array.isArray(value) ? value[0] : value);
@@ -244,6 +248,9 @@ export const chatService = {
       aiJobId: aiJob._id?.toString(),
     });
 
+    aiJob.queueJobId = String(queueJob.id);
+    await aiJob.save();
+
     // -------------------------
     // 8. Return response
     // -------------------------
@@ -252,6 +259,69 @@ export const chatService = {
       data: {
         userMessage: userMessageDoc,
         aiJobId: aiJob._id,
+      },
+    };
+  },
+
+  cancelJob: async (req) => {
+    const aiJobId = String(firstValue(req.params?.aiJobId) || "").trim();
+    const requestId = req.requestId;
+    const userId = req.user?._id?.toString();
+    const guestId = firstValue(req.query?.guestId);
+
+    if (!aiJobId || !mongoose.Types.ObjectId.isValid(aiJobId)) {
+      throw new ApiError(400, "aiJobId must be a valid MongoDB ObjectId");
+    }
+
+    const aiJob = await getAiJobId(aiJobId);
+
+    if (!aiJob) {
+      throw new ApiError(404, "AI job not found");
+    }
+
+    const ownedByRequester = req.user
+      ? aiJob.userId === userId
+      : Boolean(guestId) && aiJob.guestId === guestId;
+
+    if (!ownedByRequester) {
+      throw new ApiError(404, "AI job not found");
+    }
+
+    const cancelled = await cancelAiJobIfActive(aiJobId);
+
+    logChatEvent("info", "chat.ai_job.cancel_requested", {
+      requestId,
+      aiJobId,
+      cancelled: Boolean(cancelled),
+      statusBefore: aiJob.status,
+    });
+
+    // Best-effort: drop it from the queue if it hasn't started running yet.
+    // If it's already "processing", the worker itself polls aiJob.status and
+    // aborts the in-flight AI request when it sees "cancelled".
+    if (cancelled && aiJob.queueJobId) {
+      try {
+        const queueJob = await aiJobQueue.getJob(aiJob.queueJobId);
+        if (queueJob) {
+          const state = await queueJob.getState();
+          if (state === "waiting" || state === "delayed") {
+            await queueJob.remove();
+          }
+        }
+      } catch (err) {
+        logChatEvent("error", "chat.ai_job.queue_remove_failed", {
+          requestId,
+          aiJobId,
+          error: err.message,
+        });
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        aiJobId,
+        status: cancelled?.status || aiJob.status,
       },
     };
   },

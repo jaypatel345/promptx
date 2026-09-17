@@ -1,5 +1,5 @@
 import express from "express";
-import { sendMessage } from "../controllers/chat.controller.js";
+import { sendMessage, cancelMessage } from "../controllers/chat.controller.js";
 import multer from "multer";
 import { optionalAuth } from "../middlewares/auth.middleware.js";
 
@@ -8,5 +8,6 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // single unified route
 router.post("/chat/send", optionalAuth, upload.any(), sendMessage);
+router.post("/chat/cancel/:aiJobId", optionalAuth, cancelMessage);
 
 export default router;

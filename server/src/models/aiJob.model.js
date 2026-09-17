@@ -27,8 +27,12 @@ const aiJobSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "processing", "completed", "failed"],
+      enum: ["pending", "processing", "completed", "failed", "cancelled"],
       default: "pending",
+    },
+    queueJobId: {
+      type: String,
+      default: null,
     },
     error: {
       type: String,
@@ -39,6 +43,10 @@ const aiJobSchema = new mongoose.Schema(
       default: null,
     },
     completedAt: {
+      type: Date,
+      default: null,
+    },
+    cancelledAt: {
       type: Date,
       default: null,
     },

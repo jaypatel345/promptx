@@ -29,7 +29,7 @@ export default function Header() {
   });
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [headerKey, setHeaderKey] = useState(0);
 
@@ -44,6 +44,18 @@ export default function Header() {
   const handleGoogleLogin = () => {
     window.location.href = `${API_BASE}/auth/google`;
   };
+
+  type NavLink = { label: string; href: string };
+
+  const navLinks: NavLink[] = [
+    { label: "Prompt Enhancer", href: "/Enhancer" },
+    { label: "Prompt Templates", href: "/Templates" },
+    { label: "Prompt Engineering", href: "/Engineering" },
+    { label: "AI Tools", href: "/AITools" },
+    { label: "Learn", href: "/Learn" },
+    { label: "Pricing", href: "/Pricing" },
+    { label: "For Teams", href: "/Teams" },
+  ];
 
   const grokStyles = `
 @keyframes grokDropdown {
@@ -87,15 +99,64 @@ export default function Header() {
   useEffect(() => {
     const checkLogin = async () => {
       try {
-        const res = await apiClient.get(`/user/me`);
-        const isGuest = !!res.data?.data?.isGuest;
-        const dataUser = res.data?.data?.user || null;
-        setIsLoggedIn(!!res.data?.success && !!dataUser && !isGuest);
+        // Check localStorage cache first
+        const cachedAuth = localStorage.getItem('authState');
+        const cachedProfile = localStorage.getItem('userProfile');
+        
+        if (cachedAuth && cachedProfile) {
+          const authData = JSON.parse(cachedAuth);
+          const profileData = JSON.parse(cachedProfile);
+          
+          // Use cached data immediately
+          setIsLoggedIn(authData.isLoggedIn);
+          setUserProfile(profileData);
+          setAuthChecked(true);
+          
+          // Verify in background without blocking UI
+          apiClient.get(`/user/me`).then(res => {
+            const isGuest = !!res.data?.data?.isGuest;
+            const dataUser = res.data?.data?.user || null;
+            const newIsLoggedIn = !!res.data?.success && !!dataUser && !isGuest;
+            
+            // Update if state changed
+            if (newIsLoggedIn !== authData.isLoggedIn || 
+                JSON.stringify(dataUser) !== JSON.stringify(profileData)) {
+              setIsLoggedIn(newIsLoggedIn);
+              setUserProfile(!isGuest ? dataUser : null);
+              
+              // Update cache
+              localStorage.setItem('authState', JSON.stringify({ isLoggedIn: newIsLoggedIn }));
+              localStorage.setItem('userProfile', JSON.stringify(!isGuest ? dataUser : null));
+            }
+          }).catch(error => {
+            console.error("Auth verification failed:", error);
+            // Clear cache on error
+            localStorage.removeItem('authState');
+            localStorage.removeItem('userProfile');
+            setIsLoggedIn(false);
+            setUserProfile(null);
+          });
+        } else {
+          // No cache, make API call
+          const res = await apiClient.get(`/user/me`);
+          const isGuest = !!res.data?.data?.isGuest;
+          const dataUser = res.data?.data?.user || null;
+          const newIsLoggedIn = !!res.data?.success && !!dataUser && !isGuest;
+          
+          setIsLoggedIn(newIsLoggedIn);
           setUserProfile(!isGuest ? dataUser : null);
-              } catch (error) {
+          
+          // Cache the results
+          localStorage.setItem('authState', JSON.stringify({ isLoggedIn: newIsLoggedIn }));
+          localStorage.setItem('userProfile', JSON.stringify(!isGuest ? dataUser : null));
+        }
+      } catch (error) {
         console.error("Auth check failed:", error);
         setIsLoggedIn(false);
         setUserProfile(null);
+        // Clear cache on error
+        localStorage.removeItem('authState');
+        localStorage.removeItem('userProfile');
       } finally {
         setAuthChecked(true);
       }
@@ -141,8 +202,14 @@ export default function Header() {
         const me = await apiClient.get(`/user/me`);
         const isGuest = !!me.data?.data?.isGuest;
         const dataUser = me.data?.data?.user || null;
-        setIsLoggedIn(!!me.data?.success && !!dataUser && !isGuest);
+        const newIsLoggedIn = !!me.data?.success && !!dataUser && !isGuest;
+        
+        setIsLoggedIn(newIsLoggedIn);
         setUserProfile(!isGuest ? dataUser : null);
+        
+        // Update cache
+        localStorage.setItem('authState', JSON.stringify({ isLoggedIn: newIsLoggedIn }));
+        localStorage.setItem('userProfile', JSON.stringify(!isGuest ? dataUser : null));
         
         setAuthChecked(true);
         setIsLoginOpen(false);
@@ -160,6 +227,10 @@ export default function Header() {
       await apiClient.post(`/auth/logout`, {});
         setIsLoggedIn(false);
         setUserProfile(null);
+        
+        // Clear cache
+        localStorage.removeItem('authState');
+        localStorage.removeItem('userProfile');
           } catch (error) {
       console.error("Logout failed:", error);
     } finally {
@@ -183,7 +254,7 @@ export default function Header() {
 xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
   "
       >
-        <div className="flex justify-between items-center mx-3 sm:mx-4 md:mx-5 py-2.5 sm:py-3 overflow-visible">
+        <div className="relative flex justify-between items-center mx-3 sm:mx-4 md:mx-5 py-2.5 sm:py-3 overflow-visible">
           {/* Left: Logo */}
           <div className="flex items-center text-2xl sm:text-4xl font-semibold">
             <div className="relative h-10 w-auto">
@@ -204,40 +275,69 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                   width={100}
                   height={100}
                   alt="promptx logo"
+                  priority
                   className="ml-10 sm:ml-13 mt-1.5 w-40 h-8 md:h-8  object-contain "
                 />
               </Link>
             </div>
-
-            {/* Mobile Menu Toggle */}
-            {/* <div
-              className="absolute left-20  md:left-25 top-4 sm:top-5 cursor-pointer sm:relative sm:left-auto ml-8 sm:ml-14 md:top-0.5 mt-1.5 md:mt-0"
-              onClick={() => setIsNavOpen(!isNavOpen)}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                className={
-                  isNavOpen
-                    ? "text-black dark:text-gray-400 sm:w-[18px] sm:h-[18px]"
-                    : "text-gray-400 sm:w-[18px] sm:h-[18px]"
-                }
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                  d="M9.35719 3H14.6428C15.7266 2.99999 16.6007 2.99998 17.3086 3.05782C18.0375 3.11737 18.6777 3.24318 19.27 3.54497C20.2108 4.02433 20.9757 4.78924 21.455 5.73005C21.7568 6.32234 21.8826 6.96253 21.9422 7.69138C22 8.39925 22 9.27339 22 10.3572V13.6428C22 14.7266 22 15.6008 21.9422 16.3086C21.8826 17.0375 21.7568 17.6777 21.455 18.27C20.9757 19.2108 20.2108 19.9757 19.27 20.455C18.6777 20.7568 18.0375 20.8826 17.3086 20.9422C16.6008 21 15.7266 21 14.6428 21H9.35717C8.27339 21 7.39925 21 6.69138 20.9422C5.96253 20.8826 5.32234 20.7568 4.73005 20.455C3.78924 19.9757 3.02433 19.2108 2.54497 18.27C2.24318 17.6777 2.11737 17.0375 2.05782 16.3086C1.99998 15.6007 1.99999 14.7266 2 13.6428V10.3572C1.99999 9.27341 1.99998 8.39926 2.05782 7.69138C2.11737 6.96253 2.24318 6.32234 2.54497 5.73005C3.02433 4.78924 3.78924 4.02433 4.73005 3.54497C5.32234 3.24318 5.96253 3.11737 6.69138 3.05782C7.39926 2.99998 8.27341 2.99999 9.35719 3ZM6.85424 5.05118C6.24907 5.10062 5.90138 5.19279 5.63803 5.32698C5.07354 5.6146 4.6146 6.07354 4.32698 6.63803C4.19279 6.90138 4.10062 7.24907 4.05118 7.85424C4.00078 8.47108 4 9.26339 4 10.4V13.6C4 14.7366 4.00078 15.5289 4.05118 16.1458C4.10062 16.7509 4.19279 17.0986 4.32698 17.362C4.6146 17.9265 5.07354 18.3854 5.63803 18.673C5.90138 18.8072 6.24907 18.8994 6.85424 18.9488C7.17922 18.9754 7.55292 18.9882 8 18.9943V5.0057C7.55292 5.01184 7.17922 5.02462 6.85424 5.05118ZM10 5V19H14.6C15.7366 19 16.5289 18.9992 17.1458 18.9488C17.7509 18.8994 18.0986 18.8072 18.362 18.673C18.9265 18.3854 19.3854 17.9265 19.673 17.362C19.8072 17.0986 19.8994 16.7509 19.9488 16.1458C19.9992 15.5289 20 14.7366 20 13.6V10.4C20 9.26339 19.9992 8.47108 19.9488 7.85424C19.8994 7.24907 19.8072 6.90138 19.673 6.63803C19.3854 6.07354 18.9265 5.6146 18.362 5.32698C18.0986 5.19279 17.7509 5.10062 17.1458 5.05118C16.5289 5.00078 15.7366 5 14.6 5H10Z"
-                  fill="currentColor"
-                ></path>
-              </svg>
-            </div> */}
           </div>
+
+          {/* Center: Nav Links (Desktop) */}
+          <nav className="hidden xl:flex absolute left-1/2 -translate-x-1/2 items-center gap-6 text-[14px] font-medium text-black/60 dark:text-white/60">
+            {navLinks.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`hover:text-black dark:hover:text-white transition-colors whitespace-nowrap ${
+                  pathname === item.href ? "text-black dark:text-white" : ""
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
 
           {/* Right: Search + Login */}
           <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
+{/* Mobile Nav Toggle */}
+            <button
+              aria-label={isNavOpen ? "Close menu" : "Open menu"}
+              className="xl:hidden p-1 sm:p-2 rounded-full hover:bg-gray-100 transition dark:hover:bg-gray-700/40"
+              onClick={() => setIsNavOpen(!isNavOpen)}
+            >
+              {isNavOpen ? (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-black dark:text-white sm:w-5 sm:h-5"
+                >
+                  <path d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              ) : (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-black dark:text-white sm:w-5 sm:h-5"
+                >
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <line x1="3" y1="12" x2="21" y2="12"></line>
+                  <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+              )}
+            </button>
+
 {/* Search Button */}
             <button
               aria-label="Search"
@@ -267,10 +367,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
 
             {/* Right Slot */}
             <div className="w-[88px] sm:w-24 flex justify-end">
-{/* LOADING STATE */}
-              {!authChecked ? (
-                <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-neutral-700 animate-pulse" />
-              ) : userProfile ? (
+              {userProfile ? (
                 /* LOGGED IN STATE */
                 <div
                   ref={profileMenuRef}
@@ -289,6 +386,7 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                         src={userProfile.avatar}
                         alt="User avatar"
                         referrerPolicy="no-referrer"
+                        loading="lazy"
                         className="w-full h-full object-cover rounded-full"
                         onError={(e) => {
                                                     e.currentTarget.src = "/avatar.svg";
@@ -318,11 +416,13 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
                       <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
                         Settings
                       </button>
-
-                      <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
+                      <Link 
+                        href="/Pricing"
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm block"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                      >
                         Upgrade plan
-                      </button>
-
+                      </Link>
                       <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
                         Help
                       </button>
@@ -357,6 +457,29 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
             </div>
           </div>
         </div>
+
+        {/* Mobile Nav Dropdown */}
+        {isNavOpen && (
+          <nav className="xl:hidden absolute top-full left-0 w-full bg-white dark:bg-black border-t border-gray-100 dark:border-neutral-800 shadow-sm">
+            <ul className="flex flex-col px-4 sm:px-5 py-2 text-sm">
+              {navLinks.map((item) => (
+                <li key={item.label}>
+                  <Link
+                    href={item.href}
+                    onClick={() => setIsNavOpen(false)}
+                    className={`block py-3 hover:text-black dark:hover:text-white transition-colors ${
+                      pathname === item.href
+                        ? "text-black dark:text-white"
+                        : "text-black/70 dark:text-white/70"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
       </header>
 
       {/* SiteAssistantModal replaces legacy search modal */}
@@ -524,111 +647,6 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
         </>
       )}
 
-      {/* Navbar */}
-      {/* <nav
-        className={`fixed h-screen bg-white transition-transform duration-300 z-30 sm:w-64 w-56 top-0 dark:text-white dark:bg-black   ${
-          isNavOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <ul className=" mt-40 flex flex-col gap-7 text-sm  pl-6 sm:pl-10 text-black dark:text-white dark:bg-black  ">
-          <li>
-            <Link
-              href="/"
-              className={` ${
-                pathname == "/"
-                  ? "text-gray-700/70 hover:text-black dark:text-gray-200/60 dark:hover:text-white"
-                  : ""
-              } hover:text-xl  transition-all duration-400 cursor-pointer hover:pl-6  pr-24   `}
-            >
-              Home
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/Enhancer"
-              className={` ${
-                pathname == "/Enhancer"
-                  ? "text-gray-700/70 hover:text-black dark:text-gray-200/60 dark:hover:text-white"
-                  : ""
-              }   hover:text-xl  transition-all duration-400 cursor-pointer hover:pl-4  py-3 pr-1  `}
-            >
-              Prompt Enhancer
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/Templates"
-              className={` ${
-                pathname == "/templates"
-                  ? "text-gray-700/70 hover:text-black dark:text-gray-200/60 dark:hover:text-white"
-                  : ""
-              }  hover:text-xl  transition-all duration-400 cursor-pointer  hover:pl-4 py-3      `}
-            >
-              Prompt Templates
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/Engineering"
-              className={` ${
-                pathname == "/guides"
-                  ? "text-gray-700/70 hover:text-black dark:text-gray-200/60 dark:hover:text-white"
-                  : ""
-              }  hover:text-xl  transition-all duration-400 cursor-pointer hover:pl-4 py-3   pr-1  `}
-            >
-              Prompt Engineering
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/AITools"
-              className={` ${
-                pathname == "/AiTools"
-                  ? "text-gray-700/70 hover:text-black dark:text-gray-200/60 dark:hover:text-white"
-                  : ""
-              }  hover:text-xl  transition-all duration-400 cursor-pointer hover:pl-4 py-3   pr-26  `}
-            >
-              AI Tools
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/Learn"
-              className={` ${
-                pathname == "/learn"
-                  ? "text-gray-700/70 hover:text-black dark:text-gray-200/60 dark:hover:text-white"
-                  : ""
-              }  hover:text-xl  transition-all duration-400 cursor-pointer hover:pl-4 py-3   pr-30   `}
-            >
-              Learn
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/Pricing"
-              className={` ${
-                pathname == "/pricing"
-                  ? "text-gray-700/70 hover:text-black dark:text-gray-200/60 dark:hover:text-white"
-                  : ""
-              } hover:text-xl  transition-all duration-400 cursor-pointer  hover:pl-4 py-3   pr-29  `}
-            >
-              Pricing
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/Teams"
-              className={` ${
-                pathname == "/teams"
-                  ? "text-gray-700/70 hover:text-black dark:text-gray-200/60 dark:hover:text-white"
-                  : ""
-              } hover:text-xl  transition-all duration-400 cursor-pointer  hover:pl-4 py-3    pr-20 `}
-            >
-              For Teams
-            </Link>
-          </li>
-        </ul>
-      </nav> */}
     </div>
   );
 }
