@@ -1,23 +1,22 @@
-"use client";
+import type { Metadata } from "next";
+import { createCanonical, defaultOpenGraph } from "@/lib/seo";
+import HomeClient from "./HomeClient";
 
-import Features from "@/components/home/features";
-import Footer from "@/components/home/footer";
-import Header from "@/components/home/header";
-import Herosection from "@/components/home/herosection";
-import Overview from "@/components/home/overview";
-import Image from "next/image";
-import { motion } from "framer-motion";
+const TITLE = "AI Prompt Enhancer for ChatGPT, Claude & Gemini | PromptX";
+const DESCRIPTION =
+  "PromptX is an AI prompt enhancer that helps you rewrite, optimize, and structure prompts for better results across ChatGPT and other AI tools.";
 
-export default function Home() {
-  return (
-    <>
-      <div className="overflow-x-hidden">
-        <Header />
-        <Herosection />
-        <Overview />
-        <Features />
-        <Footer />
-      </div>
-    </>
-  );
+export const metadata: Metadata = {
+  // absolute bypasses the root layout's title template so this exact string
+  // renders as-is (it already includes the "| PromptX" brand suffix).
+  title: { absolute: TITLE },
+  description: DESCRIPTION,
+  alternates: {
+    canonical: createCanonical("/"),
+  },
+  openGraph: defaultOpenGraph("/", TITLE, DESCRIPTION),
+};
+
+export default function Page() {
+  return <HomeClient />;
 }

@@ -1,4 +1,20 @@
 import React from "react";
+import type { Metadata } from "next";
+import { createCanonical } from "@/lib/seo";
+
+// Coming soon — keep this out of search results until real content ships,
+// rather than let a thin placeholder page get indexed and rank.
+export const metadata: Metadata = {
+  title: { absolute: "AI Tools — Coming Soon | PromptX" },
+  description: "PromptX's AI tools directory is on the way. Check back soon.",
+  alternates: {
+    canonical: createCanonical("/ai-tools"),
+  },
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
 
 export default function Page() {
   return (

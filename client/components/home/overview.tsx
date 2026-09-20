@@ -33,9 +33,12 @@ function Overview() {
                 X
               </span>
             </div>
-            <div className="md:mt-0 mt-8 ">
+            <div className="md:mt-0 mt-8 max-w-md">
               Unlock clearer, smarter, and more precise AI responses powered by
-              advanced prompt enhancement technology.
+              advanced prompt enhancement technology. PromptX analyzes your
+              request, fills in missing context, and restructures it into a
+              prompt built for the model you&apos;re using — so you get better
+              answers on the first try, not the fifth.
             </div>
           </div>
         </motion.div>
@@ -44,12 +47,12 @@ function Overview() {
           <Image
             src={
               theme == "light"
-                ? "/Screenshot 2025-11-29 at 12.31.41 AM.png"
-                : "/Screenshot 2025-11-29 at 12.47.52 AM.png"
+                ? "/promptx-chat-preview-desktop-a.webp"
+                : "/promptx-chat-preview-desktop-b.webp"
             }
             width={1200}
             height={700}
-            alt=""
+            alt="PromptX AI chat interface showing the prompt input screen with quick-action shortcuts"
             className="mt-20 w-full h-auto border-x-2 border-t-4 rounded-t-3xl border-gray-500 dark:border-gray-300"
           />
         </div>
@@ -60,19 +63,19 @@ function Overview() {
             <Image
               src={
                 theme == "light"
-                  ? "/Screenshot 2025-11-29 at 1.42.57 AM.png"
-                  : "/Screenshot 2025-11-29 at 1.39.37 AM.png"
+                  ? "/promptx-chat-preview-mobile-a.webp"
+                  : "/promptx-chat-preview-mobile-b.webp"
               }
               width={300}
               height={700}
-              alt=""
+              alt="PromptX AI chat interface shown on a narrower screen size"
               className="relative -right-1/3 md:-right-1/2 w-auto h-[300px] sm:h-[400px] md:h-[600px] object-contain border-x-2 border-t-4 rounded-t-3xl border-gray-500 dark:border-gray-300"
             />
             {/* Bottom fade effect */}
           </div>
         </div>
         <div className="flex flex-wrap gap-4 text-black bg-white text-xs font-medium items-center justify-center mt-28 px-4  dark:text-white dark:bg-black">
-          <Link href="/Enhancer">
+          <Link href="/enhancer">
             <button className="border text-[11px] md:text-[12px] border-gray-400 rounded-full px-4 py-3 flex justify-center items-center gap-1 hover:bg-black/85 cursor-pointer bg-black text-white whitespace-nowrap dark:text-black dark:bg-white dark:hover:bg-white/90">
               PROMPTX WEB{" "}
               <svg

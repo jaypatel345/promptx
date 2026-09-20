@@ -136,6 +136,8 @@ const processAiJob = async (job) => {
       requestId,
       queueJobId: job.id,
       aiJobId,
+      model: aiJob.model,
+      targetModel: aiJob.targetModel,
       signal: abortController.signal,
     });
   } catch (err) {
@@ -173,7 +175,7 @@ const processAiJob = async (job) => {
       user_id: historyUserId,
       prompt: userMessage.content,
       response: aiResponse.content,
-      model: process.env.GROQ_MODEL || "llama-3",
+      model: aiResponse.model,
     };
 
     try {

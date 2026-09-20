@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { API_BASE } from "@/lib/apiBase";
+import { DEFAULT_TARGET_MODEL } from "@/lib/models";
 
 export interface Message {
   _id?: string;
@@ -29,10 +30,14 @@ interface ChatContextType {
   conversations: ConversationMeta[];
   loadingHistory: boolean;
   guestId: string | null;
+  // Which LLM the user plans to paste the enhanced prompt into (ChatGPT,
+  // Claude, Gemini, ...) — not the engine used to generate the enhancement.
+  targetModel: string;
 
   setConversationId: React.Dispatch<React.SetStateAction<string | null>>;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   setConversations: React.Dispatch<React.SetStateAction<ConversationMeta[]>>;
+  setTargetModel: (targetModel: string) => void;
 
   startNewChat: () => void;
   loadConversation: (id: string, msgs: Message[]) => void;
@@ -47,6 +52,7 @@ export function ChatContextProvider({ children }: { children: React.ReactNode })
   const [conversations, setConversations] = useState<ConversationMeta[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [guestId, setGuestId] = useState<string | null>(null);
+  const [targetModel, setTargetModelState] = useState<string>(DEFAULT_TARGET_MODEL);
 
   // Load from localStorage on boot
   useEffect(() => {
@@ -67,7 +73,15 @@ export function ChatContextProvider({ children }: { children: React.ReactNode })
 
     if (savedConversationId) setConversationIdState(savedConversationId);
     if (savedMessages) setMessagesState(JSON.parse(savedMessages));
+
+    const savedTargetModel = localStorage.getItem("targetModel");
+    if (savedTargetModel) setTargetModelState(savedTargetModel);
   }, []);
+
+  const setTargetModel = (next: string) => {
+    setTargetModelState(next);
+    localStorage.setItem("targetModel", next);
+  };
 
   // Persist conversationId
   useEffect(() => {
@@ -109,9 +123,11 @@ export function ChatContextProvider({ children }: { children: React.ReactNode })
         conversations,
         loadingHistory,
         guestId,
+        targetModel,
         setConversationId: setConversationIdState,
         setMessages: setMessagesState,
         setConversations,
+        setTargetModel,
         startNewChat,
         loadConversation,
         refreshHistory,

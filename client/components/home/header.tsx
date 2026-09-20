@@ -48,11 +48,11 @@ export default function Header() {
   type NavLink = { label: string; href: string };
 
   const navLinks: NavLink[] = [
-    { label: "Prompt Enhancer", href: "/Enhancer" },
+    { label: "Prompt Enhancer", href: "/enhancer" },
     { label: "Prompt Templates", href: "/Templates" },
-    { label: "Prompt Engineering", href: "/Engineering" },
-    { label: "AI Tools", href: "/AITools" },
-    { label: "Learn", href: "/Learn" },
+    { label: "Prompt Engineering", href: "/engineering" },
+    { label: "AI Tools", href: "/ai-tools" },
+    { label: "Learn", href: "/learn" },
     { label: "Pricing", href: "/Pricing" },
     { label: "For Teams", href: "/Teams" },
   ];

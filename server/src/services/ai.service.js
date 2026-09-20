@@ -2,6 +2,8 @@ import fetch from "node-fetch";
 import ApiError from "../utils/ApiError.js";
 import { getPromptSignature } from "../utils/promptSignature.js";
 import { SYSTEM_PROMPT } from "../prompts/systemPrompt.js";
+import { resolveModel } from "../config/models.js";
+import { resolveTargetModel, getTargetModelGuidance } from "../prompts/targetModelStyles.js";
 
 const MAX_INLINE_BYTES = 200000;
 
@@ -143,6 +145,8 @@ export const aiService = {
     requestId,
     queueJobId,
     aiJobId,
+    model,
+    targetModel,
     signal,
   }) => {
     if (!process.env.GROQ_API_KEY) {
@@ -158,6 +162,10 @@ export const aiService = {
     const userContent = buildUserContent(message, processedFiles);
     const promptSignature = getPromptSignature(SYSTEM_PROMPT);
 
+    const resolvedTargetModel = resolveTargetModel(targetModel);
+    const targetGuidance = getTargetModelGuidance(resolvedTargetModel);
+    const finalSystemPrompt = `${SYSTEM_PROMPT}\n\n${targetGuidance.guidance}`;
+
     console.log(
       JSON.stringify({
         level: "info",
@@ -170,6 +178,7 @@ export const aiService = {
         pid: process.pid,
         messageLength: message.length,
         fileCount: processedFiles.length,
+        targetModel: resolvedTargetModel,
         systemPromptSha256: promptSignature.sha256,
         systemPromptPreview: promptSignature.preview,
       }),
@@ -182,9 +191,10 @@ export const aiService = {
     console.log("Files count:", processedFiles.length);
     console.log("Built user content:\n", userContent);
 
-    const MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+    const MODEL = resolveModel(model);
 
     console.log("Model:", MODEL);
+    console.log("Target model:", resolvedTargetModel);
     console.log("System prompt SHA256:", promptSignature.sha256);
     console.log("System prompt preview:", promptSignature.preview);
 
@@ -206,7 +216,7 @@ export const aiService = {
           messages: [
             {
               role: "system",
-              content: SYSTEM_PROMPT,
+              content: finalSystemPrompt,
             },
             {
               role: "user",
@@ -251,6 +261,7 @@ export const aiService = {
       content,
       usage: data?.usage || null,
       model: MODEL,
+      targetModel: resolvedTargetModel,
     };
   },
 };

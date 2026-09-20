@@ -25,6 +25,14 @@ const aiJobSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    model: {
+      type: String,
+      default: null,
+    },
+    targetModel: {
+      type: String,
+      default: null,
+    },
     status: {
       type: String,
       enum: ["pending", "processing", "completed", "failed", "cancelled"],

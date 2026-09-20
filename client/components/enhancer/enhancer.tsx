@@ -9,6 +9,7 @@ import axios from "axios";
 import { useChat } from "@/context/ChatContext";
 import type { Message as ChatMessage } from "@/context/ChatContext";
 import { API_BASE } from "@/lib/apiBase";
+import { TARGET_MODELS } from "@/lib/models";
 
 axios.defaults.withCredentials = true;
 
@@ -29,7 +30,14 @@ function Enhancer() {
     setConversationId,
     refreshHistory,
     guestId,
+    targetModel,
+    setTargetModel,
   } = useChat();
+  const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
+  const modelButtonRef = useRef<HTMLButtonElement>(null);
+  const modelMenuRef = useRef<HTMLDivElement>(null);
+  const activeTargetModel =
+    TARGET_MODELS.find((m) => m.id === targetModel) ?? TARGET_MODELS[0];
   const { theme } = useTheme();
   const { isNavOpen, setIsNavOpen, isOpen, setIsOpen } = useUi();
 
@@ -387,6 +395,41 @@ function Enhancer() {
     };
   }, [isUploadMenuOpen]);
 
+  //  Close model menu on outside click / Escape
+  useEffect(() => {
+    if (!isModelMenuOpen) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+
+      const clickedButton =
+        modelButtonRef.current && target
+          ? modelButtonRef.current.contains(target)
+          : false;
+
+      const clickedMenu =
+        modelMenuRef.current && target
+          ? modelMenuRef.current.contains(target)
+          : false;
+
+      if (!clickedButton && !clickedMenu) {
+        setIsModelMenuOpen(false);
+      }
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsModelMenuOpen(false);
+    };
+
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isModelMenuOpen]);
+
   // Auto-resize textarea
   useEffect(() => {
     if (!textareaRef.current) return;
@@ -513,35 +556,13 @@ function Enhancer() {
       setInput("");
       setAttachments([]);
 
-      // create conversation if missing
+      // A brand-new chat has no conversationId yet — rather than awaiting a
+      // separate POST /conversations first (an extra network round trip
+      // that made a new user's first message feel slow), the backend now
+      // creates the conversation inline as part of /chat/send and hands
+      // back its id.
       let activeConversationId = conversationId;
 
-      if (!activeConversationId) {
-        const res = await fetch(`${API}/conversations`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            title: userMessage.slice(0, 30),
-            guestId: localStorage.getItem("guestId"),
-          }),
-          signal: abortController.signal,
-        });
-
-        const data = await res.json();
-
-        activeConversationId = data?.data?.conversationId;
-
-        if (!activeConversationId) {
-          throw new Error("Failed to create conversation");
-        }
-
-        setConversationId(activeConversationId);
-      }
-
-      // send message
       const gid = localStorage.getItem("guestId");
 
       const chatUrl =
@@ -554,9 +575,12 @@ function Enhancer() {
       if (outgoingAttachments.length > 0) {
         const formData = new FormData();
 
-        formData.append("conversationId", activeConversationId);
+        if (activeConversationId) {
+          formData.append("conversationId", activeConversationId);
+        }
 
         formData.append("content", userMessage);
+        formData.append("targetModel", targetModel);
 
         outgoingAttachments.forEach((a) => {
           formData.append("files", a.file);
@@ -576,8 +600,9 @@ function Enhancer() {
           },
           credentials: "include",
           body: JSON.stringify({
-            conversationId: activeConversationId,
+            conversationId: activeConversationId || undefined,
             content: userMessage,
+            targetModel,
           }),
           signal: abortController.signal,
         });
@@ -589,6 +614,12 @@ function Enhancer() {
 
       const sendResult = await res.json().catch(() => null);
       activeAiJobIdRef.current = sendResult?.data?.aiJobId ?? null;
+
+      const returnedConversationId = sendResult?.data?.conversationId;
+      if (returnedConversationId && returnedConversationId !== activeConversationId) {
+        activeConversationId = returnedConversationId;
+        setConversationId(returnedConversationId);
+      }
 
       // POLLING EVERY SECOND, with a timeout so a stuck AI job doesn't spin forever
       const MAX_POLL_ATTEMPTS = 60; // ~60 seconds
@@ -788,6 +819,10 @@ function Enhancer() {
 
       {/* Chat Messages Area */}
       <div className="flex flex-col flex-1 min-h-0">
+        {/* Visually hidden but crawlable/accessible page heading — the
+            visible landing copy below ("What can I help with?") is
+            intentionally conversational, not keyword-first. */}
+        <h1 className="sr-only">AI Prompt Enhancer</h1>
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
@@ -939,7 +974,7 @@ function Enhancer() {
                           : message.role === "user"
                             ? "bg-gray-100 text-black dark:bg-neutral-700 dark:text-white "
                             : "text-black dark:text-white"
-                      } rounded-2xl px-4 py-3 `}
+                      } rounded-2xl px-4 py-2.5 `}
                     >
                       {/*  Show attachments inside the chat bubble */}
                       {message.attachments?.length ? (
@@ -1003,7 +1038,7 @@ function Enhancer() {
                       (isTyping &&
                         index === messages.length - 1 &&
                         message.role === "assistant") ? (
-                        <p className="text-sm whitespace-pre-wrap wrap-break-word flex items-start gap-1.5">
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word flex items-start gap-1.5">
                           {isErrorMessage && (
                             <svg
                               width="15"
@@ -1206,7 +1241,7 @@ function Enhancer() {
           >
             {/*  relative wrapper so popup anchors */}
             <div
-              className="relative overflow-visible flex flex-col gap-1 border border-gray-300 dark:border-neutral-600 rounded-3xl w-full shadow-md bg-white dark:bg-[#0f0f0f] px-3 py-1 sm:px-4 sm:py-1.5 box-border"
+              className="relative overflow-visible flex flex-col gap-1 border border-gray-200 dark:border-neutral-600 rounded-3xl w-full shadow-[0_2px_10px_rgba(0,0,0,0.06)] focus-within:border-gray-300 dark:focus-within:border-neutral-500 transition-colors bg-white dark:bg-[#0f0f0f] px-3 py-1 sm:px-4 sm:py-1.5 box-border"
               onDrop={handleDrop}
               onDragOver={handleDragOver}
             >
@@ -1347,6 +1382,94 @@ function Enhancer() {
                     />
                   </svg>
                 </button>
+
+                {/* Target-model selector: which LLM the enhanced prompt is for */}
+                <div className="relative shrink-0">
+                  <button
+                    ref={modelButtonRef}
+                    type="button"
+                    onClick={() => setIsModelMenuOpen((v) => !v)}
+                    className="flex items-center gap-1 rounded-full border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-800/70 px-2.5 py-1 text-[12px] font-medium text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-neutral-600 transition-colors cursor-pointer"
+                    aria-haspopup="listbox"
+                    aria-expanded={isModelMenuOpen}
+                    title="Which LLM will you use this prompt with?"
+                  >
+                    <span className="truncate max-w-24 sm:max-w-none">
+                      {activeTargetModel.label}
+                    </span>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className={`shrink-0 transition-transform duration-150 ${
+                        isModelMenuOpen ? "rotate-180" : ""
+                      }`}
+                    >
+                      <path
+                        d="M6 9l6 6 6-6"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+
+                  {isModelMenuOpen && (
+                    <motion.div
+                      ref={modelMenuRef}
+                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      role="listbox"
+                      className="absolute bottom-full left-0 mb-2 w-64 rounded-2xl border border-gray-200 dark:border-neutral-600 bg-white dark:bg-[#0f0f0f] shadow-xl p-1.5"
+                    >
+                      {TARGET_MODELS.map((m) => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          role="option"
+                          aria-selected={m.id === activeTargetModel.id}
+                          onClick={() => {
+                            setTargetModel(m.id);
+                            setIsModelMenuOpen(false);
+                          }}
+                          className={`w-full rounded-xl px-3 py-2 text-left flex items-center justify-between gap-2 hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                            m.id === activeTargetModel.id
+                              ? "bg-gray-100 dark:bg-gray-800"
+                              : ""
+                          }`}
+                        >
+                          <span className="min-w-0">
+                            <span className="block text-sm font-medium text-black dark:text-white truncate">
+                              {m.label}
+                            </span>
+                            <span className="block text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                              {m.description}
+                            </span>
+                          </span>
+                          {m.id === activeTargetModel.id && (
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              className="shrink-0 text-black dark:text-white"
+                            >
+                              <path
+                                d="M5 13l4 4L19 7"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </div>
 
                 <textarea
                   ref={textareaRef}

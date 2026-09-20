@@ -16,7 +16,7 @@ function Herosection() {
       <div className="flex flex-col gap-10">
         <div className="font-medium text-sm sm:text-sm">
           prompt
-          <span className="text-black ">X</span>
+          <span className="text-black dark:text-white">X</span>
         </div>
 
         <div className="text-3xl sm:text-5xl font-medium flex flex-wrap justify-center gap-y-0 px-2 md:gap-y-2">
@@ -24,13 +24,15 @@ function Herosection() {
           <span>Get dependable outputs.</span>
         </div>
 
-        <div className="text-sm sm:text-base px-3">
-          Now with advanced AI prompt enhancement technology generating clearer,
-          more effective prompts for all users.
+        <div className="text-sm sm:text-base px-3 max-w-2xl mx-auto">
+          Now with advanced AI prompt enhancement technology that analyzes your
+          intent, adds missing context, and restructures your request into a
+          clear, effective prompt — tailored for ChatGPT, Claude, Gemini, or
+          Grok in seconds.
         </div>
 
         <div className="flex flex-row items-center justify-center gap-4">
-          <Link href="/Enhancer">
+          <Link href="/enhancer">
             <button className="text-[13px] flex items-center gap-0.5 bg-black py-2 px-4 rounded-full text-white cursor-pointer hover:bg-black/85 dark:text-black dark:bg-white dark:hover:bg-white/95">
               Start Now
               <svg
@@ -46,7 +48,7 @@ function Herosection() {
               </svg>
             </button>
           </Link>
-          <Link href="/Learn">
+          <Link href="/learn">
             <button className="text-[15px] flex items-center gap-2 hover:bg-gray-300/30 py-2 px-3 rounded-full cursor-pointer dark:hover:bg-gray-700/30">
               Learn about promptx
               <svg

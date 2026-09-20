@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/react";
+import Script from "next/script";
 import { UiProvider } from "@/context/UiContext";
 import { ThemeProvider } from "@/context/theme-context";
 import LenisProvider from "@/components/LenisProvider";
@@ -108,21 +109,26 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Google Tag (gtag.js) */}
-        <script
-          async
+        {/* Warm up the connection to Google's analytics origins ahead of
+            the scripts below, so the actual requests don't pay full
+            DNS/TLS handshake latency when they fire. */}
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="preconnect" href="https://www.google-analytics.com" />
+
+        {/* Google Tag (gtag.js) — next/script defers this until after the
+            page is interactive instead of blocking initial render. */}
+        <Script
+          strategy="afterInteractive"
           src="https://www.googletagmanager.com/gtag/js?id=G-HY2DRXLSF6"
         />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-HY2DRXLSF6');
-            `,
-          }}
-        />
+        <Script id="gtag-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-HY2DRXLSF6');
+          `}
+        </Script>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

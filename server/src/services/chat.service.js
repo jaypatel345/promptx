@@ -8,6 +8,8 @@ import {
   cancelAiJobIfActive,
 } from "../repositories/aiJob.repository.js";
 import mongoose from "mongoose";
+import { resolveModel } from "../config/models.js";
+import { resolveTargetModel } from "../prompts/targetModelStyles.js";
 
 const firstValue = (value) => (Array.isArray(value) ? value[0] : value);
 
@@ -26,12 +28,14 @@ const logChatEvent = (level, event, meta = {}) => {
 
 export const chatService = {
   sendMessage: async (req) => {
-    const conversationId = String(firstValue(req.body?.conversationId) || "").trim();
+    let conversationId = String(firstValue(req.body?.conversationId) || "").trim();
     const content = String(firstValue(req.body?.content) || "").trim();
     const attachments = req.files || [];
     const requestId = req.requestId;
     const userId = req.user?._id?.toString();
     const guestId = firstValue(req.query?.guestId);
+    const model = resolveModel(firstValue(req.body?.model));
+    const targetModel = resolveTargetModel(firstValue(req.body?.targetModel));
 
     // -------------------------
     // 1. Validate input
@@ -42,36 +46,52 @@ export const chatService = {
       hasJsonBody: Boolean(req.body),
       bodyKeys: Object.keys(req.body || {}),
       conversationId,
-      conversationIdValid: mongoose.Types.ObjectId.isValid(conversationId),
       contentLength: content.length,
       attachmentCount: attachments.length,
       fileFields: attachments.map((file) => file.fieldname),
       userId,
       guestId,
+      model,
+      targetModel,
     });
 
-    if (!conversationId) {
-      throw new ApiError(400, "conversationId is required");
+    if (!content) {
+      throw new ApiError(400, "content is required");
     }
 
-    if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+    if (conversationId && !mongoose.Types.ObjectId.isValid(conversationId)) {
       throw new ApiError(400, "conversationId must be a valid MongoDB ObjectId");
     }
 
-    if (!content) {
-      throw new ApiError(400, "conversationId and content are required");
-    }
-
     // -------------------------
-    // 2. Validate conversation access
+    // 2. Resolve the conversation
     // -------------------------
-    const exists = await conversationRepository.exists({
-      _id: conversationId,
-      ...(req.user ? { userId: req.user._id } : { guestId }),
-    });
+    // A brand-new chat arrives with no conversationId at all — creating it
+    // here (instead of a separate POST /conversations the client awaits
+    // first) saves a full extra network round trip before the message can
+    // even be queued, which is what made a new user's first message feel
+    // slow in production.
+    if (!conversationId) {
+      if (!userId && !guestId) {
+        throw new ApiError(400, "Missing guestId or login token");
+      }
 
-    if (!exists) {
-      throw new ApiError(404, "Conversation not found");
+      const conversation = await conversationRepository.create({
+        title: content.slice(0, 30),
+        userId: userId || null,
+        guestId: userId ? null : guestId,
+      });
+
+      conversationId = conversation._id.toString();
+    } else {
+      const exists = await conversationRepository.exists({
+        _id: conversationId,
+        ...(req.user ? { userId: req.user._id } : { guestId }),
+      });
+
+      if (!exists) {
+        throw new ApiError(404, "Conversation not found");
+      }
     }
 
     // -------------------------
@@ -195,6 +215,8 @@ export const chatService = {
       requestId,
       userId: userId || null,
       guestId: guestId || null,
+      model,
+      targetModel,
       status: "pending",
     };
 
@@ -257,8 +279,11 @@ export const chatService = {
     return {
       success: true,
       data: {
+        conversationId,
         userMessage: userMessageDoc,
         aiJobId: aiJob._id,
+        model,
+        targetModel,
       },
     };
   },

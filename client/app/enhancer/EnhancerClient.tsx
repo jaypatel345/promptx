@@ -7,8 +7,9 @@ export default function EnhancerClient() {
     "@context": "https://schema.org",
     "@type": "WebPage",
     name: "Prompt Enhancer",
-    description: "Enhance prompts using AI-driven optimization.",
-    url: "https://promptx.co.in/Enhancer",
+    description:
+      "Turn rough ideas into polished prompts. PromptX rewrites and structures your input for ChatGPT, Claude, Gemini, or Grok, free to try with no signup required.",
+    url: "https://promptx.co.in/enhancer",
   };
 
   return (
