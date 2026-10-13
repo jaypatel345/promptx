@@ -841,7 +841,9 @@ function Enhancer() {
           ref={scrollContainerRef}
           data-lenis-prevent="true"
           onScroll={handleScroll}
-          className="flex-1 w-full min-h-0 overflow-y-auto overflow-x-hidden custom-scroll"
+          className={`flex-1 w-full min-h-0 overflow-y-auto overflow-x-hidden custom-scroll ${
+            showLanding ? "flex flex-col" : ""
+          }`}
           style={{
             WebkitOverflowScrolling: "touch",
             overscrollBehaviorY: "contain",
@@ -852,8 +854,10 @@ function Enhancer() {
           }}
         >
           <div
-            className={`relative w-full max-w-3xl mx-auto min-h-full flex flex-col ${
-              showLanding ? "p-0" : "px-3 sm:px-4 pt-4 sm:pt-6 pb-40 sm:pb-48"
+            className={`relative w-full max-w-3xl mx-auto flex flex-col ${
+              showLanding
+                ? "flex-1 min-h-full items-center justify-center p-0"
+                : "min-h-full px-3 sm:px-4 pt-4 sm:pt-6 pb-40 sm:pb-48"
             }`}
             style={{
               paddingBottom: showLanding
@@ -879,24 +883,24 @@ function Enhancer() {
                 ))}
               </div>
             ) : showLanding ? (
-              // Landing View
-              <div className="flex min-h-full items-center justify-center pointer-events-none">
-                <div className="flex flex-col items-center justify-center gap-6 text-center">
+              // Landing View - Centered
+              <div className="flex-1 flex flex-col items-center justify-center my-auto py-12 pointer-events-none text-center">
+                <div className="flex flex-col items-center justify-center gap-5 text-center">
                   <Image
                     src="/promptx-logo-black.png"
-                    width={100}
-                    height={100}
+                    width={80}
+                    height={80}
                     alt="PromptX logo"
-                    className="object-contain h-12 md:h-14 opacity-40 dark:hidden"
+                    className="object-contain h-12 w-auto sm:h-14 opacity-75 dark:hidden"
                   />
                   <Image
                     src="/promptx-logo-white.png"
-                    width={100}
-                    height={100}
+                    width={80}
+                    height={80}
                     alt="PromptX logo"
-                    className="object-contain h-12 md:h-14 opacity-40 hidden dark:block"
+                    className="object-contain h-12 w-auto sm:h-14 opacity-75 hidden dark:block"
                   />
-                  <div className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-black font-medium dark:text-white">
+                  <div className="text-xl sm:text-2xl md:text-3xl text-neutral-900 font-medium dark:text-neutral-100 tracking-tight">
                     What can I help with?
                   </div>
                 </div>
@@ -1566,24 +1570,6 @@ function Enhancer() {
               Describe a task, not a question. PromptX writes prompts; it does not answer general questions.
             </div>
 
-            {showLanding && (
-              <div className="text-center text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-4">
-                By using PromptX and chatting with the AI assistant, you agree
-                to our{" "}
-                <a href="/terms" className="underline cursor-pointer">
-                  Terms
-                </a>{" "}
-                and acknowledge our{" "}
-                <a href="/privacy" className="underline cursor-pointer">
-                  Privacy Policy
-                </a>
-                . You can manage your{" "}
-                <a href="/cookies" className="underline cursor-pointer">
-                  Cookie Preferences
-                </a>{" "}
-                anytime.
-              </div>
-            )}
           </div>
         </div>
       </div>
