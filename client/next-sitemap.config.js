@@ -4,11 +4,13 @@ module.exports = {
   generateRobotsTxt: true,
   sitemapSize: 7000,
 
-  // Private, checkout callback, and unreleased placeholder pages excluded
+  // Private, checkout callback, auth utilities, and unreleased placeholder pages excluded
   exclude: [
     '/api/*',
     '/pricing/success',
     '/pricing/cancel',
+    '/login',
+    '/forget-password',
     '/Signup',
     '/Teams',
     '/ai-tools',
@@ -25,6 +27,8 @@ module.exports = {
           '/api/',
           '/pricing/success',
           '/pricing/cancel',
+          '/login',
+          '/forget-password',
           '/Signup',
           '/Teams',
           '/ai-tools',

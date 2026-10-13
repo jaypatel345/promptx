@@ -9,6 +9,7 @@ import { useTheme } from "@/context/theme-context";
 import { useUi } from "@/context/UiContext";
 import { apiClient } from "@/lib/apiClient";
 import { API_BASE } from "@/lib/apiBase";
+import LoginModal from "@/components/auth/LoginModal";
 
 const MOBILE_BREAKPOINT = 768;
 const API = API_BASE;
@@ -1099,95 +1100,140 @@ function EnhacerHeader() {
                 : "flex flex-col items-center justify-center gap-2 ml-7"
             }`}
           >
-            {/* Profile avatar when logged in */}
-            {!authChecked
-              ? null
-              : isLoggedIn && (
-                  <div
-                    ref={profileMenuRef}
-                    className={`relative transition-all duration-300 flex items-center justify-center`}
-                    style={{ overflow: "visible" }}
-                  >
-                    <button
-                      onClick={() => setIsProfileMenuOpen((v) => !v)}
-                      className={`w-9 h-9 rounded-full flex items-center justify-center overflow-hidden ${
-                        userProfile?.avatar
-                          ? "bg-transparent"
-                          : "bg-gray-200 dark:bg-neutral-700"
-                      }`}
+            {/* Profile avatar when logged in OR Log in trigger when logged out */}
+            {!authChecked ? null : isLoggedIn ? (
+              <div
+                ref={profileMenuRef}
+                className={`relative transition-all duration-300 flex items-center justify-center`}
+                style={{ overflow: "visible" }}
+              >
+                <button
+                  onClick={() => setIsProfileMenuOpen((v) => !v)}
+                  className={`w-9 h-9 rounded-full flex items-center justify-center overflow-hidden ${
+                    userProfile?.avatar
+                      ? "bg-transparent"
+                      : "bg-gray-200 dark:bg-neutral-700"
+                  }`}
+                >
+                  {userProfile?.avatar &&
+                  userProfile.avatar.trim() !== "" ? (
+                    <img
+                      src={userProfile.avatar}
+                      alt="User avatar"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover rounded-full block"
+                      onLoad={() =>
+                        console.log("Avatar loaded:", userProfile.avatar)
+                      }
+                      onError={(e) => {
+                        console.log(
+                          "Avatar failed to load:",
+                          userProfile.avatar,
+                        );
+                        e.currentTarget.src = "/avatar.svg"; // fallback image
+                      }}
+                    />
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     >
-                      {userProfile?.avatar &&
-                      userProfile.avatar.trim() !== "" ? (
-                        <img
-                          src={userProfile.avatar}
-                          alt="User avatar"
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover rounded-full block"
-                          onLoad={() =>
-                            console.log("Avatar loaded:", userProfile.avatar)
-                          }
-                          onError={(e) => {
-                            console.log(
-                              "Avatar failed to load:",
-                              userProfile.avatar,
-                            );
-                            e.currentTarget.src = "/avatar.svg"; // fallback image
-                          }}
-                        />
-                      ) : (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                          <circle cx="12" cy="7" r="4" />
-                        </svg>
-                      )}
-                    </button>
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  )}
+                </button>
 
-                    {isProfileMenuOpen && (
-                      <div
-                        className={`absolute z-9999 w-44 bg-white dark:bg-neutral-900 rounded-xl border border-gray-200 dark:border-neutral-700 overflow-hidden transition-all duration-200 ease-(--grok-ease) grok-dropdown ${
-                          isOpen
-                            ? "bottom-full mb-2 left-0"
-                            : "bottom-0 left-full ml-0"
-                        } opacity-100 scale-100 max-h-[70vh]`}
-                        style={{ transformOrigin: "bottom left" }}
-                      >
-                        <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
-                          Settings
-                        </button>
-                        <Link 
-                          href="/Pricing"
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm block"
-                          onClick={() => setIsProfileMenuOpen(false)}
-                        >
-                          Upgrade plan
-                        </Link>
-                        <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
-                          Help
-                        </button>
-                        <div className="h-px bg-gray-200 dark:bg-neutral-700 my-1" />
-                        <button
-                          onClick={() => {
-                            setIsProfileMenuOpen(false);
-                            onLogout();
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600"
-                        >
-                          Sign out
-                        </button>
-                      </div>
-                    )}
+                {isProfileMenuOpen && (
+                  <div
+                    className={`absolute z-9999 w-44 bg-white dark:bg-neutral-900 rounded-xl border border-gray-200 dark:border-neutral-700 overflow-hidden transition-all duration-200 ease-(--grok-ease) grok-dropdown ${
+                      isOpen
+                        ? "bottom-full mb-2 left-0"
+                        : "bottom-0 left-full ml-0"
+                    } opacity-100 scale-100 max-h-[70vh]`}
+                    style={{ transformOrigin: "bottom left" }}
+                  >
+                    <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
+                      Settings
+                    </button>
+                    <Link 
+                      href="/Pricing"
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm block"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      Upgrade plan
+                    </Link>
+                    <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
+                      Help
+                    </button>
+                    <div className="h-px bg-gray-200 dark:bg-neutral-700 my-1" />
+                    <button
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        onLogout();
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600"
+                    >
+                      Sign out
+                    </button>
                   </div>
                 )}
+              </div>
+            ) : (
+              /* When logged out: Login trigger in sidebar */
+              isOpen ? (
+                <button
+                  onClick={() => setIsLoginOpen(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium text-neutral-800 dark:text-neutral-200 hover:text-black dark:hover:text-white bg-neutral-100 hover:bg-neutral-200/80 dark:bg-neutral-800 dark:hover:bg-neutral-700 border border-neutral-200/80 dark:border-neutral-700/80 transition-all cursor-pointer truncate"
+                  title="Log in to PromptX"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="shrink-0"
+                  >
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                    <polyline points="10 17 15 12 10 7" />
+                    <line x1="15" y1="12" x2="3" y2="12" />
+                  </svg>
+                  <span>Log in</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsLoginOpen(true)}
+                  title="Log in to PromptX"
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-700 dark:text-neutral-300 hover:text-black dark:hover:text-white bg-neutral-100 hover:bg-neutral-200/80 dark:bg-neutral-800 dark:hover:bg-neutral-700 border border-neutral-200/80 dark:border-neutral-700/80 transition-all cursor-pointer"
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                    <polyline points="10 17 15 12 10 7" />
+                    <line x1="15" y1="12" x2="3" y2="12" />
+                  </svg>
+                </button>
+              )
+            )}
 
             {/* Sidebar toggle chevrons */}
             <div
@@ -1245,189 +1291,47 @@ function EnhacerHeader() {
           )}
         </div>
 
-        {/* Auth controls: Login button (top-right) */}
-        <div className="absolute top-3 right-4 z-50 flex items-center gap-2">
+        {/* Auth controls: Top-right header pill with Log in & Sign up */}
+        <div className="fixed sm:absolute top-3.5 right-4 z-40 flex items-center gap-2">
           {!authChecked || isLoggedIn ? null : (
-            <button
-              className="px-4 sm:px-4 md:px-5 py-2 sm:py-2 bg-gray-300/40 text-black mr-1 sm:mr-2 md:mr-4 rounded-full hover:bg-gray-200 transition cursor-pointer text-[13px] sm:text-[12px] md:text-[13px] dark:bg-white dark:text-black dark:hover:bg-white/90"
-              onClick={() => {
-                if (!authChecked) return;
-                setIsLoginOpen(true);
-                setIsNavOpen(false);
-              }}
-            >
-              <span className="text-xs font-medium">Log in</span>
-            </button>
+            <div className="flex items-center gap-1.5 p-1 rounded-full bg-white/85 dark:bg-neutral-900/85 backdrop-blur-md border border-neutral-200/80 dark:border-neutral-800 shadow-xs">
+              <button
+                className="px-3 py-1.5 rounded-full text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
+                onClick={() => {
+                  if (!authChecked) return;
+                  setIsLoginOpen(true);
+                  setIsNavOpen(false);
+                }}
+              >
+                Log in
+              </button>
+              <Link
+                href="/Signup"
+                className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 hover:bg-neutral-800 dark:hover:bg-neutral-100 transition shadow-xs"
+              >
+                Sign up
+              </Link>
+            </div>
           )}
         </div>
       </div>
 
-      {isLoginOpen && (
-        <>
-          {/* BACKDROP – full screen */}
-          <div
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 dark:bg-white/20"
-            onClick={() => setIsLoginOpen(false)}
-          ></div>
-
-          {/* MODAL CONTAINER – centered */}
-          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none -translate-y-10 sm:-translate-y-20 transition-all duration-300 px-4 ">
-            <div
-              className="bg-white/70 w-lg max-w-xs sm:max-w-sm rounded-2xl px-10 sm:px-8 py-8 pointer-events-auto shadow-sm dark:bg-black/70 dark:text-white "
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-end mb-2">
-                <button
-                  type="button"
-                  onClick={() => setIsLoginOpen(false)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                  aria-label="Close"
-                >
-                  <svg
-                    className="w-4 h-4 sm:w-5 sm:h-5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M6 18L18 6M6 6l12 12"></path>
-                  </svg>
-                </button>
-              </div>
-
-              {/*  FORM: Enter key will trigger submit */}
-              <form onSubmit={onLogin}>
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={user.email}
-                  onChange={(e) => {
-                    setUser({ ...user, email: e.target.value });
-                    setLoginError("");
-                  }}
-                  disabled={loading}
-                  className="border-b border-gray-300 w-full px-2 py-2 mb-4 sm:mb-5 text-black outline-none dark:text-white text-sm sm:text-[15px] focus:border-gray-500 dark:focus:border-neutral-500"
-                />
-
-                <div className="flex items-center justify-center">
-                  <input
-                    type="password"
-                    placeholder="Password"
-                    value={user.password}
-                    onChange={(e) => {
-                      setUser({ ...user, password: e.target.value });
-                      setLoginError("");
-                    }}
-                    disabled={loading}
-                    className="border-b border-gray-300 w-full px-2 py-2 mb-9 text-black outline-none dark:text-white  sm:text-[15px] text-sm focus:border-gray-500 dark:focus:border-neutral-500"
-                  />
-                </div>
-
-                {loginError && (
-                  <p className="text-red-500 text-xs mb-2 text-center">
-                    {loginError}
-                  </p>
-                )}
-                <button
-                  type="submit"
-                  className={`w-full bg-black text-[#aeaeaf] py-2 sm:py-2 md:py-3 rounded-full hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/90 text-sm sm:text-base flex items-center justify-center gap-2 ${
-                    loading ? "opacity-70 cursor-not-allowed" : "cursor-pointer"
-                  }`}
-                  disabled={loading}
-                  aria-busy={loading}
-                >
-                  {loading ? (
-                    <>
-                      <svg
-                        className="h-4 w-4 animate-spin"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z"
-                        />
-                      </svg>
-                      <span className="text-sm">Signing in...</span>
-                    </>
-                  ) : (
-                    <span className="text-sm">SIGN IN</span>
-                  )}
-                </button>
-              </form>
-
-              {/* Google button (kept OUTSIDE form so it won't submit on click) */}
-              <div className="flex justify-center items-center">
-                <button
-                  type="button"
-                  className="w-fit sm:w-[60%] mt-2 text-white pr-3 sm:pr-3 rounded-full bg-black flex justify-between items-center hover:bg-black/80 cursor-pointer dark:bg-white dark:text-black dark:hover:bg-white/90 text-xs sm:text-sm"
-                >
-                  <svg
-                    version="1.1"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 48 48"
-                    className="bg-white p-1 sm:p-1 md:p-2 rounded-full text-black dark:bg-black"
-                    width={32}
-                    height={32}
-                  >
-                    <g>
-                      <path
-                        fill="#EA4335"
-                        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                      ></path>
-                      <path
-                        fill="#4285F4"
-                        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                      ></path>
-                      <path
-                        fill="#FBBC05"
-                        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                      ></path>
-                      <path
-                        fill="#34A853"
-                        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                      ></path>
-                      <path fill="none" d="M0 0h48v48H0z"></path>
-                    </g>
-                  </svg>
-
-                  <div
-                    className="pl-2 md:-pl-5 text-sm"
-                    onClick={handleGoogleLogin}
-                  >
-                    Continue with Google
-                  </div>
-                </button>
-              </div>
-
-              <div className="flex justify-center items-center gap-1 sm:gap-2 pt-3 sm:pt-4 text-xs sm:text-[13px]">
-                <Link
-                  href="/forget-password"
-                  className="text-black/60 dark:text-white"
-                >
-                  Forgot Password
-                </Link>
-                <Link href="/Signup" className="text-black dark:text-white">
-                  Sign Up
-                </Link>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      <LoginModal
+        open={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        onSuccess={async (dataUser) => {
+          setIsLoggedIn(true);
+          setUserProfile(dataUser);
+          try {
+            const res = await apiClient.get(`/conversations`);
+            if (res.data?.success) {
+              setConversations(res.data.data?.conversations || []);
+            }
+          } catch (e) {
+            console.error("Failed to refresh conversations:", e);
+          }
+        }}
+      />
       {isSearchModalOpen && (
         <>
           <div

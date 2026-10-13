@@ -4,6 +4,8 @@ Allow: /
 Disallow: /api/
 Disallow: /pricing/success
 Disallow: /pricing/cancel
+Disallow: /login
+Disallow: /forget-password
 Disallow: /Signup
 Disallow: /Teams
 Disallow: /ai-tools

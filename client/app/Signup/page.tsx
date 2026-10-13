@@ -1,15 +1,16 @@
-import Signup from '@/components/signup/signup'
-import React from 'react'
+import type { Metadata } from "next";
+import Signup from "@/components/signup/signup";
 
+export const metadata: Metadata = {
+  title: "Create Account | PromptX",
+  description:
+    "Sign up for PromptX to start crafting production-grade AI prompts for ChatGPT, Claude, Midjourney, and FLUX.",
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
 
-function Page() {
-    
-
-    return (
-        <>
-        <Signup/>
-        </>
-    )
+export default function Page() {
+  return <Signup />;
 }
-
-export default Page

@@ -1,41 +1,59 @@
 "use client";
-import { useTheme } from "@/context/theme-context";
+
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { useRouter } from "next/navigation";
-import signupImg from "@/public/vecteezy_cloud-computing-modern-flat-concept-for-web-banner-design_5879539.jpg";
-import { useUi } from "@/context/UiContext";
 import { API_BASE } from "@/lib/apiBase";
+import { useUi } from "@/context/UiContext";
+import LoginModal from "@/components/auth/LoginModal";
 
-function Signup() {
-  const { theme } = useTheme();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSignupOpen, setIsSignupOpen] = useState(false);
-  const [error, setError] = useState("");
-  const { openLogin } = useUi();
-
-  const [user, setUser] = useState({
-    username: "",
-    email: "",
-    password: "",
-  });
+export default function Signup() {
   const router = useRouter();
+  const { openLogin, isLoginOpen, setIsLoginOpen } = useUi();
+
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleGoogleLogin = () => {
     window.location.href = `${API_BASE}/auth/google`;
   };
 
+  // Password strength assessment
+  const getPasswordStrength = (pwd: string) => {
+    if (!pwd) return { score: 0, label: "", color: "" };
+    let score = 0;
+    if (pwd.length >= 6) score += 1;
+    if (pwd.length >= 10) score += 1;
+    if (/[A-Z]/.test(pwd) && /[0-9]/.test(pwd)) score += 1;
+    if (/[^A-Za-z0-9]/.test(pwd)) score += 1;
+
+    if (score <= 1) return { score: 1, label: "Weak", color: "bg-red-500 text-red-500" };
+    if (score <= 2) return { score: 2, label: "Fair", color: "bg-amber-500 text-amber-500" };
+    if (score === 3) return { score: 3, label: "Good", color: "bg-blue-500 text-blue-500" };
+    return { score: 4, label: "Strong", color: "bg-emerald-500 text-emerald-500" };
+  };
+
+  const strength = getPasswordStrength(password);
+
   const onSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (isLoading) return; // prevent double submit
+    if (isLoading) return;
     setError("");
 
-    if (!user.username || !user.email || !user.password) {
-      setError("All fields are required");
+    if (!username.trim() || !email.trim() || !password) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
       return;
     }
 
@@ -44,336 +62,394 @@ function Signup() {
       const response = await axios.post(
         `${API_BASE}/auth/signup`,
         {
-          username: user.username,
-          email: user.email,
-          password: user.password,
+          username: username.trim(),
+          email: email.trim(),
+          password,
         },
         {
           withCredentials: true,
-        },
+        }
       );
 
       if (response.data?.success) {
-        // Redirect to login after successful signup
-        setIsSignupOpen(false);
+        // Automatically open login modal with notification or redirect to root
         router.replace("/");
         openLogin();
         return;
       }
 
-      setError(response.data?.error || "Signup failed");
-    } catch (error: any) {
-      console.error("Signup error:", error.response?.data);
-      setError(error.response?.data?.error || "Signup failed");
+      setError(response.data?.message || response.data?.error || "Registration failed.");
+    } catch (err: any) {
+      console.error("Signup error:", err.response?.data);
+      const serverMessage =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "Registration failed. Please check your details and try again.";
+      setError(serverMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <>
-      {/* Mobile: Single column | Desktop: 2 columns */}
-      <div className="w-full grid grid-cols-1 md:grid-cols-2 min-h-screen">
-        {/* Logo */}
-        <Link
-          href="/"
-          aria-label="Home"
-          className="absolute left-0 top-0 transition-all duration-500 ease-in-out z-50"
-        >
-          <Image
-            src="/promptx-logo-black.png"
-            width={32}
-            height={32}
-            alt="PromptX logo"
-            className="ml-4 sm:ml-10 mt-5 w-8 h-8 object-contain dark:hidden"
-          />
-          <Image
-            src="/promptx-logo-white.png"
-            width={32}
-            height={32}
-            alt="PromptX logo"
-            className="ml-4 sm:ml-10 mt-5 w-8 h-8 object-contain hidden dark:block"
-          />
-        </Link>
+    <div className="min-h-screen w-full flex bg-white dark:bg-black text-neutral-900 dark:text-neutral-100 transition-colors">
+      {/* Left Column: Focused Signup Card */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-between px-6 sm:px-12 md:px-16 py-8 min-h-screen">
+        {/* Brand Header */}
+        <div className="flex items-center justify-between w-full max-w-md mx-auto lg:mx-0">
+          <Link href="/" aria-label="PromptX Home" className="flex items-center gap-2 group">
+            <Image
+              src="/Rectangle.png"
+              alt="PromptX Logo"
+              width={100}
+              height={100}
+              priority
+              className="w-36 h-7 object-contain dark:hidden"
+            />
+            <Image
+              src="/AdobeStock_450013573_Preview 1.png"
+              alt="PromptX Logo"
+              width={100}
+              height={100}
+              priority
+              className="w-36 h-7 object-contain hidden dark:block"
+            />
+          </Link>
+          <Link
+            href="/"
+            className="text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors"
+          >
+            ← Back to home
+          </Link>
+        </div>
 
-        {/* Main Content - Centered on Mobile */}
-        <div className="flex flex-col justify-center items-center min-h-screen px-4 sm:px-6 md:px-0 py-16 md:py-0">
-          {/* Title */}
-          <div className="text-2xl sm:text-3xl font-medium text-center mb-8 md:mb-10">
-            Create your account
+        {/* Center Signup Form */}
+        <div className="w-full max-w-md mx-auto lg:mx-0 py-8">
+          <div className="mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-950 dark:text-white">
+              Create your account
+            </h1>
+            <p className="mt-1.5 text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
+              Start transforming rough ideas into production-ready prompts for any AI model.
+            </p>
           </div>
 
-          {/* Signup Options */}
-          <div className="flex flex-col gap-4 md:gap-5 items-center transition-all duration-500 w-full max-w-[340px] sm:max-w-[380px] md:max-w-sm ">
-            {/* Google Sign Up */}
-
-            <button
-              className="border w-full rounded-full py-2.5 md:py-2 hover:bg-gray-200/20 cursor-pointer flex items-center justify-center relative text-sm sm:text-base"
-              onClick={handleGoogleLogin}
-            >
-              <svg
-                version="1.1"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 48 48"
-                className="absolute left-3 sm:left-4 bg-white rounded-full text-black dark:bg-black"
-                width={20}
-                height={20}
-              >
-                <g>
-                  <path
-                    fill="#EA4335"
-                    d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                  ></path>
-                  <path
-                    fill="#4285F4"
-                    d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                  ></path>
-                  <path
-                    fill="#FBBC05"
-                    d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                  ></path>
-                  <path
-                    fill="#34A853"
-                    d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                  ></path>
-                  <path fill="none" d="M0 0h48v48H0z"></path>
-                </g>
-              </svg>
-              Sign up with Google
-            </button>
-
-            {/* Divider */}
-            <div className="relative w-full h-px bg-linear-to-r from-transparent via-gray-300 to-transparent"></div>
-
-            {/* Email Sign Up */}
-
-            <button
-              className="border w-full rounded-full py-2.5 md:py-2 hover:bg-gray-200/20 cursor-pointer flex items-center justify-center relative text-sm sm:text-base"
-              onClick={() => alert("This feature is under development")}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                width={20}
-                height={20}
-                className="absolute left-3 sm:left-4"
-                fill="currentColor"
-              >
-                <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z" />
-              </svg>
-              Sign up with email
-            </button>
-
-            {/* Apple Sign Up */}
-
-            <button
-              className="border w-full rounded-full py-2.5 md:py-2 hover:bg-gray-200/20 cursor-pointer flex items-center justify-center relative text-sm sm:text-base"
-              onClick={() => alert("This feature is under development")}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                width={20}
-                height={20}
-                className="absolute left-3 sm:left-4"
-                fill="currentColor"
-              >
-                <path d="M16.365 1.43c0 1.14-.42 2.07-1.26 2.86-.84.78-1.86 1.25-2.97 1.17-.12-1.11.39-2.22 1.2-3.01.84-.78 2.07-1.28 3.03-1.32.03.1.06.2.06.3zm4.02 14.3c-.03-.03-3.09-1.5-3.09-4.53 0-2.82 2.19-4.11 2.28-4.17-1.26-1.8-3.24-2.04-3.93-2.07-1.68-.18-3.27 1-4.12 1-.87 0-2.16-.96-3.56-.96-1.83.03-3.54 1.08-4.47 2.76-1.92 3.33-.49 8.25 1.38 10.95.93 1.32 2.01 2.82 3.45 2.76 1.41-.06 1.95-.9 3.66-.9 1.68 0 2.19.9 3.69.87 1.53-.03 2.49-1.35 3.42-2.67.69-.99.96-1.53 1.5-2.67z" />
-              </svg>
-              Sign up with Apple
-            </button>
-
-            {/* PromptX Sign Up */}
-            <button
-              className="border w-full rounded-full py-2.5 md:py-2 hover:bg-gray-200/20 cursor-pointer flex items-center justify-center relative text-sm sm:text-base"
-              onClick={() => {
-                setIsSignupOpen(true);
-              }}
-            >
-              <Image
-                src="/promptx-logo-black.png"
-                width={20}
-                height={20}
-                alt="PromptX logo"
-                className="absolute left-3 sm:left-4 w-5 h-5 object-contain dark:hidden"
+          {/* Google OAuth One-Click */}
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="w-full h-11 rounded-xl font-medium text-xs sm:text-sm border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800/80 transition-all flex items-center justify-center gap-3 cursor-pointer shadow-xs hover:border-neutral-300 dark:hover:border-neutral-700"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
               />
-              <Image
-                src="/promptx-logo-white.png"
-                width={20}
-                height={20}
-                alt="PromptX logo"
-                className="absolute left-3 sm:left-4 w-5 h-5 object-contain hidden dark:block"
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
               />
-              Sign up with PromptX
-            </button>
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+              />
+            </svg>
+            <span>Continue with Google</span>
+          </button>
 
-            {/* Sign In Link */}
-            <Link href="/login" className="w-full">
-              <div className="flex justify-center text-gray-700/70 text-sm sm:text-base mt-2">
-                Already have an account?
-                <span className="hover:text-gray-800/80 text-black ml-1">
-                  Sign in
-                </span>
-              </div>
-            </Link>
+          {/* Divider */}
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-neutral-200 dark:border-neutral-800" />
+            </div>
+            <div className="relative flex justify-center text-[10px] uppercase font-mono tracking-wider text-neutral-400 dark:text-neutral-500">
+              <span className="bg-white dark:bg-black px-3">or continue with email</span>
+            </div>
           </div>
 
-          {/* Signup Modal */}
-          {isSignupOpen && (
+          {/* Server Error Alert */}
+          {error && (
             <motion.div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4"
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.92 }}
-              transition={{ duration: 0.45, ease: "easeOut" }}
-              onClick={() => setIsSignupOpen(false)}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 p-3 rounded-xl text-xs bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 flex items-start gap-2.5"
             >
-              {/* Modal Content */}
-              <div
-                className="dark:bg-neutral-900 bg-white w-full max-w-[340px] sm:max-w-md md:max-w-sm p-6 sm:p-7 md:p-8 border rounded-2xl md:rounded-3xl border-gray-200 dark:border-gray-100 shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Close Button */}
-                <div className="flex justify-end mb-2">
-                  <button
-                    onClick={() => setIsSignupOpen(false)}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                    aria-label="Close"
-                  >
-                    <svg
-                      className="w-4 h-4 sm:w-5 sm:h-5"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                  </button>
-                </div>
-
-                <form onSubmit={onSignup}>
-                  {/* Username */}
-                  <input
-                    type="text"
-                    value={user.username}
-                    placeholder="Username"
-                    disabled={isLoading}
-                    onChange={(e) => {
-                      setUser({ ...user, username: e.target.value });
-                    }}
-                    className="border-b border-gray-300 dark:border-neutral-700 w-full px-1 py-2 sm:py-2 mb-4 text-sm sm:text-[15px] bg-transparent text-black dark:text-white outline-none transition-all focus:border-gray-500 dark:focus:border-neutral-500"
-                  />
-
-                  {/* Email */}
-                  <input
-                    type="email"
-                    value={user.email}
-                    placeholder="Email"
-                    disabled={isLoading}
-                    onChange={(e) => {
-                      setUser({ ...user, email: e.target.value });
-                    }}
-                    className="border-b border-gray-300 dark:border-neutral-700 w-full px-1 py-2 sm:py-2 mb-4 text-sm sm:text-[15px] bg-transparent text-black dark:text-white outline-none transition-all focus:border-gray-500 dark:focus:border-neutral-500"
-                  />
-
-                  {/* Password */}
-                  <div className="flex items-center relative mb-4">
-                    <input
-                      type="password"
-                      value={user.password}
-                      placeholder="Password"
-                      disabled={isLoading}
-                      onChange={(e) => {
-                        setUser({ ...user, password: e.target.value });
-                      }}
-                      className="border-b border-gray-300 dark:border-neutral-700 w-full px-1 py-2 sm:py-2 text-sm mb-3 sm:text-[15px] bg-transparent text-black dark:text-white outline-none transition-all focus:border-gray-500 dark:focus:border-neutral-500"
-                    />
-                    {/* <svg
-                        width="16"
-                        height="16"
-                        xmlns="http://www.w3.org/2000/svg"
-                        aria-hidden="true"
-                        viewBox="0 0 16 16"
-                        fill="currentColor"
-                        className="cursor-pointer absolute right-0 bottom-3 sm:w-[18px] sm:h-[18px] mb-2"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          clipRule="evenodd"
-                          d="M8 2.5C3 2.5 0 8 0 8C0 8 3 13.5 8 13.5C13 13.5 16 8 16 8C16 8 13 2.5 8 2.5ZM10.4749 10.4749C9.8185 11.1313 8.92826 11.5 8 11.5C7.07174 11.5 6.1815 11.1313 5.52513 10.4749C4.86875 9.8185 4.5 8.92826 4.5 8C4.5 7.07174 4.86875 6.1815 5.52513 5.52513C6.1815 4.86875 7.07174 4.5 8 4.5C8.92826 4.5 9.8185 4.86875 10.4749 5.52513C11.1313 6.1815 11.5 7.07174 11.5 8C11.5 8.92826 11.1313 9.8185 10.4749 10.4749ZM9.76777 9.76777C10.2366 9.29893 10.5 8.66304 10.5 8C10.5 7.33696 10.2366 6.70107 9.76777 6.23223C9.29893 5.76339 8.66304 5.5 8 5.5C7.33696 5.5 6.70107 5.76339 6.23223 6.23223C5.76339 6.70107 5.5 7.33696 5.5 8C5.5 8.66304 5.76339 9.29893 6.23223 9.76777C6.70107 10.2366 7.33696 10.5 8 10.5C8.66304 10.5 9.29893 10.2366 9.76777 9.76777Z"
-                        ></path>
-                      </svg> */}
-                  </div>
-
-                  {/* Error Message */}
-                  {error && (
-                    <p className="text-red-500 text-xs sm:text-sm mb-4">
-                      {error}
-                    </p>
-                  )}
-
-                  {/* Submit Button */}
-                  <button
-                    className={`w-full py-3 rounded-full bg-black text-white/80 font-medium transition-all text-sm sm:text-[15px] mt-2 hover:bg-neutral-800/95 cursor-pointer flex items-center justify-center gap-2 ${
-                      isLoading ? "opacity-70 cursor-not-allowed" : ""
-                    }`}
-                    type="submit"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <svg
-                          className="h-4 w-4 animate-spin"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          />
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z"
-                          />
-                        </svg>
-                        <span>Signing up...</span>
-                      </>
-                    ) : (
-                      "SIGN UP"
-                    )}
-                  </button>
-                </form>
-              </div>
+              <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <span>{error}</span>
             </motion.div>
           )}
+
+          {/* Direct Signup Form */}
+          <form onSubmit={onSignup} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                Username
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="alex_dev"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  if (error) setError("");
+                }}
+                disabled={isLoading}
+                className="w-full h-10 px-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/70 text-xs sm:text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-600 focus:bg-white dark:focus:bg-neutral-900 transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                Work or personal email
+              </label>
+              <input
+                type="email"
+                required
+                placeholder="name@example.com"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) setError("");
+                }}
+                disabled={isLoading}
+                className="w-full h-10 px-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/70 text-xs sm:text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-600 focus:bg-white dark:focus:bg-neutral-900 transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="At least 6 characters"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError("");
+                  }}
+                  disabled={isLoading}
+                  className="w-full h-10 pl-3.5 pr-10 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/70 text-xs sm:text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-600 focus:bg-white dark:focus:bg-neutral-900 transition-all"
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
+                >
+                  {showPassword ? (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+
+              {/* Password Strength Indicator */}
+              {password.length > 0 && (
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="flex-1 h-1 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden flex gap-1">
+                    {[1, 2, 3, 4].map((step) => (
+                      <div
+                        key={step}
+                        className={`h-full flex-1 transition-all duration-300 ${
+                          step <= strength.score ? strength.color.split(" ")[0] : "bg-transparent"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className={`text-[10px] font-medium ${strength.color.split(" ")[1]}`}>
+                    {strength.label}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full h-11 rounded-xl font-medium text-xs sm:text-sm bg-neutral-950 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-100 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-xs mt-2"
+            >
+              {isLoading ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z" />
+                  </svg>
+                  <span>Creating account...</span>
+                </>
+              ) : (
+                <span>Create account</span>
+              )}
+            </button>
+          </form>
+
+          {/* Terms & Privacy */}
+          <p className="mt-4 text-[11px] text-center text-neutral-400 dark:text-neutral-500 leading-relaxed">
+            By signing up, you agree to our{" "}
+            <Link href="/terms" className="underline hover:text-neutral-700 dark:hover:text-neutral-300">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="underline hover:text-neutral-700 dark:hover:text-neutral-300">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+
+          {/* Already have an account */}
+          <div className="mt-6 pt-5 border-t border-neutral-100 dark:border-neutral-900 text-center text-xs text-neutral-500">
+            Already have an account?{" "}
+            <button
+              type="button"
+              onClick={openLogin}
+              className="font-medium text-neutral-900 dark:text-white hover:underline cursor-pointer"
+            >
+              Sign in
+            </button>
+          </div>
         </div>
 
-        {/* Right Side Image - Hidden on Mobile */}
-        <div className="relative w-full h-screen overflow-hidden rounded-lg items-center flex justify-center">
-          <Image
-            src={signupImg}
-            alt="Signup Illustration"
-            priority
-            placeholder="blur"
-            height={6000}
-            width={7000}
-            className=" object-cover"
-            quality={100}
-          />
+        {/* Footer micro-links */}
+        <div className="w-full max-w-md mx-auto lg:mx-0 flex items-center justify-between text-[11px] text-neutral-400 dark:text-neutral-600">
+          <span>PromptX © 2026</span>
+          <div className="flex gap-4">
+            <Link href="/terms" className="hover:underline">Terms</Link>
+            <Link href="/privacy" className="hover:underline">Privacy</Link>
+            <Link href="/pricing" className="hover:underline">Pricing</Link>
+          </div>
         </div>
       </div>
-    </>
+
+      {/* Right Column: Live Product Showcase (Desktop Only) */}
+      <div className="hidden lg:flex lg:w-1/2 bg-neutral-900 text-white p-12 flex-col justify-between relative overflow-hidden border-l border-neutral-800">
+        {/* Subtle grid background */}
+        <div
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+            backgroundSize: `24px 24px`,
+          }}
+        />
+
+        {/* Top Badges */}
+        <div className="relative z-10 flex items-center justify-between">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-800/80 border border-neutral-700/60 text-[11px] font-mono text-neutral-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            PromptX Architecture v2.4
+          </div>
+          <div className="flex gap-1.5 text-neutral-400 text-xs font-mono">
+            <span>Next.js 16</span>
+            <span>•</span>
+            <span>React 19</span>
+          </div>
+        </div>
+
+        {/* Center Live Transformation Card */}
+        <div className="relative z-10 my-auto py-8">
+          <div className="max-w-lg mx-auto space-y-4">
+            {/* Split Visual Card */}
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-950/90 p-6 shadow-2xl backdrop-blur-md">
+              <div className="flex items-center justify-between pb-4 border-b border-neutral-800/80 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-neutral-700" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-neutral-700" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-neutral-700" />
+                  <span className="text-[11px] font-mono text-neutral-400 ml-2">prompt-enhancer.ts</span>
+                </div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-400 px-2 py-0.5 rounded bg-neutral-800">
+                  Target: Claude 3.5 Sonnet
+                </span>
+              </div>
+
+              {/* Input block */}
+              <div className="mb-4">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-500 mb-1">
+                  1. Rough Raw Thought
+                </div>
+                <div className="p-3 rounded-lg bg-neutral-900/80 border border-neutral-800 text-xs font-mono text-neutral-300">
+                  &ldquo;write a linkedin post explaining why my ai startup doesn&apos;t use complex wrappers&rdquo;
+                </div>
+              </div>
+
+              {/* Transformation Arrow */}
+              <div className="flex justify-center -my-1">
+                <div className="px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-[10px] font-mono text-indigo-400 flex items-center gap-1.5">
+                  <span>Structured into CRISP framework</span>
+                  <span>↓</span>
+                </div>
+              </div>
+
+              {/* Output block */}
+              <div className="mt-3">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-500 mb-1">
+                  2. PromptX Production-Ready Prompt
+                </div>
+                <div className="p-3.5 rounded-lg bg-neutral-900 border border-neutral-800 text-xs font-mono text-neutral-200 space-y-1.5">
+                  <p className="text-indigo-400 font-semibold">
+                    &lt;role&gt;Top 1% Founder &amp; B2B Systems Architect&lt;/role&gt;
+                  </p>
+                  <p className="text-neutral-300">
+                    &lt;mission&gt;Break down the architectural drawbacks of API wrappers vs native LLM orchestration.&lt;/mission&gt;
+                  </p>
+                  <p className="text-neutral-400">
+                    &lt;constraints&gt;No hype words, concrete 3-step technical comparison, under 180 words.&lt;/constraints&gt;
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Value checklist pills */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <div className="p-3 rounded-xl border border-neutral-800/80 bg-neutral-950/50">
+                <div className="text-xs font-medium text-white">35+ Verified Templates</div>
+                <div className="text-[11px] text-neutral-400 mt-0.5">Coding, Image, Video &amp; Career</div>
+              </div>
+              <div className="p-3 rounded-xl border border-neutral-800/80 bg-neutral-950/50">
+                <div className="text-xs font-medium text-white">Zero Mandatory Paywall</div>
+                <div className="text-[11px] text-neutral-400 mt-0.5">Generous free tier forever</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom trust footer */}
+        <div className="relative z-10 flex items-center justify-between text-xs text-neutral-500 border-t border-neutral-800 pt-6">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-neutral-500" />
+            <span>Multi-model prompt engineering suite</span>
+          </div>
+          <span>Trusted by creators worldwide</span>
+        </div>
+      </div>
+
+      {/* Global Login Modal for switching from Signup */}
+      <LoginModal
+        open={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        onSuccess={() => {
+          router.replace("/");
+        }}
+      />
+    </div>
   );
 }
-
-export default Signup;
