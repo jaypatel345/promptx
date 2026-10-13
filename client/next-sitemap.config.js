@@ -4,22 +4,40 @@ module.exports = {
   generateRobotsTxt: true,
   sitemapSize: 7000,
 
-  // These pages are still under construction and carry a noindex meta tag —
-  // keep them out of the sitemap too so Google isn't pointed at pages it's
-  // been told not to index.
-  exclude: ['/ai-tools', '/engineering', '/learn'],
+  // Private, checkout callback, and unreleased placeholder pages excluded
+  exclude: [
+    '/api/*',
+    '/pricing/success',
+    '/pricing/cancel',
+    '/Signup',
+    '/Teams',
+    '/ai-tools',
+    '/engineering',
+    '/learn',
+  ],
 
   robotsTxtOptions: {
     policies: [
       {
         userAgent: '*',
         allow: '/',
+        disallow: [
+          '/api/',
+          '/pricing/success',
+          '/pricing/cancel',
+          '/Signup',
+          '/Teams',
+          '/ai-tools',
+          '/engineering',
+          '/learn',
+          '/*?*',
+        ],
       },
     ],
 
     sitemap: 'https://promptx.co.in/sitemap.xml',
 
-    // IMPORTANT: disable Host line
+    // Disable host line to comply with modern search engine standards
     host: null,
   },
 };

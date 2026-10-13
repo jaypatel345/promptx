@@ -703,15 +703,18 @@ function EnhacerHeader() {
           <div>
             <Link href="/" aria-label="Home" className="">
               <Image
-                src={
-                  theme === "light"
-                    ? "/Rectangle.png"
-                    : "/AdobeStock_450013573_Preview 1.png"
-                }
+                src="/promptx-logo-black.png"
                 width={30}
-                height={10}
-                alt="promptx logo"
-                className="ml-3 sm:ml-2.5 mt-3 h-6 sm:h-4  md:h-6 object-contain"
+                height={30}
+                alt="PromptX logo"
+                className="ml-3 sm:ml-2.5 mt-3 h-6 w-auto object-contain dark:hidden"
+              />
+              <Image
+                src="/promptx-logo-white.png"
+                width={30}
+                height={30}
+                alt="PromptX logo"
+                className="ml-3 sm:ml-2.5 mt-3 h-6 w-auto object-contain hidden dark:block"
               />
             </Link>
           </div>

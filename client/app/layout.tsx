@@ -24,23 +24,27 @@ export const metadata: Metadata = {
 
   // Better title handling across pages (even if you later add nested page metadata)
   title: {
-    default: "PromptX – AI Prompt Enhancer",
+    default: "PromptX — Free AI Prompt Generator for ChatGPT, Claude & Midjourney",
     template: "%s | PromptX",
   },
 
-  // Keep it descriptive + keyword-aware (avoid stuffing)
+  // Keyword-targeted and high CTR description
   description:
-    "PromptX is an AI prompt enhancer that helps you rewrite, optimize, and structure prompts for better results across ChatGPT and other AI tools.",
+    "Free AI prompt generator and prompt builder. Transform rough ideas into structured, high-performing prompts for ChatGPT, Claude, Gemini, Midjourney, and FLUX with zero login required.",
 
-  // Light, relevant keyword set
+  // High-volume target keyword set from SERP intelligence
   keywords: [
-    "prompt enhancer",
-    "AI prompt enhancer",
+    "AI prompt generator",
+    "free AI prompt generator",
+    "prompt builder for ChatGPT",
+    "Midjourney prompt generator",
+    "FLUX prompt generator",
+    "AI image prompt generator",
     "prompt optimizer",
-    "prompt engineering",
-    "ChatGPT prompts",
+    "ChatGPT prompt templates",
+    "prompt engineering guide",
+    "AI prompt enhancer",
     "AI writing assistant",
-    "prompt improvement tool",
   ],
 
   alternates: {

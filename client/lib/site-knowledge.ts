@@ -10,7 +10,7 @@ export const SITE_DOCS: SiteDoc[] = [
   {
     id: "team",
     title: "Team",
-    url: "/Teams",
+    url: "/",
     tags: ["team", "founder", "jay", "about", "who built"],
     content: `
 PromptX Team (current status):

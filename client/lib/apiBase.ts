@@ -35,9 +35,8 @@ function shouldUseProxyInProd() {
   return false;
 }
 
-export const API_BASE =
-  process.env.NODE_ENV === "production"
-    ? shouldUseProxyInProd()
-      ? "/api"
-      : normalizeApiBase(rawBase)
-    : normalizeApiBase(rawBase || "http://localhost:1571");
+export const API_BASE = rawBase
+  ? rawBase === "/api"
+    ? "/api"
+    : normalizeApiBase(rawBase)
+  : "/api";

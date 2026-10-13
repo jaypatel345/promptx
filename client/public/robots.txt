@@ -1,6 +1,15 @@
 # *
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /pricing/success
+Disallow: /pricing/cancel
+Disallow: /Signup
+Disallow: /Teams
+Disallow: /ai-tools
+Disallow: /engineering
+Disallow: /learn
+Disallow: /*?*
 
 # Host
 Host: https://promptx.co.in

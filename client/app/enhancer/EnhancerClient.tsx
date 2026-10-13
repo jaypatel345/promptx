@@ -18,8 +18,8 @@ export default function EnhancerClient() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
       />
-      <div className="bg-white dark:bg-black">
-      <Enhancer />
+      <div className="h-screen w-full overflow-hidden bg-white dark:bg-black">
+        <Enhancer />
       </div>
     </>
   );

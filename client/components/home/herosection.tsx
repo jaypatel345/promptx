@@ -1,71 +1,166 @@
 "use client";
-import { useUi } from "@/context/UiContext";
-import Image from "next/image";
-import Link from "next/link";
-import React from "react";
 
-function Herosection() {
+import React, { useState } from "react";
+import Link from "next/link";
+import { useUi } from "@/context/UiContext";
+import { CopyButton } from "@/components/ui/CopyButton";
+
+export default function Herosection() {
   const { isNavOpen } = useUi();
+  const [activeTab, setActiveTab] = useState<"image" | "writing">("writing");
+
+  const exampleWritingPrompt = `Act as an expert career strategist and technical recruiter.
+Goal: Write a compelling LinkedIn post announcing my first engineering internship at a high-growth tech startup.
+Tone: Humble, authentic, enthusiastic, professional.
+Structure:
+1. Hook: The unexpected lesson learned in week one.
+2. Context: The problem my team is solving and what I worked on.
+3. Takeaway: 3 specific technical takeaways for other aspiring engineers.
+4. Call-to-action: Ask peers what surprised them most about their first role.
+Rules: Avoid hollow buzzwords (e.g. "thrilled to announce"). Keep line breaks punchy and easy to scan.`;
+
+  const exampleImagePrompt = `Cinematic portrait of a cyberpunk robotic artisan repairing neon circuits in a rainy Tokyo alleyway, 85mm lens, f/1.8, soft teal and amber volumetric lighting, detailed rain reflections, photorealistic 8k, cinematic color grade --ar 16:9 --v 6.0`;
 
   return (
-    <div
-      className={` mx-auto flex flex-col items-center gap-10 text-center px-4 mt-50  text-black bg-white dark:bg-black dark:text-white  transition-all  duration-300 max-w-5xl  ${
-        isNavOpen ? "translate-x-70 md:translate-x-12" : "translate-x-0 "
-      } `}
+    <section
+      className={`relative mx-auto flex flex-col items-center text-center px-4 pt-24 sm:pt-32 transition-all duration-300 max-w-4xl ${
+        isNavOpen ? "translate-x-70 md:translate-x-12" : "translate-x-0"
+      }`}
     >
-      <div className="flex flex-col gap-10">
-        <div className="font-medium text-sm sm:text-sm">
-          prompt
-          <span className="text-black dark:text-white">X</span>
-        </div>
+      {/* Brand badge */}
+      <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 text-[11px] text-neutral-600 dark:text-neutral-400 mb-5 select-none">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span>Prompt tool — Not a general chatbot</span>
+      </div>
 
-        <div className="text-3xl sm:text-5xl font-medium flex flex-wrap justify-center gap-y-0 px-2 md:gap-y-2">
-          <span>Refine prompts. Spark creative AI ideas.</span>
-          <span>Get dependable outputs.</span>
-        </div>
+      {/* Main Single H1 */}
+      <h1 className="text-2xl sm:text-4xl md:text-[40px] font-semibold tracking-tight text-neutral-950 dark:text-neutral-50 max-w-3xl leading-[1.2]">
+        Open PromptX. Use your LLM on the side. Turn rough ideas into production-ready prompts.
+      </h1>
 
-        <div className="text-sm sm:text-base px-3 max-w-2xl mx-auto">
-          Now with advanced AI prompt enhancement technology that analyzes your
-          intent, adds missing context, and restructures your request into a
-          clear, effective prompt — tailored for ChatGPT, Claude, Gemini, or
-          Grok in seconds.
-        </div>
+      {/* Subheading */}
+      <p className="mt-4 text-xs sm:text-sm md:text-base text-neutral-600 dark:text-neutral-400 max-w-xl leading-relaxed">
+        Type a rough idea once. PromptX turns it into a complete, structured prompt. Copy it into ChatGPT, Claude, Gemini or any LLM and get better results on the first try.
+      </p>
 
-        <div className="flex flex-row items-center justify-center gap-4">
-          <Link href="/enhancer">
-            <button className="text-[13px] flex items-center gap-0.5 bg-black py-2 px-4 rounded-full text-white cursor-pointer hover:bg-black/85 dark:text-black dark:bg-white dark:hover:bg-white/95">
-              Start Now
-              <svg
-                viewBox="0 0 1024 1024"
-                className="w-3 h-4 text-white dark:text-black "
-                xmlns="http://www.w3.org/2000/svg"
-                fill="#000000"
+      {/* Trust line */}
+      <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+        PromptX writes prompts. It does not answer questions.
+      </p>
+
+      {/* Primary and Secondary CTA Buttons */}
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <Link
+          href="/enhancer"
+          className="inline-flex items-center gap-2 h-9 sm:h-10 px-5 rounded-lg font-medium text-xs sm:text-sm bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-100 transition-colors"
+        >
+          <span>Build my prompt</span>
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </Link>
+        <Link
+          href="/templates"
+          className="inline-flex items-center gap-2 h-9 sm:h-10 px-5 rounded-lg font-medium text-xs sm:text-sm border border-neutral-300 dark:border-neutral-800 bg-transparent text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
+        >
+          <span>Browse prompt templates</span>
+        </Link>
+      </div>
+
+      {/* Split-screen visual mockup */}
+      <div className="mt-10 sm:mt-12 w-full text-left">
+        <div className="border border-neutral-200 dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-950 overflow-hidden">
+          {/* Header bar */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-900/50">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-neutral-300 dark:bg-neutral-700"></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-neutral-300 dark:bg-neutral-700"></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-neutral-300 dark:bg-neutral-700"></span>
+              <span className="ml-2 text-xs font-mono text-neutral-500">promptx-side-by-side-workflow</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs">
+              <button
+                onClick={() => setActiveTab("writing")}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                  activeTab === "writing"
+                    ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-neutral-700"
+                    : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
+                }`}
               >
-                <path
-                  d="M256 120.768L306.432 64 768 512l-461.568 448L256 903.232 659.072 512z"
-                  fill="currentcolor "
-                ></path>
-              </svg>
-            </button>
-          </Link>
-          <Link href="/learn">
-            <button className="text-[15px] flex items-center gap-2 hover:bg-gray-300/30 py-2 px-3 rounded-full cursor-pointer dark:hover:bg-gray-700/30">
-              Learn about promptx
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                xmlns="http://www.w3.org/2000/svg"
+                LinkedIn Task
+              </button>
+              <button
+                onClick={() => setActiveTab("image")}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                  activeTab === "image"
+                    ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-neutral-700"
+                    : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
+                }`}
               >
-                <path d="M11.3349 10.3301V5.60547L4.47065 12.4707C4.21095 12.7304 3.78895 12.7304 3.52925 12.4707C3.26955 12.211 3.26955 11.789 3.52925 11.5293L10.3945 4.66504H5.66011C5.29284 4.66504 4.99507 4.36727 4.99507 4C4.99507 3.63273 5.29284 3.33496 5.66011 3.33496H11.9999C12.3672 3.33496 12.6649 3.63273 12.6649 4V10.3301C12.6649 10.6973 12.3672 10.9951 11.9999 10.9951C11.6327 10.9951 11.335 10.6973 11.3349 10.3301Z"></path>
-              </svg>
-            </button>
-          </Link>
+                Image Task
+              </button>
+            </div>
+          </div>
+
+          {/* Side by side columns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-neutral-200 dark:divide-neutral-800">
+            {/* Left: PromptX side */}
+            <div className="p-6 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                    Step 1 · In PromptX
+                  </span>
+                  <span className="text-[11px] font-mono text-neutral-400">Rough input</span>
+                </div>
+                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/30">
+                  <p className="text-xs text-neutral-400 font-mono mb-2">// Describe a task, not a question</p>
+                  <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                    {activeTab === "writing"
+                      ? `"Write a LinkedIn post about my first internship as an engineer"`
+                      : `"Make a cyberpunk robot repairing lights in rainy Tokyo alleyway"`}
+                  </p>
+                </div>
+                <p className="mt-3 text-xs text-neutral-500">
+                  PromptX adds role assignment, context, structural boundaries, and tone formatting.
+                </p>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-neutral-100 dark:border-neutral-900 flex items-center justify-between text-xs text-neutral-500">
+                <span>Output targeted for:</span>
+                <span className="font-medium text-neutral-900 dark:text-neutral-200">
+                  {activeTab === "writing" ? "ChatGPT / Claude / Gemini" : "Midjourney / DALL·E 3"}
+                </span>
+              </div>
+            </div>
+
+            {/* Right: LLM Side */}
+            <div className="p-6 flex flex-col justify-between bg-neutral-50/30 dark:bg-neutral-950">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                    Step 2 · Copy & Paste to LLM
+                  </span>
+                  <CopyButton
+                    text={activeTab === "writing" ? exampleWritingPrompt : exampleImagePrompt}
+                    label="Copy ready prompt"
+                  />
+                </div>
+                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 font-mono text-xs text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap leading-relaxed max-h-56 overflow-y-auto">
+                  {activeTab === "writing" ? exampleWritingPrompt : exampleImagePrompt}
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-neutral-100 dark:border-neutral-900 flex items-center justify-between text-xs text-neutral-500">
+                <span>Result in your LLM:</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                  Zero hallucinations · First-try accuracy
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
-
-export default Herosection;

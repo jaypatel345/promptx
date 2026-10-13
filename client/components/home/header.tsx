@@ -6,20 +6,15 @@ import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/context/theme-context";
-// import { Router } from "next/router";
 import SiteAssistantModal from "@/components/SiteAssistantModal";
 import { apiClient } from "@/lib/apiClient";
 import { API_BASE } from "@/lib/apiBase";
 
 export default function Header() {
   const [userProfile, setUserProfile] = useState<any>(null);
-  const [isScrolled, setIsScrolled] = useState(true);
-
   const { isNavOpen, setIsNavOpen, isLoginOpen, setIsLoginOpen } = useUi();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-
   const pathname = usePathname();
-  const [isSettingOpen, setIsSettingOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const [loading, setLoading] = useState(false);
 
@@ -33,14 +28,6 @@ export default function Header() {
   const [authChecked, setAuthChecked] = useState(false);
   const [headerKey, setHeaderKey] = useState(0);
 
-  function checkScrollPosition() {
-    const fullScreen = window.innerHeight;
-    const halfScreen = fullScreen * 0.5;
-
-    const threshold = fullScreen + halfScreen; // 1.5 screen
-
-    return window.scrollY >= threshold;
-  }
   const handleGoogleLogin = () => {
     window.location.href = `${API_BASE}/auth/google`;
   };
@@ -48,115 +35,90 @@ export default function Header() {
   type NavLink = { label: string; href: string };
 
   const navLinks: NavLink[] = [
-    { label: "Prompt Enhancer", href: "/enhancer" },
-    { label: "Prompt Templates", href: "/Templates" },
-    { label: "Prompt Engineering", href: "/engineering" },
-    { label: "AI Tools", href: "/ai-tools" },
-    { label: "Learn", href: "/learn" },
-    { label: "Pricing", href: "/Pricing" },
-    { label: "For Teams", href: "/Teams" },
+    { label: "Templates", href: "/templates" },
+    { label: "Prompt Engineering", href: "/prompt-engineering" },
+    { label: "Pricing", href: "/pricing" },
   ];
 
-  const grokStyles = `
-@keyframes grokDropdown {
-  from {
-    opacity: 0;
-    transform: translateY(4px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-`;
+  // Close mobile nav on resize
   useEffect(() => {
-    function handleScroll() {
-      if (checkScrollPosition()) {
-        setIsScrolled(false);
-      } else {
-        setIsScrolled(true);
-      }
-    }
-
-    window.addEventListener("scroll", handleScroll);
-
-    // Run once on mount
-    handleScroll();
-
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Close navbar on reload ONLY for mobile screens
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (window.innerWidth < 640) {
-        // Tailwind sm breakpoint
+    function handleResize() {
+      if (window.innerWidth >= 768) {
         setIsNavOpen(false);
       }
     }
-  }, []);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [setIsNavOpen]);
 
+  // Auth checking
   useEffect(() => {
     const checkLogin = async () => {
       try {
-        // Check localStorage cache first
-        const cachedAuth = localStorage.getItem('authState');
-        const cachedProfile = localStorage.getItem('userProfile');
-        
+        const cachedAuth = localStorage.getItem("authState");
+        const cachedProfile = localStorage.getItem("userProfile");
+
         if (cachedAuth && cachedProfile) {
           const authData = JSON.parse(cachedAuth);
           const profileData = JSON.parse(cachedProfile);
-          
-          // Use cached data immediately
+
           setIsLoggedIn(authData.isLoggedIn);
           setUserProfile(profileData);
           setAuthChecked(true);
-          
-          // Verify in background without blocking UI
-          apiClient.get(`/user/me`).then(res => {
-            const isGuest = !!res.data?.data?.isGuest;
-            const dataUser = res.data?.data?.user || null;
-            const newIsLoggedIn = !!res.data?.success && !!dataUser && !isGuest;
-            
-            // Update if state changed
-            if (newIsLoggedIn !== authData.isLoggedIn || 
-                JSON.stringify(dataUser) !== JSON.stringify(profileData)) {
-              setIsLoggedIn(newIsLoggedIn);
-              setUserProfile(!isGuest ? dataUser : null);
-              
-              // Update cache
-              localStorage.setItem('authState', JSON.stringify({ isLoggedIn: newIsLoggedIn }));
-              localStorage.setItem('userProfile', JSON.stringify(!isGuest ? dataUser : null));
-            }
-          }).catch(error => {
-            console.error("Auth verification failed:", error);
-            // Clear cache on error
-            localStorage.removeItem('authState');
-            localStorage.removeItem('userProfile');
-            setIsLoggedIn(false);
-            setUserProfile(null);
-          });
+
+          apiClient
+            .get(`/user/me`)
+            .then((res) => {
+              const isGuest = !!res.data?.data?.isGuest;
+              const dataUser = res.data?.data?.user || null;
+              const newIsLoggedIn = !!res.data?.success && !!dataUser && !isGuest;
+
+              if (
+                newIsLoggedIn !== authData.isLoggedIn ||
+                JSON.stringify(dataUser) !== JSON.stringify(profileData)
+              ) {
+                setIsLoggedIn(newIsLoggedIn);
+                setUserProfile(!isGuest ? dataUser : null);
+
+                localStorage.setItem(
+                  "authState",
+                  JSON.stringify({ isLoggedIn: newIsLoggedIn })
+                );
+                localStorage.setItem(
+                  "userProfile",
+                  JSON.stringify(!isGuest ? dataUser : null)
+                );
+              }
+            })
+            .catch(() => {
+              localStorage.removeItem("authState");
+              localStorage.removeItem("userProfile");
+              setIsLoggedIn(false);
+              setUserProfile(null);
+            });
         } else {
-          // No cache, make API call
           const res = await apiClient.get(`/user/me`);
           const isGuest = !!res.data?.data?.isGuest;
           const dataUser = res.data?.data?.user || null;
           const newIsLoggedIn = !!res.data?.success && !!dataUser && !isGuest;
-          
+
           setIsLoggedIn(newIsLoggedIn);
           setUserProfile(!isGuest ? dataUser : null);
-          
-          // Cache the results
-          localStorage.setItem('authState', JSON.stringify({ isLoggedIn: newIsLoggedIn }));
-          localStorage.setItem('userProfile', JSON.stringify(!isGuest ? dataUser : null));
+
+          localStorage.setItem(
+            "authState",
+            JSON.stringify({ isLoggedIn: newIsLoggedIn })
+          );
+          localStorage.setItem(
+            "userProfile",
+            JSON.stringify(!isGuest ? dataUser : null)
+          );
         }
-      } catch (error) {
-        console.error("Auth check failed:", error);
+      } catch {
         setIsLoggedIn(false);
         setUserProfile(null);
-        // Clear cache on error
-        localStorage.removeItem('authState');
-        localStorage.removeItem('userProfile');
+        localStorage.removeItem("authState");
+        localStorage.removeItem("userProfile");
       } finally {
         setAuthChecked(true);
       }
@@ -165,8 +127,7 @@ export default function Header() {
     checkLogin();
   }, []);
 
-  // Update logout function to reset authChecked
-
+  // Close profile dropdown outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -193,24 +154,29 @@ export default function Header() {
     try {
       setLoading(true);
 
-      const response = await apiClient.post(`/auth/login`,         {
-          email: user.email,
-          password: user.password,
-        }      );
+      const response = await apiClient.post(`/auth/login`, {
+        email: user.email,
+        password: user.password,
+      });
 
       if (response.data?.success) {
         const me = await apiClient.get(`/user/me`);
         const isGuest = !!me.data?.data?.isGuest;
         const dataUser = me.data?.data?.user || null;
         const newIsLoggedIn = !!me.data?.success && !!dataUser && !isGuest;
-        
+
         setIsLoggedIn(newIsLoggedIn);
         setUserProfile(!isGuest ? dataUser : null);
-        
-        // Update cache
-        localStorage.setItem('authState', JSON.stringify({ isLoggedIn: newIsLoggedIn }));
-        localStorage.setItem('userProfile', JSON.stringify(!isGuest ? dataUser : null));
-        
+
+        localStorage.setItem(
+          "authState",
+          JSON.stringify({ isLoggedIn: newIsLoggedIn })
+        );
+        localStorage.setItem(
+          "userProfile",
+          JSON.stringify(!isGuest ? dataUser : null)
+        );
+
         setAuthChecked(true);
         setIsLoginOpen(false);
         setHeaderKey((k) => k + 1);
@@ -225,13 +191,11 @@ export default function Header() {
   const logout = async () => {
     try {
       await apiClient.post(`/auth/logout`, {});
-        setIsLoggedIn(false);
-        setUserProfile(null);
-        
-        // Clear cache
-        localStorage.removeItem('authState');
-        localStorage.removeItem('userProfile');
-          } catch (error) {
+      setIsLoggedIn(false);
+      setUserProfile(null);
+      localStorage.removeItem("authState");
+      localStorage.removeItem("userProfile");
+    } catch (error) {
       console.error("Logout failed:", error);
     } finally {
       setIsProfileMenuOpen(false);
@@ -239,250 +203,218 @@ export default function Header() {
       setHeaderKey((k) => k + 1);
     }
   };
+
   return (
-    <div key={headerKey} className="">
-      <style>{grokStyles}</style>
-      {/* Header */}
-      <header
-        className="
-    fixed top-0 z-40 w-full backdrop-blur-md text-black 
-
-    /* Mobile (default) */
-    bg-white dark:bg-black
-
-   xl:bg-linear-to-b xl:from-white/80 xl:to-white/40
-xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
-  "
-      >
-        <div className="relative flex justify-between items-center mx-3 sm:mx-4 md:mx-5 py-2.5 sm:py-3 overflow-visible">
-          {/* Left: Logo */}
-          <div className="flex items-center text-2xl sm:text-4xl font-semibold">
-            <div className="relative h-10 w-auto">
-              {/* logo */}
-              <Link
-                href="/"
-                aria-label="Home"
-                className={`absolute -left-8 top-0 transition-all duration-500 ease-in-out
-      ${isScrolled ? "opacity-100 translate-y-0" : "opacity-100 translate-y-0"}
-    `}
-              >
-                <Image
-                  src={
-                    theme === "light"
-                      ? "/Rectangle.png"
-                      : "/AdobeStock_450013573_Preview 1.png"
-                  }
-                  width={100}
-                  height={100}
-                  alt="promptx logo"
-                  priority
-                  className="ml-10 sm:ml-13 mt-1.5 w-40 h-8 md:h-8  object-contain "
-                />
-              </Link>
-            </div>
+    <div key={headerKey} className="relative z-50">
+      <header className="fixed top-0 left-0 w-full z-40 border-b border-neutral-200/80 dark:border-neutral-800/80 bg-white/80 dark:bg-black/80 backdrop-blur-md transition-colors">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
+          {/* Left: Brand Logo */}
+          <div className="flex items-center shrink-0">
+            <Link
+              href="/"
+              aria-label="PromptX Home"
+              className="flex items-center transition-opacity hover:opacity-90"
+            >
+              <Image
+                src="/promptx-logo-black.png"
+                width={28}
+                height={28}
+                alt="PromptX logo"
+                priority
+                style={{ width: "auto" }}
+                className="h-6 sm:h-[25px] object-contain dark:hidden"
+              />
+              <Image
+                src="/promptx-logo-white.png"
+                width={28}
+                height={28}
+                alt="PromptX logo"
+                priority
+                style={{ width: "auto" }}
+                className="h-6 sm:h-[25px] object-contain hidden dark:block"
+              />
+            </Link>
           </div>
 
-          {/* Center: Nav Links (Desktop) */}
-          <nav className="hidden xl:flex absolute left-1/2 -translate-x-1/2 items-center gap-6 text-[14px] font-medium text-black/60 dark:text-white/60">
+          {/* Center: Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-1 text-[13px] font-medium text-neutral-600 dark:text-neutral-400">
+            {navLinks.map((item) => {
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/" && pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`px-2.5 py-1.5 rounded-md transition-colors ${
+                    isActive
+                      ? "text-neutral-950 dark:text-white bg-neutral-100 dark:bg-neutral-900 font-medium"
+                      : "hover:text-neutral-950 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-900/50"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Search / Assistant Trigger */}
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              aria-label="Search prompt templates and tools"
+              className="p-1.5 rounded-lg text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="16.65" y1="16.65" x2="21" y2="21" />
+              </svg>
+            </button>
+
+            {/* Theme Toggle */}
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              aria-label="Toggle theme"
+              className="p-1.5 rounded-lg text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
+            >
+              {theme === "dark" ? (
+                // Sun icon for dark mode
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="5" />
+                  <line x1="12" y1="1" x2="12" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="23" />
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                  <line x1="1" y1="12" x2="3" y2="12" />
+                  <line x1="21" y1="12" x2="23" y2="12" />
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+              ) : (
+                // Moon icon for light mode
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              )}
+            </button>
+
+            {/* Auth Slot */}
+            {userProfile ? (
+              <div ref={profileMenuRef} className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsProfileMenuOpen((v) => !v);
+                  }}
+                  className="w-7 h-7 rounded-full overflow-hidden border border-neutral-300 dark:border-neutral-700 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800"
+                >
+                  {userProfile?.avatar?.trim() ? (
+                    <img
+                      src={userProfile.avatar}
+                      alt="User avatar"
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = "/avatar.svg";
+                      }}
+                    />
+                  ) : (
+                    <span className="text-xs font-medium uppercase font-mono">
+                      {userProfile.email?.[0] || "U"}
+                    </span>
+                  )}
+                </button>
+
+                {isProfileMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-1.5 shadow-xs text-xs">
+                    <div className="px-3 py-2 border-b border-neutral-100 dark:border-neutral-900 mb-1">
+                      <p className="font-medium text-neutral-900 dark:text-neutral-100 truncate">
+                        {userProfile.email}
+                      </p>
+                      <p className="text-[11px] text-neutral-500">Free Tier</p>
+                    </div>
+                    <Link
+                      href="/pricing"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                      className="block px-3 py-1.5 rounded-lg text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                    >
+                      Upgrade to Pro
+                    </Link>
+                    <Link
+                      href="/enhancer"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                      className="block px-3 py-1.5 rounded-lg text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                    >
+                      Prompt Builder
+                    </Link>
+                    <div className="h-px bg-neutral-100 dark:bg-neutral-900 my-1" />
+                    <button
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        logout();
+                      }}
+                      className="w-full text-left px-3 py-1.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsLoginOpen(true)}
+                  className="px-2.5 py-1.5 rounded-md text-xs font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white transition-colors"
+                >
+                  Log in
+                </button>
+              </div>
+            )}
+
+            {/* Mobile Nav Hamburger */}
+            <button
+              onClick={() => setIsNavOpen(!isNavOpen)}
+              aria-label={isNavOpen ? "Close menu" : "Open menu"}
+              className="md:hidden p-1.5 rounded-lg text-neutral-600 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white transition-colors"
+            >
+              {isNavOpen ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <line x1="4" y1="7" x2="20" y2="7" />
+                  <line x1="4" y1="12" x2="20" y2="12" />
+                  <line x1="4" y1="17" x2="20" y2="17" />
+                </svg>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Dropdown Menu */}
+        {isNavOpen && (
+          <nav className="md:hidden border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black px-4 py-3 space-y-1">
             {navLinks.map((item) => (
               <Link
                 key={item.label}
                 href={item.href}
-                className={`hover:text-black dark:hover:text-white transition-colors whitespace-nowrap ${
-                  pathname === item.href ? "text-black dark:text-white" : ""
+                onClick={() => setIsNavOpen(false)}
+                className={`block px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  pathname === item.href
+                    ? "text-neutral-950 dark:text-white bg-neutral-100 dark:bg-neutral-900"
+                    : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white"
                 }`}
               >
                 {item.label}
               </Link>
             ))}
           </nav>
-
-          {/* Right: Search + Login */}
-          <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
-{/* Mobile Nav Toggle */}
-            <button
-              aria-label={isNavOpen ? "Close menu" : "Open menu"}
-              className="xl:hidden p-1 sm:p-2 rounded-full hover:bg-gray-100 transition dark:hover:bg-gray-700/40"
-              onClick={() => setIsNavOpen(!isNavOpen)}
-            >
-              {isNavOpen ? (
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-black dark:text-white sm:w-5 sm:h-5"
-                >
-                  <path d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              ) : (
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-black dark:text-white sm:w-5 sm:h-5"
-                >
-                  <line x1="3" y1="6" x2="21" y2="6"></line>
-                  <line x1="3" y1="12" x2="21" y2="12"></line>
-                  <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-              )}
-            </button>
-
-{/* Search Button */}
-            <button
-              aria-label="Search"
-              className={`p-1 sm:p-2 rounded-full hover:bg-gray-100 transition dark:hover:bg-gray-700/40 md:ml-0 ml-3 ${
-                pathname === "/" ? "" : "hidden"
-              }`}
-              onClick={() => {
-                  setIsSearchOpen(true);
-                  setIsLoginOpen(false);
-                }}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-black dark:text-white sm:w-5 sm:h-5"
-                              >
-                <circle cx="11" cy="11" r="7"></circle>
-                <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
-              </svg>
-            </button>
-
-            {/* Right Slot */}
-            <div className="w-[88px] sm:w-24 flex justify-end">
-              {userProfile ? (
-                /* LOGGED IN STATE */
-                <div
-                  ref={profileMenuRef}
-                  className="relative z-999 flex items-center justify-center mr-5 overflow-visible"
-                >
-{/* Avatar Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsProfileMenuOpen((v) => !v);
-                    }}
-                    className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden bg-gray-200 dark:bg-neutral-700"
-                                      >
-                    {userProfile?.avatar?.trim() ? (
-                      <img
-                        src={userProfile.avatar}
-                        alt="User avatar"
-                        referrerPolicy="no-referrer"
-                        loading="lazy"
-                        className="w-full h-full object-cover rounded-full"
-                        onError={(e) => {
-                                                    e.currentTarget.src = "/avatar.svg";
-                        }}
-                      />
-                    ) : (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                    )}
-                  </button>
-
-{/* Dropdown */}
-                  {isProfileMenuOpen && (
-                    <div                       className="absolute z-1000 w-44 bg-white dark:bg-neutral-900 rounded-xl border border-gray-200 dark:border-neutral-700       top-full mt-1 right-0">
-                      <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
-                        Settings
-                      </button>
-                      <Link 
-                        href="/Pricing"
-                        className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm block"
-                        onClick={() => setIsProfileMenuOpen(false)}
-                      >
-                        Upgrade plan
-                      </Link>
-                      <button className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-sm">
-                        Help
-                      </button>
-
-                      <div className="h-px bg-gray-200 dark:bg-neutral-700 my-1" />
-
-                      <button
-                        onClick={() => {
-                          setIsProfileMenuOpen(false);
-                          logout();
-                        }}
-                        className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm text-red-600"
-                      >
-                        Sign out
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                /* NOT LOGGED IN STATE */
-                <button
-                  className="px-4 sm:px-4 md:px-5 py-2 bg-gray-300/40 text-black rounded-full hover:bg-gray-200 transition text-[13px] dark:bg-white dark:text-black dark:hover:bg-white/90"
-                  onClick={() => {
-                    setIsLoginOpen(true);
-                    setIsNavOpen(false);
-                    setIsScrolled(false);
-                  }}
-                >
-                  Log in
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Nav Dropdown */}
-        {isNavOpen && (
-          <nav className="xl:hidden absolute top-full left-0 w-full bg-white dark:bg-black border-t border-gray-100 dark:border-neutral-800 shadow-sm">
-            <ul className="flex flex-col px-4 sm:px-5 py-2 text-sm">
-              {navLinks.map((item) => (
-                <li key={item.label}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setIsNavOpen(false)}
-                    className={`block py-3 hover:text-black dark:hover:text-white transition-colors ${
-                      pathname === item.href
-                        ? "text-black dark:text-white"
-                        : "text-black/70 dark:text-white/70"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
         )}
       </header>
 
-      {/* SiteAssistantModal replaces legacy search modal */}
+      {/* Site Assistant Modal */}
       <SiteAssistantModal
         open={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
@@ -491,162 +423,111 @@ xl:dark:bg-linear-to-b xl:dark:from-black/60 xl:dark:to-black/20
       {/* Login Modal */}
       {isLoginOpen && (
         <>
-          {/* BACKDROP – full screen */}
           <div
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 dark:bg-white/20"
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50"
             onClick={() => setIsLoginOpen(false)}
-          ></div>
-
-          {/* MODAL CONTAINER – centered */}
-          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none -translate-y-10 sm:-translate-y-20 transition-all duration-300 px-4 ">
+          />
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
             <div
-              className="bg-white/70 w-lg max-w-xs sm:max-w-sm rounded-2xl px-10 sm:px-8 py-8 pointer-events-auto shadow-sm dark:bg-black/70 dark:text-white "
+              className="bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 w-full max-w-sm rounded-2xl p-6 pointer-events-auto text-neutral-900 dark:text-neutral-100"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex justify-end mb-2">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded bg-neutral-900 text-white dark:bg-white dark:text-neutral-950 flex items-center justify-center font-bold text-[10px]">
+                    X
+                  </div>
+                  <h3 className="text-sm font-semibold">Sign in to PromptX</h3>
+                </div>
                 <button
                   type="button"
                   onClick={() => setIsLoginOpen(false)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                  aria-label="Close"
+                  className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
                 >
-                  <svg
-                    className="w-4 h-4 sm:w-5 sm:h-5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M6 18L18 6M6 6l12 12"></path>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
 
-              {/*  FORM: Enter key will trigger submit */}
-              <form onSubmit={onLogin}>
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={user.email}
-                  onChange={(e) => setUser({ ...user, email: e.target.value })}
-                  disabled={loading}
-                  className="border-b border-gray-300 w-full px-2 py-2 mb-4 sm:mb-5 text-black outline-none dark:text-white text-sm sm:text-[15px] focus:border-gray-500 dark:focus:border-neutral-500"
-                />
-
-                <div className="flex items-center justify-center">
+              <form onSubmit={onLogin} className="space-y-3">
+                <div>
+                  <input
+                    type="email"
+                    placeholder="name@example.com"
+                    value={user.email}
+                    onChange={(e) => setUser({ ...user, email: e.target.value })}
+                    disabled={loading}
+                    className="w-full h-9 px-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 text-xs text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-600"
+                  />
+                </div>
+                <div>
                   <input
                     type="password"
                     placeholder="Password"
                     value={user.password}
-                    onChange={(e) =>
-                      setUser({ ...user, password: e.target.value })
-                    }
+                    onChange={(e) => setUser({ ...user, password: e.target.value })}
                     disabled={loading}
-                    className="border-b border-gray-300 w-full px-2 py-2 mb-9 text-black outline-none dark:text-white  sm:text-[15px] text-sm focus:border-gray-500 dark:focus:border-neutral-500"
+                    className="w-full h-9 px-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 text-xs text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-600"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className={`w-full bg-black text-[#aeaeaf] py-2 sm:py-2 md:py-3 rounded-full hover:bg-black/80 dark:bg-white dark:text-black dark:hover:bg-white/90 text-sm sm:text-base flex items-center justify-center gap-2 ${
-                    loading ? "opacity-70 cursor-not-allowed" : "cursor-pointer"
-                  }`}
                   disabled={loading}
-                  aria-busy={loading}
+                  className="w-full h-9 rounded-lg font-medium text-xs bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-100 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  {loading ? (
-                    <>
-                      <svg
-                        className="h-4 w-4 animate-spin"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z"
-                        />
-                      </svg>
-                      <span className="text-sm">Signing in...</span>
-                    </>
-                  ) : (
-                    <span className="text-sm">SIGN IN</span>
-                  )}
+                  {loading ? "Signing in..." : "Sign in"}
                 </button>
               </form>
 
-              {/* Google button (kept OUTSIDE form so it won't submit on click) */}
-              <div className="flex justify-center items-center">
-                <button
-                  type="button"
-                  className="w-fit sm:w-[60%] mt-2 text-white pr-3 sm:pr-3 rounded-full bg-black flex justify-between items-center hover:bg-black/80 cursor-pointer dark:bg-white dark:text-black dark:hover:bg-white/90 text-xs sm:text-sm"
-                >
-                  <svg
-                    version="1.1"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 48 48"
-                    className="bg-white p-1 sm:p-1 md:p-2 rounded-full text-black dark:bg-black"
-                    width={32}
-                    height={32}
-                  >
-                    <g>
-                      <path
-                        fill="#EA4335"
-                        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                      ></path>
-                      <path
-                        fill="#4285F4"
-                        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                      ></path>
-                      <path
-                        fill="#FBBC05"
-                        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                      ></path>
-                      <path
-                        fill="#34A853"
-                        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                      ></path>
-                      <path fill="none" d="M0 0h48v48H0z"></path>
-                    </g>
-                  </svg>
-
-                  <div
-                    className="pl-2 md:-pl-5 text-sm"
-                    onClick={handleGoogleLogin}
-                  >
-                    Continue with Google
-                  </div>
-                </button>
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-neutral-200 dark:border-neutral-800" />
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase font-mono text-neutral-400">
+                  <span className="bg-white dark:bg-neutral-950 px-2">Or</span>
+                </div>
               </div>
 
-              <div className="flex justify-center items-center gap-1 sm:gap-2 pt-3 sm:pt-4 text-xs sm:text-[13px]">
-                <Link
-                  href="/forget-password"
-                  className="text-black/60 dark:text-white"
-                >
-                  Forgot Password
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                className="w-full h-9 rounded-lg font-medium text-xs border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-800/80 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+                <span>Continue with Google</span>
+              </button>
+
+              <div className="mt-4 flex items-center justify-between text-[11px] text-neutral-500">
+                <Link href="/Signup" onClick={() => setIsLoginOpen(false)} className="hover:underline">
+                  Create account
                 </Link>
-                <Link href="/Signup" className="text-black dark:text-white">
-                  Sign Up
+                <Link href="/forget-password" onClick={() => setIsLoginOpen(false)} className="hover:underline">
+                  Forgot password?
                 </Link>
               </div>
             </div>
           </div>
         </>
       )}
-
     </div>
   );
 }

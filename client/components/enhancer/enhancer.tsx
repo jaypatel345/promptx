@@ -10,6 +10,7 @@ import { useChat } from "@/context/ChatContext";
 import type { Message as ChatMessage } from "@/context/ChatContext";
 import { API_BASE } from "@/lib/apiBase";
 import { TARGET_MODELS } from "@/lib/models";
+import { MarkdownRenderer } from "./MarkdownRenderer";
 
 axios.defaults.withCredentials = true;
 
@@ -53,27 +54,7 @@ function Enhancer() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // --- Mac trackpad hard-fix: force wheel/gesture scrolling ---
-  useEffect(() => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
 
-    const onWheel = (e: WheelEvent) => {
-      // If the container can scroll, force it
-      const canScroll = el.scrollHeight > el.clientHeight;
-      if (!canScroll) return;
-
-      e.preventDefault();
-      el.scrollTop += e.deltaY;
-    };
-
-    // Safari needs non-passive listener to allow preventDefault
-    el.addEventListener("wheel", onWheel, { passive: false });
-
-    return () => {
-      el.removeEventListener("wheel", onWheel);
-    };
-  }, []);
   const isAtBottomRef = useRef(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -133,9 +114,6 @@ function Enhancer() {
     checkSession();
   }, []);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   const handleCopy = async (text: string) => {
     try {
@@ -440,7 +418,10 @@ function Enhancer() {
   }, [input]);
 
   const scrollToBottom = (): void => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollContainerRef.current;
+    if (el) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }
   };
 
   const handleScroll = () => {
@@ -453,10 +434,6 @@ function Enhancer() {
 
     isAtBottomRef.current = atBottom;
   };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   useEffect(() => {
     if (isAtBottomRef.current) {
@@ -476,17 +453,21 @@ function Enhancer() {
   const typeMessage = async (
     fullText: string,
     setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
-    lineDelay = 35,
+    lineDelay = 8,
   ) => {
     setIsTyping(true);
     stopTypingRef.current = false;
     const lines = fullText.split("\n");
     let current = "";
 
-    for (let i = 0; i < lines.length; i++) {
+    // Chunk lines for long prompts to maintain high frame rate
+    const chunkSize = lines.length > 40 ? 3 : 1;
+
+    for (let i = 0; i < lines.length; i += chunkSize) {
       if (stopTypingRef.current) break;
 
-      current += (i === 0 ? "" : "\n") + lines[i];
+      const chunk = lines.slice(i, i + chunkSize).join("\n");
+      current += (i === 0 ? "" : "\n") + chunk;
 
       setMessages((prev) => {
         const last = prev[prev.length - 1];
@@ -505,6 +486,20 @@ function Enhancer() {
 
       await new Promise((res) => setTimeout(res, lineDelay));
     }
+
+    // Ensure final state has complete text
+    setMessages((prev) => {
+      const last = prev[prev.length - 1];
+      if (last?.role === "assistant") {
+        const updated = [...prev];
+        updated[updated.length - 1] = {
+          ...last,
+          content: fullText,
+        };
+        return updated;
+      }
+      return prev;
+    });
 
     setIsTyping(false);
     pendingAssistantCountRef.current = null;
@@ -621,8 +616,27 @@ function Enhancer() {
         setConversationId(returnedConversationId);
       }
 
-      // POLLING EVERY SECOND, with a timeout so a stuck AI job doesn't spin forever
-      const MAX_POLL_ATTEMPTS = 60; // ~60 seconds
+      // If the API directly produced the enhanced prompt (instant fast-path)
+      if (sendResult?.data?.enhancedPrompt || sendResult?.data?.message?.content) {
+        const fullContent =
+          sendResult.data.enhancedPrompt || sendResult.data.message.content;
+        setLoading(false);
+        activeAiJobIdRef.current = null;
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "",
+          },
+        ]);
+
+        await typeMessage(fullContent, setMessages);
+        return;
+      }
+
+      // POLLING FALLBACK with faster interval
+      const MAX_POLL_ATTEMPTS = 60;
       let pollAttempts = 0;
 
       const stopPolling = () => {
@@ -718,7 +732,7 @@ function Enhancer() {
             },
           ]);
         }
-      }, 1000);
+      }, 500);
     } catch (err) {
       // The user hitting "Stop" while this initial request was still in
       // flight also lands here (aborting it rejects the fetch) — handleStop
@@ -814,7 +828,7 @@ function Enhancer() {
   }, [isNavOpen]);
 
   return (
-    <div className="flex w-full h-screen md:h-screen   overflow-hidden overflow-x-hidden relative overscroll-none">
+    <div className="flex w-full h-screen h-dvh overflow-hidden relative">
       <EnhacerHeader />
 
       {/* Chat Messages Area */}
@@ -825,14 +839,13 @@ function Enhancer() {
         <h1 className="sr-only">AI Prompt Enhancer</h1>
         <div
           ref={scrollContainerRef}
+          data-lenis-prevent="true"
           onScroll={handleScroll}
-          className="flex-1 w-full overflow-y-auto overflow-visible min-h-0 custom-scroll flex"
+          className="flex-1 w-full min-h-0 overflow-y-auto overflow-x-hidden custom-scroll"
           style={{
-            WebkitOverflowScrolling: "auto",
-            overscrollBehaviorY: "auto",
+            WebkitOverflowScrolling: "touch",
+            overscrollBehaviorY: "contain",
             overscrollBehaviorX: "none",
-            touchAction: "pan-y",
-            pointerEvents: "auto",
             paddingLeft: "1rem",
             paddingRight: "1rem",
             boxSizing: "border-box",
@@ -870,15 +883,18 @@ function Enhancer() {
               <div className="flex min-h-full items-center justify-center pointer-events-none">
                 <div className="flex flex-col items-center justify-center gap-6 text-center">
                   <Image
-                    src={
-                      theme === "light"
-                        ? "/Rectangle.png"
-                        : "/AdobeStock_450013573_Preview 1.png"
-                    }
+                    src="/promptx-logo-black.png"
                     width={100}
                     height={100}
-                    alt="promptx logo"
-                    className="object-contain h-14 md:h-15 opacity-30"
+                    alt="PromptX logo"
+                    className="object-contain h-12 md:h-14 opacity-40 dark:hidden"
+                  />
+                  <Image
+                    src="/promptx-logo-white.png"
+                    width={100}
+                    height={100}
+                    alt="PromptX logo"
+                    className="object-contain h-12 md:h-14 opacity-40 hidden dark:block"
                   />
                   <div className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-black font-medium dark:text-white">
                     What can I help with?
@@ -968,17 +984,17 @@ function Enhancer() {
                       </div>
                     )}
                     <div
-                      className={`relative w-fit max-w-[85%] sm:max-w-[75%] ${
+                      className={`relative ${
                         isErrorMessage
-                          ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-900"
+                          ? "w-fit max-w-[85%] sm:max-w-[75%] bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-900 rounded-2xl px-4 py-2.5"
                           : message.role === "user"
-                            ? "bg-gray-100 text-black dark:bg-neutral-700 dark:text-white "
-                            : "text-black dark:text-white"
-                      } rounded-2xl px-4 py-2.5 `}
+                            ? "w-fit max-w-[85%] sm:max-w-[75%] bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100 border border-neutral-200 dark:border-neutral-700/60 rounded-2xl px-4 py-2.5 shadow-xs"
+                            : "w-full max-w-full text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-950/60 border border-neutral-200/80 dark:border-neutral-800/80 rounded-2xl p-4 sm:p-5 shadow-xs"
+                      }`}
                     >
-                      {/*  Show attachments inside the chat bubble */}
+                      {/* Show attachments inside the chat bubble */}
                       {message.attachments?.length ? (
-                        <div className="mt-0 flex flex-wrap gap-2">
+                        <div className="mb-3 flex flex-wrap gap-2">
                           {message.attachments.map((a) => (
                             <a
                               key={a.id}
@@ -986,80 +1002,81 @@ function Enhancer() {
                               target="_blank"
                               rel="noreferrer"
                               download={a.file.name}
-                              className={`flex items-center gap-2 rounded-xl border-2 px-2 py-2 ${
-                                message.role === "user"
-                                  ? "border-white bg-white/10 dark:border-gray-600/30"
-                                  : "border-gray-900 dark:border-gray-700 bg-white dark:bg-black/20"
-                              }`}
+                              className="flex items-center gap-2 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-2.5 py-1.5 text-xs text-neutral-800 dark:text-neutral-200"
                               title={a.file.name}
                             >
                               {a.kind === "image" ? (
                                 <img
                                   src={a.objectUrl}
                                   alt={a.file.name}
-                                  className="w-10 h-10 rounded-lg object-cover"
+                                  className="w-8 h-8 rounded-lg object-cover"
                                 />
                               ) : (
-                                <div className="w-10 h-10 rounded-lg bg-gray-200/60 dark:bg-gray-800 flex items-center justify-center">
-                                  <svg
-                                    width="18"
-                                    height="18"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    className="opacity-80"
-                                  >
-                                    <path
-                                      d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-6Z"
-                                      stroke="currentColor"
-                                      strokeWidth="1.6"
-                                    />
-                                    <path
-                                      d="M14 2v6h6"
-                                      stroke="currentColor"
-                                      strokeWidth="1.6"
-                                    />
+                                <div className="w-8 h-8 rounded-lg bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center">
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="opacity-80">
+                                    <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-6Z" stroke="currentColor" strokeWidth="1.6" />
+                                    <path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.6" />
                                   </svg>
                                 </div>
                               )}
-
                               <div className="min-w-0">
-                                <div className="text-xs font-medium truncate max-w-42.5">
-                                  {a.file.name}
-                                </div>
-                                <div className="text-[11px] opacity-70">
-                                  {formatBytes(a.file.size)}
-                                </div>
+                                <div className="text-xs font-medium truncate max-w-40">{a.file.name}</div>
+                                <div className="text-[10px] text-neutral-500">{formatBytes(a.file.size)}</div>
                               </div>
                             </a>
                           ))}
                         </div>
                       ) : null}
-                      {message.content ||
-                      (isTyping &&
-                        index === messages.length - 1 &&
-                        message.role === "assistant") ? (
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word flex items-start gap-1.5">
-                          {isErrorMessage && (
-                            <svg
-                              width="15"
-                              height="15"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              className="shrink-0 mt-0.5"
-                            >
+
+                      {/* Assistant Card Top Bar */}
+                      {message.role === "assistant" && !isErrorMessage && (
+                        <div className="flex items-center justify-between pb-3 mb-3 border-b border-neutral-100 dark:border-neutral-900 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[10.5px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-900 px-2 py-0.5 rounded border border-neutral-200/60 dark:border-neutral-800/60">
+                              {activeTargetModel?.label || "ChatGPT"}
+                            </span>
+                            <span className="text-[11px] text-neutral-400 hidden sm:inline">
+                              Production Prompt
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleCopy(message.content)}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 transition-colors cursor-pointer"
+                            title="Copy full prompt"
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                            <span>Copy Prompt</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Content */}
+                      {message.role === "assistant" ? (
+                        isErrorMessage ? (
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap flex items-start gap-1.5">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="shrink-0 mt-0.5">
                               <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
                               <path d="M12 7.5V13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
                               <circle cx="12" cy="16.2" r="1" fill="currentColor" />
                             </svg>
-                          )}
-                          <span>{message.content}</span>
-                          {isTyping &&
-                            index === messages.length - 1 &&
-                            message.role === "assistant" && (
-                              <span className="inline-block w-0.5 h-4 ml-0.5 bg-current animate-pulse align-middle" />
+                            <span>{message.content}</span>
+                          </p>
+                        ) : (
+                          <div className="relative">
+                            <MarkdownRenderer content={message.content} />
+                            {isTyping && index === messages.length - 1 && (
+                              <span className="inline-block w-1.5 h-4 ml-1 bg-current animate-pulse align-middle" />
                             )}
+                          </div>
+                        )
+                      ) : (
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">
+                          {message.content}
                         </p>
-                      ) : null}
+                      )}
                       {/* Assistant actions outside bubble */}
                       {message.role === "assistant" &&
                         !isErrorMessage &&
@@ -1474,7 +1491,7 @@ function Enhancer() {
                 <textarea
                   ref={textareaRef}
                   rows={1}
-                  placeholder="Ask anything"
+                  placeholder='Describe what you want your LLM to do, e.g. "LinkedIn post about my first internship"'
                   value={input}
                   onChange={(e) => {
                     setInput(e.target.value);
@@ -1490,13 +1507,14 @@ function Enhancer() {
                   className="
     w-full
     box-border
-    text-[16px]
+    text-[15px]
     leading-5.5
     outline-none
     bg-transparent
     text-black
     dark:text-white
-    dark:placeholder-gray-400
+    placeholder-neutral-400
+    dark:placeholder-neutral-500
     resize-none
     overflow-hidden
     min-h-5.5
@@ -1542,6 +1560,10 @@ function Enhancer() {
                   </svg>
                 </button>
               </div>
+            </div>
+
+            <div className="text-center text-[11px] font-medium text-neutral-400 dark:text-neutral-500 mt-2">
+              Describe a task, not a question. PromptX writes prompts; it does not answer general questions.
             </div>
 
             {showLanding && (

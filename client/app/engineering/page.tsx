@@ -1,40 +1,5 @@
-import React from "react";
-import type { Metadata } from "next";
-import { createCanonical } from "@/lib/seo";
+import { redirect } from "next/navigation";
 
-// Coming soon — keep this out of search results until real content ships,
-// rather than let a thin placeholder page get indexed and rank.
-export const metadata: Metadata = {
-  title: { absolute: "Prompt Engineering — Coming Soon | PromptX" },
-  description:
-    "PromptX's prompt engineering resources are on the way. Check back soon.",
-  alternates: {
-    canonical: createCanonical("/engineering"),
-  },
-  robots: {
-    index: false,
-    follow: true,
-  },
-};
-
-export default function Page() {
-  return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="bg-white p-10 max-w-lg text-center rounded-3xl shadow-md border border-gray-100">
-        <h1 className="text-3xl font-medium text-gray-800 mb-4">
-          Oops... This Page Overslept
-        </h1>
-
-        <p className="text-gray-600 mb-6 leading-relaxed">
-          This page is still getting ready. Probably having a coffee, fixing its
-          hair, or debugging itself emotionally. Check back soon once it decides
-          to behave.
-        </p>
-
-        <p className="text-sm text-gray-400 mt-4">
-          Meanwhile: refresh responsibly.
-        </p>
-      </div>
-    </div>
-  );
+export default function LegacyEngineeringPage() {
+  redirect("/prompt-engineering");
 }

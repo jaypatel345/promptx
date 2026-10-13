@@ -81,15 +81,18 @@ function Signup() {
           className="absolute left-0 top-0 transition-all duration-500 ease-in-out z-50"
         >
           <Image
-            src={
-              theme === "light"
-                ? "/Rectangle.png"
-                : "/AdobeStock_450013573_Preview 1.png"
-            }
-            width={50}
-            height={15}
-            alt="promptx logo"
-            className="ml-4 sm:ml-10 mt-5 w-10 h-4 md:h-8  "
+            src="/promptx-logo-black.png"
+            width={32}
+            height={32}
+            alt="PromptX logo"
+            className="ml-4 sm:ml-10 mt-5 w-8 h-8 object-contain dark:hidden"
+          />
+          <Image
+            src="/promptx-logo-white.png"
+            width={32}
+            height={32}
+            alt="PromptX logo"
+            className="ml-4 sm:ml-10 mt-5 w-8 h-8 object-contain hidden dark:block"
           />
         </Link>
 
@@ -188,15 +191,18 @@ function Signup() {
               }}
             >
               <Image
-                src={
-                  theme === "light"
-                    ? "/Rectangle.png"
-                    : "/AdobeStock_450013573_Preview 1.png"
-                }
-                width={22}
+                src="/promptx-logo-black.png"
+                width={20}
                 height={20}
-                alt="promptx logo"
-                className="absolute left-3 sm:left-4"
+                alt="PromptX logo"
+                className="absolute left-3 sm:left-4 w-5 h-5 object-contain dark:hidden"
+              />
+              <Image
+                src="/promptx-logo-white.png"
+                width={20}
+                height={20}
+                alt="PromptX logo"
+                className="absolute left-3 sm:left-4 w-5 h-5 object-contain hidden dark:block"
               />
               Sign up with PromptX
             </button>
