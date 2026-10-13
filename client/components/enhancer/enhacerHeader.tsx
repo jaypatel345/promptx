@@ -9,7 +9,6 @@ import { useTheme } from "@/context/theme-context";
 import { useUi } from "@/context/UiContext";
 import { apiClient } from "@/lib/apiClient";
 import { API_BASE } from "@/lib/apiBase";
-import LoginModal from "@/components/auth/LoginModal";
 
 const MOBILE_BREAKPOINT = 768;
 const API = API_BASE;
@@ -132,7 +131,7 @@ function EnhacerHeader() {
     setMessages,
     startNewChat,
   } = useChat();
-  const { isOpen, setIsOpen, setIsNavOpen, isLoginOpen, setIsLoginOpen } = useUi();
+  const { isOpen, setIsOpen, isNavOpen, setIsNavOpen } = useUi();
 
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -198,9 +197,6 @@ function EnhacerHeader() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [user, setUser] = useState({ email: "", password: "" });
-  const [loading, setLoading] = useState(false);
-  const [loginError, setLoginError] = useState("");
   // Initialize guestId if needed
   const [stableGuestId, setStableGuestId] = useState<string | null>(null);
   
@@ -626,42 +622,6 @@ function EnhacerHeader() {
     }
   };
 
-
-
-  const onLogin = async (e?: React.SyntheticEvent) => {
-    e?.preventDefault();
-    if (loading) return;
-
-    try {
-      setLoading(true);
-
-      const response = await apiClient.post(`/auth/login`, {
-        email: user.email,
-        password: user.password,
-      });
-
-      if (response.data?.success) {
-        const me = await apiClient.get(`/user/me`);
-        const isGuest = !!me.data?.data?.isGuest;
-        const dataUser = me.data?.data?.user || null;
-        setIsLoggedIn(!!me.data?.success && !!dataUser && !isGuest);
-        setUserProfile(!isGuest ? (dataUser as UserProfile) : null);
-        setLoginError("");
-        setIsLoginOpen(false);
-
-        // Load conversations after login
-        const res = await apiClient.get(`/conversations`);
-        if (res.data?.success) {
-          setConversations(res.data.data?.conversations || []);
-        }
-      }
-    } catch (error: unknown) {
-      setLoginError(getErrorMessage(error) || "Invalid email or password");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -693,7 +653,7 @@ function EnhacerHeader() {
   ${
     isMobile
       ? `fixed top-0 left-0 w-[60vw] max-w-105 transform ${
-          isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          isMobileSidebarOpen || isNavOpen ? "translate-x-0" : "-translate-x-full"
         } z-[2000]`
       : isOpen
         ? "w-60 opacity-100"
@@ -701,6 +661,15 @@ function EnhacerHeader() {
   }`}
           style={{ overflow: "visible" }}
         >
+          {isMobile && (isMobileSidebarOpen || isNavOpen) && (
+            <div
+              className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[1999]"
+              onClick={() => {
+                setIsMobileSidebarOpen(false);
+                setIsNavOpen(false);
+              }}
+            />
+          )}
           <div>
             <Link href="/" aria-label="Home" className="">
               <Image
@@ -1189,8 +1158,8 @@ function EnhacerHeader() {
             ) : (
               /* When logged out: Login trigger in sidebar */
               isOpen ? (
-                <button
-                  onClick={() => setIsLoginOpen(true)}
+                <Link
+                  href="/login"
                   className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium text-neutral-800 dark:text-neutral-200 hover:text-black dark:hover:text-white bg-neutral-100 hover:bg-neutral-200/80 dark:bg-neutral-800 dark:hover:bg-neutral-700 border border-neutral-200/80 dark:border-neutral-700/80 transition-all cursor-pointer truncate"
                   title="Log in to PromptX"
                 >
@@ -1210,10 +1179,10 @@ function EnhacerHeader() {
                     <line x1="15" y1="12" x2="3" y2="12" />
                   </svg>
                   <span>Log in</span>
-                </button>
+                </Link>
               ) : (
-                <button
-                  onClick={() => setIsLoginOpen(true)}
+                <Link
+                  href="/login"
                   title="Log in to PromptX"
                   className="w-9 h-9 rounded-full flex items-center justify-center text-neutral-700 dark:text-neutral-300 hover:text-black dark:hover:text-white bg-neutral-100 hover:bg-neutral-200/80 dark:bg-neutral-800 dark:hover:bg-neutral-700 border border-neutral-200/80 dark:border-neutral-700/80 transition-all cursor-pointer"
                 >
@@ -1231,7 +1200,7 @@ function EnhacerHeader() {
                     <polyline points="10 17 15 12 10 7" />
                     <line x1="15" y1="12" x2="3" y2="12" />
                   </svg>
-                </button>
+                </Link>
               )
             )}
 
@@ -1268,70 +1237,7 @@ function EnhacerHeader() {
             </div>
           </div>
         </div>
-
-        <div className="absolute top-3 left-4 z-50 flex items-center gap-2">
-          {isMobile && !isMobileSidebarOpen && (
-            <button
-              onClick={() => setIsMobileSidebarOpen(true)}
-              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-200 dark:hover:bg-neutral-800 transition"
-            >
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-            </button>
-          )}
-        </div>
-
-        {/* Auth controls: Top-right header pill with Log in & Sign up */}
-        <div className="fixed sm:absolute top-3.5 right-4 z-40 flex items-center gap-2">
-          {!authChecked || isLoggedIn ? null : (
-            <div className="flex items-center gap-1.5 p-1 rounded-full bg-white/85 dark:bg-neutral-900/85 backdrop-blur-md border border-neutral-200/80 dark:border-neutral-800 shadow-xs">
-              <button
-                className="px-3 py-1.5 rounded-full text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
-                onClick={() => {
-                  if (!authChecked) return;
-                  setIsLoginOpen(true);
-                  setIsNavOpen(false);
-                }}
-              >
-                Log in
-              </button>
-              <Link
-                href="/Signup"
-                className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 hover:bg-neutral-800 dark:hover:bg-neutral-100 transition shadow-xs"
-              >
-                Sign up
-              </Link>
-            </div>
-          )}
-        </div>
       </div>
-
-      <LoginModal
-        open={isLoginOpen}
-        onClose={() => setIsLoginOpen(false)}
-        onSuccess={async (dataUser) => {
-          setIsLoggedIn(true);
-          setUserProfile(dataUser);
-          try {
-            const res = await apiClient.get(`/conversations`);
-            if (res.data?.success) {
-              setConversations(res.data.data?.conversations || []);
-            }
-          } catch (e) {
-            console.error("Failed to refresh conversations:", e);
-          }
-        }}
-      />
       {isSearchModalOpen && (
         <>
           <div

@@ -7,12 +7,9 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { API_BASE } from "@/lib/apiBase";
-import { useUi } from "@/context/UiContext";
-import LoginModal from "@/components/auth/LoginModal";
 
 export default function Signup() {
   const router = useRouter();
-  const { openLogin, isLoginOpen, setIsLoginOpen } = useUi();
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -72,9 +69,7 @@ export default function Signup() {
       );
 
       if (response.data?.success) {
-        // Automatically open login modal with notification or redirect to root
-        router.replace("/");
-        openLogin();
+        router.replace("/login");
         return;
       }
 
@@ -319,13 +314,12 @@ export default function Signup() {
           {/* Already have an account */}
           <div className="mt-6 pt-5 border-t border-neutral-100 dark:border-neutral-900 text-center text-xs text-neutral-500">
             Already have an account?{" "}
-            <button
-              type="button"
-              onClick={openLogin}
-              className="font-medium text-neutral-900 dark:text-white hover:underline cursor-pointer"
+            <Link
+              href="/login"
+              className="font-medium text-neutral-900 dark:text-white hover:underline transition-colors"
             >
               Sign in
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -441,15 +435,6 @@ export default function Signup() {
           <span>Trusted by creators worldwide</span>
         </div>
       </div>
-
-      {/* Global Login Modal for switching from Signup */}
-      <LoginModal
-        open={isLoginOpen}
-        onClose={() => setIsLoginOpen(false)}
-        onSuccess={() => {
-          router.replace("/");
-        }}
-      />
     </div>
   );
 }

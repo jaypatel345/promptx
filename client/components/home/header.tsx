@@ -7,22 +7,17 @@ import { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/context/theme-context";
 import SiteAssistantModal from "@/components/SiteAssistantModal";
-import LoginModal from "@/components/auth/LoginModal";
 import { apiClient } from "@/lib/apiClient";
 import { API_BASE } from "@/lib/apiBase";
 
 export default function Header() {
   const [userProfile, setUserProfile] = useState<any>(null);
-  const { isNavOpen, setIsNavOpen, isLoginOpen, setIsLoginOpen } = useUi();
+  const { isNavOpen, setIsNavOpen } = useUi();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [loading, setLoading] = useState(false);
 
-  const [user, setUser] = useState({
-    email: "",
-    password: "",
-  });
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
@@ -154,47 +149,6 @@ export default function Header() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isProfileMenuOpen]);
-
-  const onLogin = async (e?: React.SyntheticEvent) => {
-    e?.preventDefault();
-    if (loading) return;
-
-    try {
-      setLoading(true);
-
-      const response = await apiClient.post(`/auth/login`, {
-        email: user.email,
-        password: user.password,
-      });
-
-      if (response.data?.success) {
-        const me = await apiClient.get(`/user/me`);
-        const isGuest = !!me.data?.data?.isGuest;
-        const dataUser = me.data?.data?.user || null;
-        const newIsLoggedIn = !!me.data?.success && !!dataUser && !isGuest;
-
-        setIsLoggedIn(newIsLoggedIn);
-        setUserProfile(!isGuest ? dataUser : null);
-
-        localStorage.setItem(
-          "authState",
-          JSON.stringify({ isLoggedIn: newIsLoggedIn })
-        );
-        localStorage.setItem(
-          "userProfile",
-          JSON.stringify(!isGuest ? dataUser : null)
-        );
-
-        setAuthChecked(true);
-        setIsLoginOpen(false);
-        setHeaderKey((k) => k + 1);
-      }
-    } catch (error: any) {
-      console.log("Login failed:", error.response?.data || error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const logout = async () => {
     try {
@@ -371,12 +325,18 @@ export default function Header() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setIsLoginOpen(true)}
+                <Link
+                  href="/login"
                   className="px-2.5 py-1.5 rounded-md text-xs font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white transition-colors"
                 >
                   Log in
-                </button>
+                </Link>
+                <Link
+                  href="/login?mode=signup"
+                  className="px-3 py-1.5 rounded-md text-xs font-medium bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 hover:bg-neutral-800 dark:hover:bg-neutral-100 transition shadow-xs"
+                >
+                  Sign up
+                </Link>
               </div>
             )}
 
@@ -418,6 +378,24 @@ export default function Header() {
                 {item.label}
               </Link>
             ))}
+            {!userProfile && (
+              <div className="pt-2 border-t border-neutral-100 dark:border-neutral-900 flex items-center gap-2 px-1">
+                <Link
+                  href="/login"
+                  onClick={() => setIsNavOpen(false)}
+                  className="flex-1 py-2 text-center text-xs font-medium rounded-lg border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/login?mode=signup"
+                  onClick={() => setIsNavOpen(false)}
+                  className="flex-1 py-2 text-center text-xs font-medium rounded-lg bg-neutral-950 text-white dark:bg-white dark:text-neutral-950"
+                >
+                  Sign up
+                </Link>
+              </div>
+            )}
           </nav>
         )}
       </header>
@@ -426,17 +404,6 @@ export default function Header() {
       <SiteAssistantModal
         open={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
-      />
-
-      {/* Login Modal */}
-      <LoginModal
-        open={isLoginOpen}
-        onClose={() => setIsLoginOpen(false)}
-        onSuccess={(user) => {
-          setIsLoggedIn(true);
-          setUserProfile(user);
-          setHeaderKey((k) => k + 1);
-        }}
       />
     </div>
   );
