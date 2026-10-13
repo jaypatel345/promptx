@@ -1237,6 +1237,26 @@ function EnhacerHeader() {
             </div>
           </div>
         </div>
+
+        {/* Mobile menu button when closed */}
+        {isMobile && !isMobileSidebarOpen && !isNavOpen && (
+          <div className="fixed top-3 left-3 z-50 sm:hidden">
+            <button
+              onClick={() => {
+                setIsMobileSidebarOpen(true);
+                setIsNavOpen(true);
+              }}
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border border-neutral-200/80 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 shadow-xs cursor-pointer"
+              aria-label="Open sidebar"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
       {isSearchModalOpen && (
         <>

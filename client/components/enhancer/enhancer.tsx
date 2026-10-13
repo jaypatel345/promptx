@@ -889,53 +889,6 @@ function Enhancer() {
         {/* Visually hidden but crawlable/accessible page heading */}
         <h1 className="sr-only">AI Prompt Enhancer</h1>
 
-        {/* Top Header Bar: perfectly placed at top of the page */}
-        <header className="h-13 sm:h-14 shrink-0 w-full flex items-center justify-between px-3.5 sm:px-6 border-b border-neutral-200/70 dark:border-neutral-800/70 bg-white/80 dark:bg-black/80 backdrop-blur-md z-30">
-          <div className="flex items-center gap-2.5">
-            {/* Mobile menu button when sidebar is collapsed/mobile */}
-            <button
-              onClick={() => setIsNavOpen(!isNavOpen)}
-              className="sm:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition text-neutral-700 dark:text-neutral-300 cursor-pointer"
-              aria-label="Toggle menu"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-            </button>
-
-            <Link href="/" className="flex items-center gap-2 group">
-              <span className="font-semibold text-sm tracking-tight text-neutral-900 dark:text-neutral-100">
-                PromptX
-              </span>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-900 px-1.5 py-0.5 rounded border border-neutral-200/60 dark:border-neutral-800/60 font-normal">
-                Enhancer
-              </span>
-            </Link>
-          </div>
-
-          {/* Right Header Auth Actions: Direct links to /login and /login?mode=signup */}
-          <div className="flex items-center gap-2">
-            {!isLoggedIn ? (
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <Link
-                  href="/login"
-                  className="px-3 py-1.5 rounded-full text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition cursor-pointer"
-                >
-                  Log in
-                </Link>
-                <Link
-                  href="/login?mode=signup"
-                  className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-neutral-950 text-white dark:bg-white dark:text-neutral-950 hover:bg-neutral-800 dark:hover:bg-neutral-100 transition shadow-xs cursor-pointer"
-                >
-                  Sign up
-                </Link>
-              </div>
-            ) : null}
-          </div>
-        </header>
-
         <div
           ref={scrollContainerRef}
           data-lenis-prevent="true"
