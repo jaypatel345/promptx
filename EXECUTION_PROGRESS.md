@@ -140,3 +140,7 @@ Style directive: Cursor-like premium design (minimal gradients, crisp borders, r
 - Removed conflicting `overflow-visible` and `flex` classes from `scrollContainerRef` in `enhancer.tsx` that were breaking `overflow-y-auto`.
 - Added `data-lenis-prevent="true"`, `overflow-y-auto overflow-x-hidden`, and `WebkitOverflowScrolling: "touch"` for hardware-accelerated momentum scrolling.
 - Replaced disruptive `scrollIntoView` with smooth container-specific `scrollTo` and removed duplicate effects that were snapping scroll position to the bottom.
+
+### Refinement: Chat Landing Centering & Disclaimer Clean-Up (Completed)
+- Removed Terms, Privacy Policy, and Cookie preferences disclaimer line from the bottom of the chat input.
+- Vertically and horizontally centered the PromptX logo and "What can I help with?" greeting in the chat viewport above the input area.
