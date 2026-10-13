@@ -215,7 +215,7 @@ export default function Header() {
   return (
     <div key={headerKey} className="relative z-50">
       <header className="fixed top-0 left-0 w-full z-40 border-b border-neutral-200/80 dark:border-neutral-800/80 bg-white/80 dark:bg-black/80 backdrop-blur-md transition-colors">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4 relative">
           {/* Left: Brand Logo */}
           <div className="flex items-center shrink-0">
             <Link
@@ -245,7 +245,7 @@ export default function Header() {
           </div>
 
           {/* Center: Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1 text-[13px] font-medium text-neutral-600 dark:text-neutral-400">
+          <nav className="hidden md:flex items-center gap-1 text-[13px] font-medium text-neutral-600 dark:text-neutral-400 absolute left-1/2 -translate-x-1/2">
             {navLinks.map((item) => {
               const isActive =
                 pathname === item.href ||
