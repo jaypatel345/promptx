@@ -70,6 +70,8 @@ function Enhancer() {
   >({});
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
 
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
   // Optimistic default: a brand-new user has nothing to load, so render
   // immediately. Only flipped to false (briefly) when we discover there's
   // an existing, uncached conversation that actually needs a fetch.
@@ -114,13 +116,40 @@ function Enhancer() {
     checkSession();
   }, []);
 
-
-  const handleCopy = async (text: string) => {
+  const copyToClipboard = async (text: string): Promise<boolean> => {
     try {
-      await navigator.clipboard.writeText(text);
-      alert("Copied to clipboard!");
+      if (typeof navigator !== "undefined" && navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
     } catch {
-      alert("Copy failed");
+      // Fallback without requiring browser permission
+    }
+
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.top = "-9999px";
+      textarea.style.left = "-9999px";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const success = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      return success;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleCopy = async (text: string, index?: number) => {
+    const success = await copyToClipboard(text);
+    if (success && typeof index === "number") {
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
     }
   };
 
@@ -151,7 +180,10 @@ function Enhancer() {
   };
 
   const handleReport = (index: number) => {
-    alert("Reported! We'll review this response.");
+    setFeedback((prev) => ({
+      ...prev,
+      [index]: "dislike",
+    }));
     setOpenMenuIndex(null);
   };
 
@@ -925,33 +957,47 @@ function Enhancer() {
                       <div className="absolute -bottom-6 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
                         {/* Copy */}
                         <button
-                          title="Copy"
-                          onClick={() => handleCopy(message.content)}
-                          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+                          title={copiedIndex === index ? "Copied!" : "Copy"}
+                          onClick={() => handleCopy(message.content, index)}
+                          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                         >
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="stroke-2 size-3.5"
-                          >
-                            <rect
-                              x="3"
-                              y="8"
-                              width="13"
-                              height="13"
-                              rx="4"
+                          {copiedIndex === index ? (
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
                               stroke="currentColor"
-                            ></rect>
-                            <path
-                              fillRule="evenodd"
-                              clipRule="evenodd"
-                              d="M13 2.00004L12.8842 2.00002C12.0666 1.99982 11.5094 1.99968 11.0246 2.09611C9.92585 2.31466 8.95982 2.88816 8.25008 3.69274C7.90896 4.07944 7.62676 4.51983 7.41722 5.00004H9.76392C10.189 4.52493 10.7628 4.18736 11.4147 4.05768C11.6802 4.00488 12.0228 4.00004 13 4.00004H14.6C15.7366 4.00004 16.5289 4.00081 17.1458 4.05121C17.7509 4.10066 18.0986 4.19283 18.362 4.32702C18.9265 4.61464 19.3854 5.07358 19.673 5.63807C19.8072 5.90142 19.8994 6.24911 19.9488 6.85428C19.9992 7.47112 20 8.26343 20 9.40004V11C20 11.9773 19.9952 12.3199 19.9424 12.5853C19.8127 13.2373 19.4748 13.8114 19 14.2361V16.5829C20.4795 15.9374 21.5804 14.602 21.9039 12.9755C22.0004 12.4907 22.0002 11.9334 22 11.1158L22 11V9.40004V9.35725C22 8.27346 22 7.3993 21.9422 6.69141C21.8826 5.96256 21.7568 5.32238 21.455 4.73008C20.9757 3.78927 20.2108 3.02437 19.27 2.545C18.6777 2.24322 18.0375 2.1174 17.3086 2.05785C16.6007 2.00002 15.7266 2.00003 14.6428 2.00004L14.6 2.00004H13Z"
-                              fill="currentColor"
-                            ></path>
-                          </svg>
+                              strokeWidth="2.5"
+                              className="text-emerald-600 dark:text-emerald-400"
+                            >
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          ) : (
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="stroke-2 size-3.5"
+                            >
+                              <rect
+                                x="3"
+                                y="8"
+                                width="13"
+                                height="13"
+                                rx="4"
+                                stroke="currentColor"
+                              ></rect>
+                              <path
+                                fillRule="evenodd"
+                                clipRule="evenodd"
+                                d="M13 2.00004L12.8842 2.00002C12.0666 1.99982 11.5094 1.99968 11.0246 2.09611C9.92585 2.31466 8.95982 2.88816 8.25008 3.69274C7.90896 4.07944 7.62676 4.51983 7.41722 5.00004H9.76392C10.189 4.52493 10.7628 4.18736 11.4147 4.05768C11.6802 4.00488 12.0228 4.00004 13 4.00004H14.6C15.7366 4.00004 16.5289 4.00081 17.1458 4.05121C17.7509 4.10066 18.0986 4.19283 18.362 4.32702C18.9265 4.61464 19.3854 5.07358 19.673 5.63807C19.8072 5.90142 19.8994 6.24911 19.9488 6.85428C19.9992 7.47112 20 8.26343 20 9.40004V11C20 11.9773 19.9952 12.3199 19.9424 12.5853C19.8127 13.2373 19.4748 13.8114 19 14.2361V16.5829C20.4795 15.9374 21.5804 14.602 21.9039 12.9755C22.0004 12.4907 22.0002 11.9334 22 11.1158L22 11V9.40004V9.35725C22 8.27346 22 7.3993 21.9422 6.69141C21.8826 5.96256 21.7568 5.32238 21.455 4.73008C20.9757 3.78927 20.2108 3.02437 19.27 2.545C18.6777 2.24322 18.0375 2.1174 17.3086 2.05785C16.6007 2.00002 15.7266 2.00003 14.6428 2.00004L14.6 2.00004H13Z"
+                                fill="currentColor"
+                              ></path>
+                            </svg>
+                          )}
                         </button>
 
                         {/* Edit */}
@@ -1044,15 +1090,30 @@ function Enhancer() {
                             </span>
                           </div>
                           <button
-                            onClick={() => handleCopy(message.content)}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 transition-colors cursor-pointer"
+                            onClick={() => handleCopy(message.content, index)}
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
+                              copiedIndex === index
+                                ? "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
+                                : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 border-neutral-200 dark:border-neutral-800"
+                            }`}
                             title="Copy full prompt"
                           >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                            </svg>
-                            <span>Copy Prompt</span>
+                            {copiedIndex === index ? (
+                              <>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                <span>Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                </svg>
+                                <span>Copy Prompt</span>
+                              </>
+                            )}
                           </button>
                         </div>
                       )}
@@ -1081,138 +1142,154 @@ function Enhancer() {
                           {message.content}
                         </p>
                       )}
-                      {/* Assistant actions outside bubble */}
+                      {/* Assistant actions at bottom of card */}
                       {message.role === "assistant" &&
                         !isErrorMessage &&
                         !(isTyping && index === messages.length - 1) && (
-                          <div className="flex flex-row justify-start gap-1 opacity-40 hover:opacity-100 transition">
-                            <button
-                              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
-                              title="Regenerate"
-                              onClick={() => handleRegenerate(index)}
-                            >
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="stroke-2 size-4"
-                              >
-                                <path
-                                  d="M4 20V15H4.31241M4.31241 15H9M4.31241 15C5.51251 18.073 8.50203 20.25 12 20.25C15.8582 20.25 19.0978 17.6016 20 14.0236M20 4V9H19.6876M19.6876 9H15M19.6876 9C18.4875 5.92698 15.498 3.75 12 3.75C8.14184 3.75 4.90224 6.3984 4 9.9764"
-                                  stroke="currentColor"
-                                ></path>
-                              </svg>
-                            </button>
-                            <button
-                              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-                              title="Copy"
-                              onClick={() => handleCopy(message.content)}
-                            >
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="stroke-2 size-4"
-                              >
-                                <rect
-                                  x="3"
-                                  y="8"
-                                  width="13"
-                                  height="13"
-                                  rx="4"
-                                  stroke="currentColor"
-                                ></rect>
-                                <path
-                                  fillRule="evenodd"
-                                  clipRule="evenodd"
-                                  d="M13 2.00004L12.8842 2.00002C12.0666 1.99982 11.5094 1.99968 11.0246 2.09611C9.92585 2.31466 8.95982 2.88816 8.25008 3.69274C7.90896 4.07944 7.62676 4.51983 7.41722 5.00004H9.76392C10.189 4.52493 10.7628 4.18736 11.4147 4.05768C11.6802 4.00488 12.0228 4.00004 13 4.00004H14.6C15.7366 4.00004 16.5289 4.00081 17.1458 4.05121C17.7509 4.10066 18.0986 4.19283 18.362 4.32702C18.9265 4.61464 19.3854 5.07358 19.673 5.63807C19.8072 5.90142 19.8994 6.24911 19.9488 6.85428C19.9992 7.47112 20 8.26343 20 9.40004V11C20 11.9773 19.9952 12.3199 19.9424 12.5853C19.8127 13.2373 19.4748 13.8114 19 14.2361V16.5829C20.4795 15.9374 21.5804 14.602 21.9039 12.9755C22.0004 12.4907 22.0002 11.9334 22 11.1158L22 11V9.40004V9.35725C22 8.27346 22 7.3993 21.9422 6.69141C21.8826 5.96256 21.7568 5.32238 21.455 4.73008C20.9757 3.78927 20.2108 3.02437 19.27 2.545C18.6777 2.24322 18.0375 2.1174 17.3086 2.05785C16.6007 2.00002 15.7266 2.00003 14.6428 2.00004L14.6 2.00004H13Z"
-                                  fill="currentColor"
-                                ></path>
-                              </svg>
-                            </button>
-                            <button
-                              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-                              title="Like"
-                              onClick={() => handleLike(index)}
-                            >
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="stroke-2 size-4"
-                              >
-                                <path
-                                  d="M7 20H3V9H5.5C6.32843 9 7 9.67157 7 10.5V20ZM7 20H16.2062C17.8403 20 19.257 18.8692 19.6192 17.2757L20.8059 12.0541C21.1614 10.4896 19.9724 9 18.3681 9H14.5L15.1142 5.31454C15.3162 4.10294 14.3818 3 13.1535 3C12.4402 3 11.7816 3.38222 11.4277 4.00155L8.43188 9.24421C8.16482 9.71157 7.6678 10 7.12952 10H6.91465"
-                                  stroke="currentColor"
-                                  fill="none"
-                                ></path>
-                              </svg>
-                            </button>
-                            <button
-                              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-                              title="Dislike"
-                              onClick={() => handleDislike(index)}
-                            >
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="stroke-2 size-4"
-                              >
-                                <path
-                                  d="M7 4H3V15H5.5C6.32843 15 7 14.3284 7 13.5V4ZM7 4H16.2062C17.8403 4 19.257 5.13082 19.6192 6.72433L20.8059 11.9459C21.1614 13.5104 19.9724 15 18.3681 15H14.5L15.1142 18.6855C15.3162 19.8971 14.3818 21 13.1535 21C12.4402 21 11.7816 20.6178 11.4277 19.9984L8.43188 14.7558C8.16482 14.2884 7.6678 14 7.12952 14H6.91465"
-                                  stroke="currentColor"
-                                  fill="none"
-                                ></path>
-                              </svg>
-                            </button>
-                            <div className="relative">
+                          <div className="flex items-center justify-between pt-3 mt-4 border-t border-neutral-100 dark:border-neutral-900 text-xs">
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              {/* Copy */}
                               <button
-                                onClick={() =>
-                                  setOpenMenuIndex(
-                                    openMenuIndex === index ? null : index,
-                                  )
-                                }
-                                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-                                title="More"
+                                onClick={() => handleCopy(message.content, index)}
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
+                                  copiedIndex === index
+                                    ? "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
+                                    : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 border-transparent hover:border-neutral-200 dark:hover:border-neutral-800"
+                                }`}
+                                title="Copy prompt to clipboard"
+                              >
+                                {copiedIndex === index ? (
+                                  <>
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                      <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                    <span>Copied!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                    </svg>
+                                    <span>Copy</span>
+                                  </>
+                                )}
+                              </button>
+
+                              {/* Retry / Regenerate */}
+                              <button
+                                onClick={() => handleRegenerate(index)}
+                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-transparent hover:border-neutral-200 dark:hover:border-neutral-800 transition-all cursor-pointer group/retry"
+                                title="Retry / Regenerate prompt"
                               >
                                 <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="24"
-                                  height="24"
+                                  width="13"
+                                  height="13"
                                   viewBox="0 0 24 24"
                                   fill="none"
                                   stroke="currentColor"
                                   strokeWidth="2"
+                                  className="group-hover/retry:-rotate-180 transition-transform duration-300"
+                                >
+                                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                                  <path d="M21 3v5h-5" />
+                                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                                  <path d="M3 21v-5h5" />
+                                </svg>
+                                <span>Retry</span>
+                              </button>
+                            </div>
+
+                            <div className="flex items-center gap-1 sm:gap-1.5">
+                              {/* Like */}
+                              <button
+                                onClick={() => handleLike(index)}
+                                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
+                                  feedback[index] === "like"
+                                    ? "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
+                                    : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 border-transparent"
+                                }`}
+                                title="Good response"
+                              >
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill={feedback[index] === "like" ? "currentColor" : "none"}
+                                  stroke="currentColor"
+                                  strokeWidth="2"
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
-                                  className="lucide lucide-ellipsis size-4"
                                 >
-                                  <circle cx="12" cy="12" r="1" />
-                                  <circle cx="19" cy="12" r="1" />
-                                  <circle cx="5" cy="12" r="1" />
+                                  <path d="M7 10v12" />
+                                  <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" />
                                 </svg>
                               </button>
 
-                              {/* Dropdown */}
-                              {openMenuIndex === index && (
-                                <div className="absolute right-0 top-7 z-50 w-40 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-black shadow-sm">
-                                  <button
-                                    onClick={() => handleReport(index)}
-                                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"
+                              {/* Dislike */}
+                              <button
+                                onClick={() => handleDislike(index)}
+                                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
+                                  feedback[index] === "dislike"
+                                    ? "text-rose-700 bg-rose-50 dark:bg-rose-950/60 dark:text-rose-300 border-rose-300 dark:border-rose-800"
+                                    : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 border-transparent"
+                                }`}
+                                title="Bad response"
+                              >
+                                <svg
+                                  width="13"
+                                  height="13"
+                                  viewBox="0 0 24 24"
+                                  fill={feedback[index] === "dislike" ? "currentColor" : "none"}
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M17 14V2" />
+                                  <path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" />
+                                </svg>
+                              </button>
+
+                              <div className="relative">
+                                <button
+                                  onClick={() =>
+                                    setOpenMenuIndex(
+                                      openMenuIndex === index ? null : index,
+                                    )
+                                  }
+                                  className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                                  title="More options"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
                                   >
-                                    Report issue
-                                  </button>
-                                </div>
-                              )}
+                                    <circle cx="12" cy="12" r="1" />
+                                    <circle cx="19" cy="12" r="1" />
+                                    <circle cx="5" cy="12" r="1" />
+                                  </svg>
+                                </button>
+
+                                {/* Dropdown */}
+                                {openMenuIndex === index && (
+                                  <div className="absolute right-0 top-8 z-50 w-36 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg p-1">
+                                    <button
+                                      onClick={() => handleReport(index)}
+                                      className="w-full text-left px-3 py-1.5 text-xs text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+                                    >
+                                      Report issue
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         )}
