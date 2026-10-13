@@ -71,6 +71,7 @@ function Enhancer() {
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
 
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [retryingIndex, setRetryingIndex] = useState<number | null>(null);
 
   // Optimistic default: a brand-new user has nothing to load, so render
   // immediately. Only flipped to false (briefly) when we discover there's
@@ -154,15 +155,21 @@ function Enhancer() {
   };
 
   const handleRegenerate = async (index: number) => {
+    if (loading || isSendingRef.current) return;
+
     const lastUserMessage = [...messages]
       .slice(0, index)
       .reverse()
       .find((m) => m.role === "user");
 
-    if (!lastUserMessage) return;
+    if (!lastUserMessage || !lastUserMessage.content?.trim()) return;
 
-    setInput(lastUserMessage.content);
-    await handleSend();
+    setRetryingIndex(index);
+    try {
+      await handleSend(lastUserMessage.content, lastUserMessage.attachments);
+    } finally {
+      setRetryingIndex(null);
+    }
   };
 
   const handleLike = (index: number) => {
@@ -550,8 +557,18 @@ function Enhancer() {
     e.preventDefault();
   };
 
-  async function handleSend(): Promise<void> {
+  async function handleSend(
+    overrideMessage?: string,
+    overrideAttachments?: Attachment[],
+  ): Promise<void> {
     if (loading || isSendingRef.current) return;
+
+    const userMessage =
+      overrideMessage !== undefined ? overrideMessage : input;
+    const outgoingAttachments =
+      overrideAttachments !== undefined ? overrideAttachments : attachments;
+
+    if (!userMessage.trim() && outgoingAttachments.length === 0) return;
 
     isSendingRef.current = true;
     setLoading(true);
@@ -560,11 +577,6 @@ function Enhancer() {
     sendAbortControllerRef.current = abortController;
 
     try {
-      if (!input.trim() && attachments.length === 0) return;
-
-      const userMessage = input;
-      const outgoingAttachments = attachments;
-
       // optimistic UI
       setMessages((prev) => {
         pendingAssistantCountRef.current = prev.length + 1;
@@ -580,8 +592,10 @@ function Enhancer() {
         ];
       });
 
-      setInput("");
-      setAttachments([]);
+      if (overrideMessage === undefined) {
+        setInput("");
+        setAttachments([]);
+      }
 
       // A brand-new chat has no conversationId yet — rather than awaiting a
       // separate POST /conversations first (an extra network round trip
@@ -599,7 +613,11 @@ function Enhancer() {
 
       let res: Response;
 
-      if (outgoingAttachments.length > 0) {
+      const hasUploadableFiles = outgoingAttachments.some(
+        (a) => a?.file && typeof a.file === "object" && "name" in a.file,
+      );
+
+      if (hasUploadableFiles) {
         const formData = new FormData();
 
         if (activeConversationId) {
@@ -610,7 +628,9 @@ function Enhancer() {
         formData.append("targetModel", targetModel);
 
         outgoingAttachments.forEach((a) => {
-          formData.append("files", a.file);
+          if (a?.file && typeof a.file === "object" && "name" in a.file) {
+            formData.append("files", a.file);
+          }
         });
 
         res = await fetch(chatUrl, {
@@ -1148,38 +1168,11 @@ function Enhancer() {
                         !(isTyping && index === messages.length - 1) && (
                           <div className="flex items-center justify-between pt-3 mt-4 border-t border-neutral-100 dark:border-neutral-900 text-xs">
                             <div className="flex items-center gap-1 sm:gap-2">
-                              {/* Copy */}
-                              <button
-                                onClick={() => handleCopy(message.content, index)}
-                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
-                                  copiedIndex === index
-                                    ? "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
-                                    : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 border-transparent hover:border-neutral-200 dark:hover:border-neutral-800"
-                                }`}
-                                title="Copy prompt to clipboard"
-                              >
-                                {copiedIndex === index ? (
-                                  <>
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                      <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                    <span>Copied!</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                                    </svg>
-                                    <span>Copy</span>
-                                  </>
-                                )}
-                              </button>
-
                               {/* Retry / Regenerate */}
                               <button
                                 onClick={() => handleRegenerate(index)}
-                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-transparent hover:border-neutral-200 dark:hover:border-neutral-800 transition-all cursor-pointer group/retry"
+                                disabled={loading}
+                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-transparent hover:border-neutral-200 dark:hover:border-neutral-800 transition-all cursor-pointer group/retry disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Retry / Regenerate prompt"
                               >
                                 <svg
@@ -1189,14 +1182,22 @@ function Enhancer() {
                                   fill="none"
                                   stroke="currentColor"
                                   strokeWidth="2"
-                                  className="group-hover/retry:-rotate-180 transition-transform duration-300"
+                                  className={`${
+                                    loading && retryingIndex === index
+                                      ? "animate-spin text-neutral-900 dark:text-neutral-100"
+                                      : "group-hover/retry:-rotate-180 transition-transform duration-300"
+                                  }`}
                                 >
                                   <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
                                   <path d="M21 3v5h-5" />
                                   <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
                                   <path d="M3 21v-5h5" />
                                 </svg>
-                                <span>Retry</span>
+                                <span>
+                                  {loading && retryingIndex === index
+                                    ? "Retrying..."
+                                    : "Retry"}
+                                </span>
                               </button>
                             </div>
 
