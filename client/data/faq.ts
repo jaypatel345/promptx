@@ -34,6 +34,26 @@ export const FAQ_ITEMS: FaqItem[] = [
     answer:
       "Yes. Your prompts are strictly yours. Guest sessions stay in your local browser storage. We do not sell your prompt text or use your private inputs to train third-party machine learning models.",
   },
+  {
+    question: "How does PromptX reduce prompt token usage by 36.85% on average?",
+    answer:
+      "In our empirical tests across 30 benchmark tasks, PromptX reduced prompt tokens by 36.85% on average (saving 48.21% on image prompts and 45.30% on video prompts). We achieve this by pruning redundant filler phrases ('Please act as', 'I want you to'), deleting obsolete 2022 tag-soup ('8k', 'photorealistic'), and formatting prompts with model-specific syntax rather than bloated multi-paragraph templates.",
+  },
+  {
+    question: "Why should I avoid saying 'think step by step' on reasoning models like o1 or DeepSeek-R1?",
+    answer:
+      "Reasoning models are trained with reinforcement learning to execute internal hidden thinking tokens before generating answers. Explicitly commanding them to show their scratchpad or think step-by-step fights against their native deliberation policies, wasting context and occasionally degrading response quality.",
+  },
+  {
+    question: "Why did PromptX remove 'photorealistic' and '8K' from image prompts?",
+    answer:
+      "Modern diffusion architectures like Midjourney v6 and FLUX.1 use deep language encoders (like T5 and CLIP) that read natural descriptive English. Generic buzzwords like '8k' and 'photorealistic' are ignored or cause plastic texture artifacts. Replacing them with concrete lighting, composition, and lens specs produces far higher fidelity.",
+  },
+  {
+    question: "Does shortening a prompt compromise output quality?",
+    answer:
+      "No. In side-by-side rubric evaluations across instruction following, format correctness, and usability, optimized prompts scored equal to or higher than verbose templates. Modern models follow direct, unambiguous instructions with higher fidelity than long conversational paragraphs.",
+  },
 ];
 
 export const PE_FAQS: FaqItem[] = [
