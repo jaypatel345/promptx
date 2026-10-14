@@ -36,12 +36,15 @@ function Enhancer() {
     setTargetModel,
   } = useChat();
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
+  const [modelCategoryFilter, setModelCategoryFilter] = useState<string>("all");
+  const [modelSearchQuery, setModelSearchQuery] = useState<string>("");
   const modelButtonRef = useRef<HTMLButtonElement>(null);
   const modelMenuRef = useRef<HTMLDivElement>(null);
   const activeTargetModel =
     TARGET_MODELS.find((m) => m.id === targetModel) ?? TARGET_MODELS[0];
   const { theme } = useTheme();
   const { isNavOpen, setIsNavOpen, isOpen, setIsOpen } = useUi();
+
 
   const [input, setInput] = useState<string>("");
 
@@ -1521,53 +1524,183 @@ function Enhancer() {
                       initial={{ opacity: 0, y: 8, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       role="listbox"
-                      className="absolute bottom-full left-0 mb-2 w-64 rounded-2xl border border-gray-200 dark:border-neutral-600 bg-white dark:bg-[#0f0f0f] shadow-xl p-1.5"
+                      className="absolute bottom-full left-0 mb-2.5 w-80 sm:w-96 max-w-[calc(100vw-32px)] rounded-2xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-[#0f0f0f] shadow-2xl p-2.5 z-50 flex flex-col"
+                      style={{ maxHeight: "min(440px, calc(100vh - 140px))" }}
                     >
-                      {TARGET_MODELS.map((m) => (
-                        <button
-                          key={m.id}
-                          type="button"
-                          role="option"
-                          aria-selected={m.id === activeTargetModel.id}
-                          onClick={() => {
-                            setTargetModel(m.id);
-                            setIsModelMenuOpen(false);
-                          }}
-                          className={`w-full rounded-xl px-3 py-2 text-left flex items-center justify-between gap-2 hover:bg-gray-100 dark:hover:bg-gray-800 ${
-                            m.id === activeTargetModel.id
-                              ? "bg-gray-100 dark:bg-gray-800"
-                              : ""
-                          }`}
-                        >
-                          <span className="min-w-0">
-                            <span className="block text-sm font-medium text-black dark:text-white truncate">
-                              {m.label}
-                            </span>
-                            <span className="block text-[11px] text-gray-500 dark:text-gray-400 truncate">
-                              {m.description}
-                            </span>
+                      {/* Header with Title and Search */}
+                      <div className="shrink-0 pb-2 border-b border-gray-100 dark:border-neutral-800">
+                        <div className="flex items-center justify-between px-1 pb-1.5">
+                          <span className="text-[11px] font-semibold tracking-wider uppercase text-gray-400 dark:text-neutral-500">
+                            Target AI Model
                           </span>
-                          {m.id === activeTargetModel.id && (
-                            <svg
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              className="shrink-0 text-black dark:text-white"
+                          <span className="text-[10px] text-gray-400 dark:text-neutral-500 font-mono">
+                            {
+                              TARGET_MODELS.filter((m) => {
+                                const matchesCat =
+                                  modelCategoryFilter === "all" ||
+                                  m.category === modelCategoryFilter;
+                                const matchesQ =
+                                  modelSearchQuery.trim() === "" ||
+                                  m.label
+                                    .toLowerCase()
+                                    .includes(modelSearchQuery.toLowerCase()) ||
+                                  m.description
+                                    .toLowerCase()
+                                    .includes(modelSearchQuery.toLowerCase());
+                                return matchesCat && matchesQ;
+                              }).length
+                            }{" "}
+                            of {TARGET_MODELS.length}
+                          </span>
+                        </div>
+
+                        {/* Search Input */}
+                        <div className="relative px-0.5 mb-2">
+                          <input
+                            type="text"
+                            placeholder="Search models (e.g. o3, claude, flux)..."
+                            value={modelSearchQuery}
+                            onChange={(e) => setModelSearchQuery(e.target.value)}
+                            className="w-full text-xs rounded-xl px-2.5 py-1.5 bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 text-black dark:text-white placeholder-gray-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white transition"
+                          />
+                          {modelSearchQuery && (
+                            <button
+                              type="button"
+                              onClick={() => setModelSearchQuery("")}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs cursor-pointer"
                             >
-                              <path
-                                d="M5 13l4 4L19 7"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
+                              ✕
+                            </button>
                           )}
-                        </button>
-                      ))}
+                        </div>
+
+                        {/* Category Filter Pills */}
+                        <div className="flex items-center gap-1 px-0.5 overflow-x-auto scrollbar-none">
+                          {[
+                            { id: "all", label: "All" },
+                            { id: "text", label: "Text" },
+                            { id: "reasoning", label: "Reasoning" },
+                            { id: "image", label: "Image" },
+                            { id: "video", label: "Video" },
+                          ].map((cat) => (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => setModelCategoryFilter(cat.id)}
+                              className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors shrink-0 cursor-pointer ${
+                                modelCategoryFilter === cat.id
+                                  ? "bg-black text-white dark:bg-white dark:text-black shadow-xs"
+                                  : "text-gray-500 hover:text-gray-800 dark:text-neutral-400 dark:hover:text-neutral-200 hover:bg-gray-100 dark:hover:bg-neutral-800"
+                              }`}
+                            >
+                              {cat.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Scrollable Model List */}
+                      <div className="flex-1 overflow-y-auto overscroll-contain pt-1.5 pr-0.5 space-y-1">
+                        {(() => {
+                          const filtered = TARGET_MODELS.filter((m) => {
+                            const matchesCat =
+                              modelCategoryFilter === "all" ||
+                              m.category === modelCategoryFilter;
+                            const matchesQ =
+                              modelSearchQuery.trim() === "" ||
+                              m.label
+                                .toLowerCase()
+                                .includes(modelSearchQuery.toLowerCase()) ||
+                              m.description
+                                .toLowerCase()
+                                .includes(modelSearchQuery.toLowerCase());
+                            return matchesCat && matchesQ;
+                          });
+
+                          if (filtered.length === 0) {
+                            return (
+                              <div className="py-6 text-center text-xs text-gray-400 dark:text-neutral-500">
+                                No models match &ldquo;{modelSearchQuery}&rdquo;
+                              </div>
+                            );
+                          }
+
+                          const getCategoryBadgeClass = (category?: string) => {
+                            switch (category) {
+                              case "reasoning":
+                                return "bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800/40";
+                              case "image":
+                                return "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800/40";
+                              case "video":
+                                return "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800/40";
+                              default:
+                                return "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800/40";
+                            }
+                          };
+
+                          return filtered.map((m) => {
+                            const isSelected = m.id === activeTargetModel.id;
+                            return (
+                              <button
+                                key={m.id}
+                                type="button"
+                                role="option"
+                                aria-selected={isSelected}
+                                onClick={() => {
+                                  setTargetModel(m.id);
+                                  setIsModelMenuOpen(false);
+                                }}
+                                className={`w-full rounded-xl px-2.5 py-2 text-left flex items-start justify-between gap-2.5 transition-colors cursor-pointer ${
+                                  isSelected
+                                    ? "bg-gray-100 dark:bg-neutral-800/90 ring-1 ring-gray-300 dark:ring-neutral-600"
+                                    : "hover:bg-gray-50 dark:hover:bg-neutral-900/80"
+                                }`}
+                              >
+                                <span className="min-w-0 flex-1">
+                                  <span className="flex items-center gap-1.5 mb-0.5">
+                                    <span className="block text-xs font-semibold text-black dark:text-white truncate">
+                                      {m.label}
+                                    </span>
+                                    {m.category && (
+                                      <span
+                                        className={`text-[9px] uppercase font-mono px-1.5 py-0.2 rounded border ${getCategoryBadgeClass(
+                                          m.category
+                                        )}`}
+                                      >
+                                        {m.category}
+                                      </span>
+                                    )}
+                                  </span>
+                                  <span className="block text-[11px] leading-snug text-gray-500 dark:text-gray-400">
+                                    {m.description}
+                                  </span>
+                                </span>
+
+                                {isSelected && (
+                                  <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    className="shrink-0 text-black dark:text-white mt-0.5"
+                                  >
+                                    <path
+                                      d="M5 13l4 4L19 7"
+                                      stroke="currentColor"
+                                      strokeWidth="2.5"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                )}
+                              </button>
+                            );
+                          });
+                        })()}
+                      </div>
                     </motion.div>
                   )}
+
                 </div>
 
                 <textarea
