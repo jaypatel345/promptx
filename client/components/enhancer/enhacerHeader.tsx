@@ -130,6 +130,10 @@ function EnhacerHeader() {
     setConversationId,
     setMessages,
     startNewChat,
+    conversations,
+    setConversations,
+    refreshHistory,
+    guestId: contextGuestId,
   } = useChat();
   const { isOpen, setIsOpen, isNavOpen, setIsNavOpen } = useUi();
 
@@ -211,20 +215,9 @@ function EnhacerHeader() {
     }
   }, []);
 
-  const guestId = stableGuestId;
+  const guestId = stableGuestId || contextGuestId;
   const guestReady = !!guestId;
-  const canFetchMessages = authChecked && (isLoggedIn || guestReady);
-
-  const [conversations, setConversations] = useState<
-    {
-      _id: string;
-      title: string;
-      createdAt: string;
-      pinnedAt?: string | null;
-    }[]
-  >([]);
-  
-
+  const canFetchMessages = isLoggedIn || guestReady;
 
   const sorted = useMemo(() => {
     return [...conversations].sort((a, b) => {
@@ -542,38 +535,15 @@ function EnhacerHeader() {
   };
 
   useEffect(() => {
-    if (!authChecked) return;
-    if (!isLoggedIn && !guestId) return;
-
-    const loadConversations = async () => {
-      try {
-        const res = await apiClient.get(`/conversations`, {
-          params: isLoggedIn ? undefined : { guestId },
-        });
-
-        if (res.data?.success) {
-          const convs = res.data.data?.conversations || [];
-          setConversations(convs);
-        }
-      } catch (err: unknown) {
-        console.error("Failed to load history", getErrorMessage(err));
-      }
-    };
-
-    // Load conversations with a small delay to not block initial render
-    const timeoutId = setTimeout(() => loadConversations(), 100);
-    return () => clearTimeout(timeoutId);
-  }, [authChecked, isLoggedIn, guestId]);
+    if (!guestId && !isLoggedIn) return;
+    refreshHistory();
+  }, [guestId, isLoggedIn, refreshHistory]);
 
   const openConversation = async (id: string) => {
-    if (!id) {
-      console.error("Invalid conversation id");
-      return;
-    }
+    if (!id) return;
     try {
-      if (!canFetchMessages) return;
-      if (!isLoggedIn && !guestId) return;
-      const params = isLoggedIn ? undefined : { guestId };
+      const gid = guestId || (typeof window !== "undefined" ? localStorage.getItem("guestId") : null);
+      const params = isLoggedIn ? undefined : (gid ? { guestId: gid } : undefined);
 
       const res = await apiClient.get(`/messages/${id}`, {
         params,
@@ -588,37 +558,32 @@ function EnhacerHeader() {
   };
 
   const createNewChat = async () => {
-    try {
-      if (!isLoggedIn && !guestId) {
-        console.warn("GuestId not ready, skipping create chat");
-        return;
-      }
+    // 1. Immediately reset chat state so the user sees the clean new chat layout instantly
+    startNewChat();
+    if (isMobile) {
+      setIsMobileSidebarOpen(false);
+      setIsNavOpen(false);
+    }
 
-      const payload = isLoggedIn ? {} : { guestId };
+    // 2. Pre-create conversation on server in background if desired
+    try {
+      const gid = guestId || (typeof window !== "undefined" ? localStorage.getItem("guestId") : null);
+      if (!isLoggedIn && !gid) return;
+
+      const payload = isLoggedIn ? {} : { guestId: gid };
       const res = await apiClient.post(`/conversations`, payload);
 
-      const newId = res.data?.data?.conversationId;
-      if (!newId) {
-        console.error("No conversationId returned", res.data);
-        return;
+      const newId =
+        res.data?.data?.conversationId ||
+        res.data?.data?.conversation?._id ||
+        res.data?.data?._id;
+
+      if (newId) {
+        setConversationId(newId);
+        refreshHistory();
       }
-
-      // Immediately show the new chat interface
-      startNewChat();
-      setConversationId(newId);
-
-      // Load history in background without blocking UI
-      apiClient.get(`/conversations`, {
-        params: isLoggedIn ? undefined : { guestId },
-      }).then(historyRes => {
-        if (historyRes.data?.success) {
-          setConversations(historyRes.data.data?.conversations || []);
-        }
-      }).catch(err => {
-        console.error("Failed to load history after creating chat", err);
-      });
     } catch (err: unknown) {
-      console.error("Failed to create conversation", getErrorMessage(err));
+      console.warn("Pre-creating conversation deferred to first message send:", getErrorMessage(err));
     }
   };
 
@@ -934,37 +899,12 @@ function EnhacerHeader() {
                       className="relative group"
                     >
                       <div
-                        onClick={async () => {
-                          if (isMobile) setIsMobileSidebarOpen(false);
-
-                          if (!canFetchMessages) return;
-
-                          setIsSearchModalOpen(true);
-                          setPreviewConversationId(conv._id);
-
-                          if (previewCache.current[conv._id]) {
-                            setPreviewMessages(previewCache.current[conv._id]);
-                            return;
+                        onClick={() => {
+                          if (isMobile) {
+                            setIsMobileSidebarOpen(false);
+                            setIsNavOpen(false);
                           }
-
-                          try {
-                            if (!isLoggedIn && !guestId) return;
-                            const res = await apiClient.get(
-                              `/messages/${conv._id}`,
-                              {
-                                params: isLoggedIn ? undefined : { guestId },
-                              },
-                            );
-
-                            if (res.data?.success) {
-                              const msgs = res.data.data?.messages || [];
-                              const last = msgs.slice(-8);
-                              previewCache.current[conv._id] = last;
-                              setPreviewMessages(last);
-                            }
-                          } catch (err) {
-                            console.error("Preview fetch failed", err);
-                          }
+                          openConversation(conv._id);
                         }}
                         className={`group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 ease-(--grok-ease) w-full grok-hover pr-8
             ${

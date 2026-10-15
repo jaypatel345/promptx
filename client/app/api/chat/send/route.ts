@@ -10,16 +10,21 @@ export async function POST(req: NextRequest) {
 
     const contentType = req.headers.get("content-type") || "";
 
+    const { searchParams } = new URL(req.url);
+    let guestId = searchParams.get("guestId") || "";
+
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData();
       content = (formData.get("content") as string) || "";
       conversationId = (formData.get("conversationId") as string) || "";
       targetModel = (formData.get("targetModel") as string) || "chatgpt";
+      if (!guestId) guestId = (formData.get("guestId") as string) || "";
     } else {
       const body = await req.json().catch(() => ({}));
       content = body.content || "";
       conversationId = body.conversationId || "";
       targetModel = body.targetModel || "chatgpt";
+      if (!guestId) guestId = body.guestId || "";
     }
 
     if (!content.trim()) {
@@ -37,7 +42,8 @@ export async function POST(req: NextRequest) {
     const conv = getOrCreateConversation(
       conversationId || undefined,
       targetModel,
-      autoTitle
+      autoTitle,
+      guestId || undefined
     );
 
     // Record user message

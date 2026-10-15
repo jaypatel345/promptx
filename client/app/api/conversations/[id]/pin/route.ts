@@ -16,9 +16,16 @@ export async function PATCH(
   }
 
   conv.pinned = !conv.pinned;
+  conv.pinnedAt = conv.pinned ? new Date().toISOString() : null;
   conv.updatedAt = new Date().toISOString();
 
-  return NextResponse.json({ success: true, data: { conversation: conv } });
+  return NextResponse.json({
+    success: true,
+    data: {
+      conversation: conv,
+      pinnedAt: conv.pinnedAt,
+    },
+  });
 }
 
 export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {

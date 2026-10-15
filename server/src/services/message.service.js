@@ -28,7 +28,7 @@ export const messageService = {
     }
 
     if (!mongoose.Types.ObjectId.isValid(conversationId)) {
-      throw new ApiError(400, "conversationId must be a valid MongoDB ObjectId");
+      throw new ApiError(404, "Conversation not found");
     }
 
     if (!userId && !guestId) {

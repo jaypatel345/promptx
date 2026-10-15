@@ -60,7 +60,7 @@ export const chatService = {
     }
 
     if (conversationId && !mongoose.Types.ObjectId.isValid(conversationId)) {
-      throw new ApiError(400, "conversationId must be a valid MongoDB ObjectId");
+      conversationId = null;
     }
 
     // -------------------------

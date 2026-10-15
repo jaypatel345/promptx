@@ -284,27 +284,32 @@ function Enhancer() {
     e.target.value = ""; // allow selecting the same file again
   };
   useEffect(() => {
-    if (!conversationId || isSendingRef.current) return;
+    if (!conversationId || isSendingRef.current) {
+      setHydrated(true);
+      setLoadingMessages(false);
+      return;
+    }
 
     let cancelled = false;
     let retried = false;
-    // Cache-first: if we already have messages for this conversation (e.g.
-    // restored from localStorage, or passed in via loadConversation), show
-    // them immediately and refresh quietly in the background instead of
-    // blanking the screen with a loading state.
     const hadCachedMessages = messages.length > 0;
 
-    async function loadMessages() {
-      if (!hadCachedMessages) {
-        setHydrated(false);
-      }
+    // Safety fallback: if an existing uncached conversation takes more than 1.2s,
+    // ensure hydrated is true so user is never blocked or left staring at a skeleton.
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+    if (!hadCachedMessages) {
+      fallbackTimer = setTimeout(() => {
+        if (!cancelled) {
+          setHydrated(true);
+        }
+      }, 1200);
+    }
 
+    async function loadMessages() {
       try {
         setLoadingMessages(true);
 
         let guestId = localStorage.getItem("guestId");
-
-        // Ensure guestId exists
         if (!guestId) {
           guestId = crypto.randomUUID();
           localStorage.setItem("guestId", guestId);
@@ -319,8 +324,6 @@ function Enhancer() {
 
         const res = await fetch(url, { credentials: "include" });
 
-        // If unauthorized, retry once after a short delay (handles the auth
-        // cookie not being attached yet on the very first request)
         if (res.status === 401 && !retried) {
           retried = true;
           await new Promise((r) => setTimeout(r, 150));
@@ -328,13 +331,12 @@ function Enhancer() {
           return;
         }
 
-        // This conversation no longer belongs to the current user/guest
-        // (stale localStorage id, cleared cookies, etc.) — don't get stuck,
-        // just start fresh instead of retrying forever.
         if (res.status === 404 || res.status === 401) {
           if (!cancelled) {
             setConversationId(null);
             setMessages([]);
+            setHydrated(true);
+            setLoadingMessages(false);
           }
           return;
         }
@@ -342,16 +344,17 @@ function Enhancer() {
         if (!res.ok) throw new Error("Failed to fetch messages");
 
         const data = await res.json();
-        const messages = data?.data?.messages ?? data?.messages;
+        const fetchedMessages = data?.data?.messages ?? data?.messages;
 
-        if (!cancelled && Array.isArray(messages)) {
-          setMessages(messages);
+        if (!cancelled && Array.isArray(fetchedMessages)) {
+          setMessages(fetchedMessages);
         }
       } catch (err) {
         if (!cancelled) {
-          console.warn("Message load skipped (initial auth race)");
+          console.warn("Message load skipped or network unavailable", err);
         }
       } finally {
+        if (fallbackTimer) clearTimeout(fallbackTimer);
         if (!cancelled) {
           setHydrated(true);
           setLoadingMessages(false);
@@ -363,12 +366,11 @@ function Enhancer() {
 
     return () => {
       cancelled = true;
+      if (fallbackTimer) clearTimeout(fallbackTimer);
     };
   }, [conversationId, isLoggedIn]);
 
   useEffect(() => {
-    // If there is NO conversationId, this is a fresh user
-    // We must immediately mark UI as hydrated so landing UI shows
     if (!conversationId) {
       setHydrated(true);
       setLoadingMessages(false);
@@ -688,6 +690,7 @@ function Enhancer() {
         ]);
 
         await typeMessage(fullContent, setMessages);
+        refreshHistory();
         return;
       }
 
@@ -757,6 +760,7 @@ function Enhancer() {
 
             setMessages(messagesForTyping);
             await typeMessage(fullContent, setMessages);
+            refreshHistory();
             return;
           }
 

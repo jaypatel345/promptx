@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { API_BASE } from "@/lib/apiBase";
+import { apiClient } from "@/lib/apiClient";
 import { DEFAULT_TARGET_MODEL } from "@/lib/models";
 
 export interface Message {
@@ -53,29 +54,73 @@ export function ChatContextProvider({ children }: { children: React.ReactNode })
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [guestId, setGuestId] = useState<string | null>(null);
   const [targetModel, setTargetModelState] = useState<string>(DEFAULT_TARGET_MODEL);
+  const isHydratedRef = React.useRef(false);
+
+  const refreshHistory = React.useCallback(async () => {
+    try {
+      setLoadingHistory(true);
+      const gid =
+        guestId ||
+        (typeof window !== "undefined"
+          ? localStorage.getItem("guestId")
+          : null);
+      const res = await apiClient.get("/conversations", {
+        params: gid ? { guestId: gid } : undefined,
+      });
+      if (res.data?.success) {
+        const convs = res.data.data?.conversations || [];
+        setConversations(convs);
+      }
+    } catch (err) {
+      console.warn("Failed to refresh conversation history", err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, [guestId]);
 
   // Load from localStorage on boot
   useEffect(() => {
-    const savedConversationId = localStorage.getItem("conversationId");
-    const savedMessages = localStorage.getItem("messages");
     let gid = localStorage.getItem("guestId");
-
-    console.log("ChatContext loading guestId from localStorage:", gid);
-
     if (!gid) {
       gid = crypto.randomUUID();
       localStorage.setItem("guestId", gid);
-      console.log("Generated new guestId:", gid);
     }
-
-    console.log("Setting guestId in ChatContext:", gid);
     setGuestId(gid);
 
+    const savedConversationId = localStorage.getItem("conversationId");
+    const savedMessages = localStorage.getItem("messages");
+
     if (savedConversationId) setConversationIdState(savedConversationId);
-    if (savedMessages) setMessagesState(JSON.parse(savedMessages));
+    if (savedMessages) {
+      try {
+        const parsed = JSON.parse(savedMessages);
+        if (Array.isArray(parsed)) {
+          setMessagesState(parsed);
+        }
+      } catch (err) {
+        console.warn("Corrupt saved messages reset", err);
+        localStorage.removeItem("messages");
+      }
+    }
 
     const savedTargetModel = localStorage.getItem("targetModel");
     if (savedTargetModel) setTargetModelState(savedTargetModel);
+
+    isHydratedRef.current = true;
+
+    // Immediately fetch conversation history in background
+    apiClient
+      .get("/conversations", {
+        params: gid ? { guestId: gid } : undefined,
+      })
+      .then((res) => {
+        if (res.data?.success) {
+          setConversations(res.data.data?.conversations || []);
+        }
+      })
+      .catch((err) => {
+        console.warn("Initial history fetch deferred", err);
+      });
   }, []);
 
   const setTargetModel = (next: string) => {
@@ -83,15 +128,19 @@ export function ChatContextProvider({ children }: { children: React.ReactNode })
     localStorage.setItem("targetModel", next);
   };
 
-  // Persist conversationId
+  // Persist conversationId ONLY after initial mount hydration
   useEffect(() => {
-    if (conversationId)
+    if (!isHydratedRef.current) return;
+    if (conversationId) {
       localStorage.setItem("conversationId", conversationId);
-    else localStorage.removeItem("conversationId");
+    } else {
+      localStorage.removeItem("conversationId");
+    }
   }, [conversationId]);
 
-  // Persist messages
+  // Persist messages ONLY after initial mount hydration
   useEffect(() => {
+    if (!isHydratedRef.current) return;
     localStorage.setItem("messages", JSON.stringify(messages));
   }, [messages]);
 
@@ -108,11 +157,6 @@ export function ChatContextProvider({ children }: { children: React.ReactNode })
     setMessagesState(msgs);
     localStorage.setItem("conversationId", id);
     localStorage.setItem("messages", JSON.stringify(msgs));
-  };
-
-  const refreshHistory = async () => {
-    // No-op - let enhancerHeader handle conversation loading
-    console.log("refreshHistory called - conversations handled by enhancerHeader");
   };
 
   return (
