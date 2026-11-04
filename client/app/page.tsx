@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { FAQ_ITEMS } from "@/data/faq";
 import HomeClient from "@/components/home/HomeClient";
 
-const TITLE = "PromptX: Free AI Prompt Generator for ChatGPT, Claude & Midjourney";
+const TITLE = "PromptX AI (Prompt X) — Free AI Prompt Generator & Prompt Builder";
 const DESCRIPTION =
-  "Turn rough ideas into high-performing prompts in seconds. Free AI prompt builder and tested templates for ChatGPT, Claude, Gemini, Midjourney, and FLUX with no login required.";
+  "PromptX AI (Prompt X) turns rough ideas into high-performing prompts in seconds. Free AI prompt builder and tested templates for ChatGPT, Claude, Gemini, Midjourney, and FLUX with no login required.";
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },
@@ -16,13 +16,13 @@ export const metadata: Metadata = {
     title: TITLE,
     description: DESCRIPTION,
     url: "https://promptx.co.in/",
-    siteName: "PromptX",
+    siteName: "PromptX AI",
     images: [
       {
         url: "/promptx-logo.png",
         width: 1200,
         height: 630,
-        alt: "PromptX Free AI Prompt Generator and Templates",
+        alt: "PromptX AI Free Prompt Generator and Prompt Templates",
       },
     ],
     type: "website",
@@ -53,10 +53,11 @@ export default function Page() {
   const softwareSchema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "PromptX",
+    name: "PromptX AI",
+    alternateName: ["PromptX", "Prompt X", "Prompt X AI", "PromptX.co.in"],
     operatingSystem: "WebBrowser, All",
     applicationCategory: "DesignApplication",
-    applicationSubCategory: "AI Prompt Generator",
+    applicationSubCategory: "AI Prompt Generator & Prompt Engineering Tool",
     description: DESCRIPTION,
     url: "https://promptx.co.in/",
     offers: {

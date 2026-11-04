@@ -5,9 +5,9 @@ export interface FaqItem {
 
 export const FAQ_ITEMS: FaqItem[] = [
   {
-    question: "What is PromptX and how does it differ from ChatGPT?",
+    question: "What is PromptX AI (Prompt X) and how does it work?",
     answer:
-      "PromptX is a prompt generator and prompt template tool—not a chatbot or general knowledge assistant. You do not ask PromptX questions. Instead, you describe a task you want an AI to perform, and PromptX converts your rough instruction into a comprehensive, highly-structured prompt with roles, context, rules, and output formatting ready to paste into ChatGPT, Claude, Gemini, or Midjourney.",
+      "PromptX AI (also searched as Prompt X or PromptX) is a free AI prompt generator and prompt template builder—not a chatbot or general knowledge assistant. You do not ask PromptX questions. Instead, you describe a task you want an AI to perform, and PromptX converts your rough instruction into a comprehensive, highly-structured prompt with roles, context, rules, and output formatting ready to paste directly into ChatGPT, Claude, Gemini, or Midjourney.",
   },
   {
     question: "How do I use PromptX alongside my existing AI tools?",

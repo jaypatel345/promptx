@@ -30,22 +30,22 @@ Rules: Avoid hollow buzzwords (e.g. "thrilled to announce"). Keep line breaks pu
       {/* Brand badge */}
       <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 text-[11px] text-neutral-600 dark:text-neutral-400 mb-5 select-none">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span>Prompt tool — Not a general chatbot</span>
+        <span>PromptX AI — Dedicated Prompt Engineering Builder</span>
       </div>
 
       {/* Main Single H1 */}
       <h1 className="text-2xl sm:text-4xl md:text-[40px] font-semibold tracking-tight text-neutral-950 dark:text-neutral-50 max-w-3xl leading-[1.2]">
-        Open PromptX. Use your LLM on the side. Turn rough ideas into production-ready prompts.
+        PromptX AI: Free AI Prompt Generator &amp; Prompt Engineering Tool
       </h1>
 
       {/* Subheading */}
       <p className="mt-4 text-xs sm:text-sm md:text-base text-neutral-600 dark:text-neutral-400 max-w-xl leading-relaxed">
-        Type a rough idea once. PromptX turns it into a complete, structured prompt. Copy it into ChatGPT, Claude, Gemini or any LLM and get better results on the first try.
+        Type a rough idea once. PromptX AI (Prompt X) turns it into a complete, structured prompt. Copy it directly into ChatGPT, Claude, Gemini, or Midjourney for first-try accuracy without endless prompt rewrites.
       </p>
 
       {/* Trust line */}
       <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-        PromptX writes prompts. It does not answer questions.
+        PromptX AI writes and structures prompts. It is an AI prompt builder, not a general chatbot.
       </p>
 
       {/* Primary and Secondary CTA Buttons */}

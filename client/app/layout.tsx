@@ -24,16 +24,22 @@ export const metadata: Metadata = {
 
   // Better title handling across pages (even if you later add nested page metadata)
   title: {
-    default: "PromptX — Free AI Prompt Generator for ChatGPT, Claude & Midjourney",
-    template: "%s | PromptX",
+    default: "PromptX AI (Prompt X) — Free AI Prompt Generator & Prompt Builder",
+    template: "%s | PromptX AI",
   },
 
   // Keyword-targeted and high CTR description
   description:
-    "Free AI prompt generator and prompt builder. Transform rough ideas into structured, high-performing prompts for ChatGPT, Claude, Gemini, Midjourney, and FLUX with zero login required.",
+    "PromptX AI (Prompt X) is the free AI prompt generator and prompt engineering builder. Transform rough ideas into structured, high-performing prompts for ChatGPT, Claude, Gemini, Midjourney, and FLUX with zero login required.",
 
-  // High-volume target keyword set from SERP intelligence
+  // High-volume target keyword set including primary brand variations
   keywords: [
+    "PromptX",
+    "PromptX AI",
+    "Prompt X",
+    "Prompt X AI",
+    "promptx.co.in",
+    "promptx prompt generator",
     "AI prompt generator",
     "free AI prompt generator",
     "prompt builder for ChatGPT",
@@ -74,17 +80,17 @@ export const metadata: Metadata = {
 
   // Open Graph (social sharing)
   openGraph: {
-    title: "PromptX – AI Prompt Enhancer",
+    title: "PromptX AI (Prompt X) – Free AI Prompt Generator & Builder",
     description:
-      "Rewrite, optimize, and structure your prompts to get better outputs from ChatGPT and other AI tools.",
+      "Transform rough ideas into structured, high-performing prompts for ChatGPT, Claude, Gemini, and Midjourney. Zero login required.",
     url: "https://promptx.co.in/",
-    siteName: "PromptX",
+    siteName: "PromptX AI",
     images: [
       {
         url: "/promptx-logo.png",
         width: 1200,
         height: 630,
-        alt: "PromptX – AI Prompt Enhancer",
+        alt: "PromptX AI – Free AI Prompt Generator & Builder",
       },
     ],
     type: "website",
@@ -94,14 +100,14 @@ export const metadata: Metadata = {
   // Twitter cards
   twitter: {
     card: "summary_large_image",
-    title: "PromptX – AI Prompt Enhancer",
+    title: "PromptX AI (Prompt X) – Free AI Prompt Generator & Builder",
     description:
-      "Rewrite, optimize, and structure your prompts to get better outputs from ChatGPT and other AI tools.",
+      "Transform rough ideas into structured, high-performing prompts for ChatGPT, Claude, Gemini, and Midjourney. Zero login required.",
     images: ["/promptx-logo.png"],
   },
 
   // Optional: helps with some SERP display context
-  applicationName: "PromptX",
+  applicationName: "PromptX AI",
   category: "technology",
 };
 
@@ -138,22 +144,49 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "Organization",
-              name: "PromptX",
-              url: "https://promptx.co.in/",
-              logo: "https://promptx.co.in/promptx-logo.png",
-              image: "https://promptx.co.in/promptx-logo.png",
-              description: "PromptX – AI Enhancer platform.",
-              sameAs: [
-                "https://www.linkedin.com/company/promptx-official",
-                "https://github.com/jaypatel345/promptx",
+              "@graph": [
+                {
+                  "@type": "WebSite",
+                  "@id": "https://promptx.co.in/#website",
+                  url: "https://promptx.co.in/",
+                  name: "PromptX AI",
+                  alternateName: ["PromptX", "Prompt X", "Prompt X AI", "PromptX.co.in"],
+                  description:
+                    "PromptX AI (Prompt X) is a free AI prompt generator and prompt builder tool for ChatGPT, Claude, Gemini, and Midjourney.",
+                  publisher: {
+                    "@id": "https://promptx.co.in/#organization",
+                  },
+                  potentialAction: {
+                    "@type": "SearchAction",
+                    target: {
+                      "@type": "EntryPoint",
+                      urlTemplate: "https://promptx.co.in/templates?q={search_term_string}",
+                    },
+                    "query-input": "required name=search_term_string",
+                  },
+                },
+                {
+                  "@type": "Organization",
+                  "@id": "https://promptx.co.in/#organization",
+                  name: "PromptX",
+                  alternateName: ["PromptX AI", "Prompt X", "Prompt X AI", "PromptX.co.in"],
+                  url: "https://promptx.co.in/",
+                  logo: "https://promptx.co.in/promptx-logo.png",
+                  image: "https://promptx.co.in/promptx-logo.png",
+                  description:
+                    "PromptX AI is a specialized AI prompt engineering and prompt generation platform.",
+                  sameAs: [
+                    "https://www.linkedin.com/company/promptx-official",
+                    "https://github.com/jaypatel345/promptx",
+                  ],
+                  contactPoint: {
+                    "@type": "ContactPoint",
+                    contactType: "customer support",
+                    email: "support@promptx.co.in",
+                    availableLanguage: ["English"],
+                  },
+                },
               ],
-              contactPoint: {
-                "@type": "ContactPoint",
-                contactType: "customer support",
-                email: "support@promptx.co.in",
-                availableLanguage: ["English"],
-              },
             }),
           }}
         />
