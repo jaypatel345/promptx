@@ -24,6 +24,37 @@ interface Attachment {
   kind: "image" | "file";
 }
 
+// Helper to get destination link for the target AI model
+const getTargetModelLink = (id?: string) => {
+  switch (id) {
+    case "chatgpt":
+    case "openai-reasoning":
+      return { url: "https://chatgpt.com", name: "ChatGPT" };
+    case "claude":
+      return { url: "https://claude.ai", name: "Claude" };
+    case "gemini":
+      return { url: "https://gemini.google.com", name: "Gemini" };
+    case "grok":
+      return { url: "https://x.com/i/grok", name: "Grok" };
+    case "deepseek-r1":
+      return { url: "https://chat.deepseek.com", name: "DeepSeek" };
+    case "midjourney":
+      return { url: "https://www.midjourney.com", name: "Midjourney" };
+    case "flux":
+      return { url: "https://fal.ai", name: "Flux" };
+    case "ideogram":
+      return { url: "https://ideogram.ai", name: "Ideogram" };
+    case "dalle":
+      return { url: "https://chatgpt.com", name: "ChatGPT / DALL·E" };
+    case "runway":
+      return { url: "https://runwayml.com", name: "Runway" };
+    case "kling":
+      return { url: "https://klingai.com", name: "Kling" };
+    default:
+      return null;
+  }
+};
+
 function Enhancer() {
   const {
     messages,
@@ -942,25 +973,120 @@ function Enhancer() {
                 ))}
               </div>
             ) : showLanding ? (
-              // Landing View - Centered
-              <div className="flex-1 flex flex-col items-center justify-center my-auto py-12 pointer-events-none text-center">
-                <div className="flex flex-col items-center justify-center gap-5 text-center">
+              // Landing View - Centered with Clear Purpose & Starter Prompts
+              <div className="flex-1 flex flex-col items-center justify-center my-auto py-8 sm:py-12 text-center max-w-2xl mx-auto w-full px-2">
+                <div className="flex flex-col items-center justify-center gap-4 text-center">
                   <Image
                     src="/promptx-logo-black.png"
                     width={80}
                     height={80}
                     alt="PromptX logo"
-                    className="object-contain h-12 w-auto sm:h-14 opacity-75 dark:hidden"
+                    className="object-contain h-12 w-auto sm:h-14 opacity-80 dark:hidden"
                   />
                   <Image
                     src="/promptx-logo-white.png"
                     width={80}
                     height={80}
                     alt="PromptX logo"
-                    className="object-contain h-12 w-auto sm:h-14 opacity-75 hidden dark:block"
+                    className="object-contain h-12 w-auto sm:h-14 opacity-80 hidden dark:block"
                   />
-                  <div className="text-xl sm:text-2xl md:text-3xl text-neutral-900 font-medium dark:text-neutral-100 tracking-tight">
-                    What can I help with?
+
+                  {/* Clarification Badge */}
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-neutral-200 dark:border-neutral-800 bg-neutral-100/80 dark:bg-neutral-900 text-[11px] font-medium text-neutral-600 dark:text-neutral-400 select-none">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>AI Prompt Engineering &amp; Optimization</span>
+                  </div>
+
+                  <div>
+                    <h1 className="text-xl sm:text-2xl md:text-3xl text-neutral-900 font-semibold dark:text-neutral-50 tracking-tight">
+                      Turn rough ideas into master prompts
+                    </h1>
+                    <p className="mt-2 text-xs sm:text-sm text-neutral-500 dark:text-neutral-400 max-w-lg leading-relaxed">
+                      PromptX crafts production-ready prompts tailored for your selected AI model. Describe your idea below, then copy &amp; paste the generated prompt into ChatGPT, Midjourney, Claude, or Flux.
+                    </p>
+                  </div>
+
+                  {/* Quick Starter Chips */}
+                  <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 pt-2 text-left">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTargetModel("midjourney");
+                        setInput("Photorealistic portrait of an Indian woman cooking in a warm kitchen with traditional dishes");
+                        textareaRef.current?.focus();
+                      }}
+                      className="p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/70 hover:bg-neutral-50 dark:hover:bg-neutral-850 hover:border-neutral-300 dark:hover:border-neutral-700 transition cursor-pointer text-left group shadow-2xs"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm">🎨</span>
+                        <span className="text-xs font-semibold text-neutral-900 dark:text-neutral-200 group-hover:text-black dark:group-hover:text-white">
+                          Image Prompt (Midjourney / Flux)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-neutral-500 dark:text-neutral-400 line-clamp-1">
+                        "Photorealistic portrait of a woman cooking in a kitchen..."
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTargetModel("chatgpt");
+                        setInput("Compelling LinkedIn post announcing my new job offer at a high-growth tech startup");
+                        textareaRef.current?.focus();
+                      }}
+                      className="p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/70 hover:bg-neutral-50 dark:hover:bg-neutral-850 hover:border-neutral-300 dark:hover:border-neutral-700 transition cursor-pointer text-left group shadow-2xs"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm">✍️</span>
+                        <span className="text-xs font-semibold text-neutral-900 dark:text-neutral-200 group-hover:text-black dark:group-hover:text-white">
+                          Career &amp; Writing (ChatGPT)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-neutral-500 dark:text-neutral-400 line-clamp-1">
+                        "Compelling LinkedIn post announcing my new job offer..."
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTargetModel("claude");
+                        setInput("Full-stack authentication system with JWT, refresh tokens, and rate limiting in Next.js 15");
+                        textareaRef.current?.focus();
+                      }}
+                      className="p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/70 hover:bg-neutral-50 dark:hover:bg-neutral-850 hover:border-neutral-300 dark:hover:border-neutral-700 transition cursor-pointer text-left group shadow-2xs"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm">💻</span>
+                        <span className="text-xs font-semibold text-neutral-900 dark:text-neutral-200 group-hover:text-black dark:group-hover:text-white">
+                          Coding Architecture (Claude)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-neutral-500 dark:text-neutral-400 line-clamp-1">
+                        "Full-stack auth with JWT &amp; rate limiting in Next.js..."
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTargetModel("runway");
+                        setInput("Cinematic vertical 9:16 drone video shot moving through foggy mountain pine forests at sunrise");
+                        textareaRef.current?.focus();
+                      }}
+                      className="p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/70 hover:bg-neutral-50 dark:hover:bg-neutral-850 hover:border-neutral-300 dark:hover:border-neutral-700 transition cursor-pointer text-left group shadow-2xs"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm">🎬</span>
+                        <span className="text-xs font-semibold text-neutral-900 dark:text-neutral-200 group-hover:text-black dark:group-hover:text-white">
+                          Video Generation (Runway / Kling)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-neutral-500 dark:text-neutral-400 line-clamp-1">
+                        "Cinematic vertical 9:16 drone shot over mountain ridges..."
+                      </p>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1107,41 +1233,79 @@ function Enhancer() {
 
                       {/* Assistant Card Top Bar */}
                       {message.role === "assistant" && !isErrorMessage && (
-                        <div className="flex items-center justify-between pb-3 mb-3 border-b border-neutral-100 dark:border-neutral-900 text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-[10.5px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-900 px-2 py-0.5 rounded border border-neutral-200/60 dark:border-neutral-800/60">
-                              {activeTargetModel?.label || "ChatGPT"}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3.5 mb-3.5 border-b border-neutral-100 dark:border-neutral-900 text-xs">
+                          <div className="flex items-start sm:items-center gap-2">
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold shrink-0 mt-0.5 sm:mt-0">
+                              ✓
                             </span>
-                            <span className="text-[11px] text-neutral-400 hidden sm:inline">
-                              Production Prompt
-                            </span>
+                            <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+                                  {activeTargetModel?.category === "image"
+                                    ? "Ready-to-use Image Prompt"
+                                    : activeTargetModel?.category === "video"
+                                    ? "Ready-to-use Video Prompt"
+                                    : "Ready-to-use Production Prompt"}
+                                </span>
+                                <span className="font-mono text-[10px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-900 px-2 py-0.5 rounded border border-neutral-200/60 dark:border-neutral-800/60">
+                                  {activeTargetModel?.label || "ChatGPT"}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">
+                                {activeTargetModel?.category === "image"
+                                  ? "Copy and paste this prompt directly into Midjourney, Flux, or DALL·E to generate your photo."
+                                  : activeTargetModel?.category === "video"
+                                  ? `Copy and paste this prompt into ${activeTargetModel?.label || "your video AI"} to generate your video.`
+                                  : `Copy and paste this prompt directly into ${activeTargetModel?.label || "ChatGPT"} to generate your result.`}
+                              </p>
+                            </div>
                           </div>
-                          <button
-                            onClick={() => handleCopy(message.content, index)}
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
-                              copiedIndex === index
-                                ? "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
-                                : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 border-neutral-200 dark:border-neutral-800"
-                            }`}
-                            title="Copy full prompt"
-                          >
-                            {copiedIndex === index ? (
-                              <>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                  <polyline points="20 6 9 17 4 12" />
+
+                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                            {getTargetModelLink(targetModel)?.url && (
+                              <a
+                                href={getTargetModelLink(targetModel)!.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={() => handleCopy(message.content, index)}
+                                className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 transition-colors"
+                                title={`Copy prompt and open ${getTargetModelLink(targetModel)!.name}`}
+                              >
+                                <span>Open {getTargetModelLink(targetModel)!.name}</span>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                  <polyline points="15 3 21 3 21 9" />
+                                  <line x1="10" y1="14" x2="21" y2="3" />
                                 </svg>
-                                <span>Copied!</span>
-                              </>
-                            ) : (
-                              <>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                                </svg>
-                                <span>Copy Prompt</span>
-                              </>
+                              </a>
                             )}
-                          </button>
+                            <button
+                              onClick={() => handleCopy(message.content, index)}
+                              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs ${
+                                copiedIndex === index
+                                  ? "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
+                                  : "text-neutral-800 dark:text-neutral-100 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-850 dark:hover:bg-neutral-750 border-neutral-200 dark:border-neutral-750"
+                              }`}
+                              title="Copy full prompt"
+                            >
+                              {copiedIndex === index ? (
+                                <>
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <polyline points="20 6 9 17 4 12" />
+                                  </svg>
+                                  <span>Copied!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                  </svg>
+                                  <span>Copy Prompt</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
                         </div>
                       )}
 
@@ -1710,7 +1874,13 @@ function Enhancer() {
                 <textarea
                   ref={textareaRef}
                   rows={1}
-                  placeholder='Describe what you want your LLM to do, e.g. "LinkedIn post about my first internship"'
+                  placeholder={
+                    activeTargetModel?.category === "image"
+                      ? 'Describe the image you want to create a prompt for (e.g. "Realistic portrait of a woman cooking in kitchen")...'
+                      : activeTargetModel?.category === "video"
+                      ? 'Describe the video scene you want a prompt for (e.g. "Cinematic 9:16 drone shot over mountain ridges")...'
+                      : 'Describe what you want to create (e.g. "LinkedIn post about a new job" or "Full landing page code")...'
+                  }
                   value={input}
                   onChange={(e) => {
                     setInput(e.target.value);
@@ -1781,8 +1951,8 @@ function Enhancer() {
               </div>
             </div>
 
-            <div className="text-center text-[11px] font-medium text-neutral-400 dark:text-neutral-500 mt-2">
-              Describe a task, not a question. PromptX writes prompts; it does not answer general questions.
+            <div className="text-center text-[11px] font-medium text-neutral-400 dark:text-neutral-500 mt-2 select-none">
+              <span>💡 PromptX creates master prompts for <strong>{activeTargetModel?.label || "your target AI"}</strong>. Copy the prompt into {activeTargetModel?.label || "your AI tool"} to generate your final output.</span>
             </div>
 
           </div>
