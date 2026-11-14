@@ -106,6 +106,11 @@ export const metadata: Metadata = {
     images: ["/promptx-logo.png"],
   },
 
+  // Google Search Console ownership verification
+  verification: {
+    google: "QZf9nMzF6y_SumfURIAbrRe5X5OOfI8pcSnKTv0oo8I",
+  },
+
   // Optional: helps with some SERP display context
   applicationName: "PromptX AI",
   category: "technology",
